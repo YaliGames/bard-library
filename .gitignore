@@ -1,0 +1,18 @@
+# Node
+node_modules/
+*.log
+
+# Vite/Build
+frontend/dist/
+.vscode/
+
+# Laravel/PHP
+backend/vendor/
+backend/storage/
+backend/.env
+!backend/library/
+composer.lock
+
+# OS
+.DS_Store
+Thumbs.db

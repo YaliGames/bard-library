@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 与 Element Plus 统一的基本字体与背景（可按需微调） */
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: #f5f7fa; /* 与 Element Plus 背景近似 */
+}
