@@ -94,10 +94,10 @@
             :x="highlightMenuPos.x"
             :y="highlightMenuPos.y"
             :note="currentHitNote"
-            :palette="colorPalette"
             :current-color="currentHitColor"
             @add-note="onAddNote"
             @pick-color="onPickColor"
+            @delete="onDeleteFromMenu"
           />
         </template>
       </div>
@@ -151,10 +151,10 @@
         @jump="(b) => { jumpToBookmark(b); leftDrawerVisible = false }" @remove="removeBookmarkConfirm" />
     </div>
   </el-drawer>
-
 </template>
+
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive, computed, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, watch, computed, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { txtApi } from '@/api/txt'
@@ -174,15 +174,15 @@ import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/
 const route = useRoute()
 const router = useRouter()
 const { state: userSettings } = useSettingsStore()
+const { loggedIn, isRole } = useAuthStore()
+const isLoggedIn = loggedIn
+const isAdmin = computed(()=> isRole('admin'))
 const fileId = Number(route.params.id)
-// 不再使用 URL 查询参数来传递 bookId/chapterIndex，而是使用路由参数 / history state / 本地存储
 const bookId = ref<number>(0)
 const initialChapterIndex = ref<number | undefined>(undefined)
 const LS_LAST_CHAPTER_KEY = (fid: number) => `reader.lastChapter.${fid}`
-const LS_BOOKID_KEY = (fid: number) => `reader.bookId.${fid}`
 
 function resolveInitialContext() {
-  // 1) 路由参数优先
   const pBookRaw = (route.params as any)?.bookId
   const pChapRaw = (route.params as any)?.chapterIndex
   const pBook = typeof pBookRaw === 'string' ? Number(pBookRaw) : Number.isFinite(pBookRaw) ? Number(pBookRaw) : NaN
@@ -196,7 +196,6 @@ function resolveInitialContext() {
     const n = Number(qChap)
     if (Number.isFinite(n)) {
       initialChapterIndex.value = Number(n)
-      // 清理地址栏中的 query chapterIndex 参数
       try {
         const newQuery = { ...route.query }
         delete (newQuery as any).chapterIndex
@@ -205,19 +204,7 @@ function resolveInitialContext() {
     }
   }
 
-  // 2) 历史 state（不污染 URL，刷新后通常也可恢复）
   try {
-    const st: any = (window.history && window.history.state) || {}
-    if (!bookId.value && Number.isFinite(Number(st?.bookId))) bookId.value = Number(st.bookId)
-    if (initialChapterIndex.value == null && Number.isFinite(Number(st?.chapterIndex))) initialChapterIndex.value = Number(st.chapterIndex)
-  } catch { }
-
-  // 3) 本地存储兜底（按文件维度记忆）
-  try {
-    if (!bookId.value) {
-      const b = Number(localStorage.getItem(LS_BOOKID_KEY(fileId)) || '0')
-      if (Number.isFinite(b) && b > 0) bookId.value = b
-    }
     if (initialChapterIndex.value == null) {
       const c = Number(localStorage.getItem(LS_LAST_CHAPTER_KEY(fileId)) || 'NaN')
       if (Number.isFinite(c)) initialChapterIndex.value = c
@@ -237,9 +224,6 @@ const currentChapterIndex = ref<number | null>(null)
 const settingsVisible = ref(false)
 const leftDrawerVisible = ref(false)
 const contentRef = ref<{ scrollToTarget: (opts: { startSid?: number; endSid?: number; selectionText?: string }) => void } | null>(null)
-const { loggedIn, isRole } = useAuthStore()
-const isLoggedIn = loggedIn
-const isAdmin = computed(()=> isRole('admin'))
 const leftTab = ref<'chapters' | 'bookmarks'>('chapters')
 const hasPrevChapter = computed(() => typeof currentChapterIndex.value === 'number' && currentChapterIndex.value > 0)
 const hasNextChapter = computed(() => typeof currentChapterIndex.value === 'number' && chapters.value.length > 0 && currentChapterIndex.value < chapters.value.length - 1)
@@ -249,7 +233,6 @@ const selectionMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 // 高亮点击菜单
 const showHighlightMenu = ref(false)
 const highlightMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
-const colorPalette = ['#FAD878','#A0E7E5','#B4F8C8','#FBE7C6','#FFD6E7','#C9C9FF']
 const currentHitBookmarkId = ref<number | null>(null)
 const currentHitNote = computed(() => bookmarks.value.find(b => b.id === currentHitBookmarkId.value)?.note || '')
 const currentHitColor = computed(() => bookmarks.value.find(b => b.id === currentHitBookmarkId.value)?.color || null)
@@ -260,7 +243,6 @@ const selectionActions = computed(() => {
       acts.push({ key: 'highlight', label: '高亮', onClick: () => { highlightSelection(); hideSelectionMenu() } })
     }
     acts.push({ key: 'copy', label: '复制', onClick: () => { copySelection(); hideSelectionMenu() } })
-    acts.push({ key: 'clear', label: '清除本章', onClick: () => { clearHighlights(); hideSelectionMenu() } })
   } else {
     acts.push({ key: 'copy', label: '复制', onClick: () => { copySelection(); hideSelectionMenu() } })
   }
@@ -375,12 +357,10 @@ async function loadChapters() {
   loading.value = true
   try {
     const list = await txtApi.listChapters(fileId)
-    // 若接口返回了 book_id，写入并持久化
     try {
       const b = (list && list.length > 0 && (list[0] as any).book_id) ? Number((list[0] as any).book_id) : 0
       if (Number.isFinite(b) && b > 0) {
         bookId.value = b
-        try { localStorage.setItem(LS_BOOKID_KEY(fileId), String(b)) } catch { }
       }
     } catch { }
     chapters.value = list
@@ -425,19 +405,12 @@ async function openChapter(index: number) {
       const b = Number((data as any).book_id || 0)
       if (Number.isFinite(b) && b > 0) {
         bookId.value = b
-        try { localStorage.setItem(LS_BOOKID_KEY(fileId), String(b)) } catch { }
       }
     } catch { }
     content.value = data.content
     sentences.value = splitIntoSentences(data.content)
     sentenceOffsets = buildSentenceOffsets(sentences.value)
     currentChapterIndex.value = index
-    // 更新 history state（不改变 URL），以支持刷新后仍能回到本章
-    try {
-      const prev = (window.history && window.history.state) || {}
-      const next = { ...prev, chapterIndex: index, ...(bookId.value ? { bookId: bookId.value } : {}) }
-      window.history.replaceState(next, document.title)
-    } catch { }
     selectionRange.value = null
     hideSelectionMenu()
     await loadBookmarksForChapter()
@@ -454,8 +427,7 @@ async function openChapter(index: number) {
       }
       pendingScroll.value = null
     }
-    // 保存阅读进度（为 pdf/epub 预留 location 格式）
-    // 记录最近章节，便于刷新/回访
+    // 保存阅读进度
     try { localStorage.setItem(LS_LAST_CHAPTER_KEY(fileId), String(index)) } catch { }
     if (bookId.value && isLoggedIn.value) {
       const total = chapters.value.length > 0 ? chapters.value.length : 1
@@ -475,8 +447,6 @@ onMounted(loadSettings)
 onMounted(async () => {
   await initAuthState()
   resolveInitialContext()
-  // 若解析到 bookId，进行持久化，便于刷新后的无查询参数恢复
-  try { if (bookId.value) localStorage.setItem(LS_BOOKID_KEY(fileId), String(bookId.value)) } catch { }
   await loadChapters()
 })
 
@@ -589,8 +559,6 @@ async function highlightSelection() {
     const payload: Partial<Bookmark> = {
       // 以绝对偏移作为稳定锚点；保留 selectionText 便于渲染高亮
       location: JSON.stringify({ format: 'txt', fileId: fileId, absStart, absEnd, selectionText }),
-      // 让后端也保存 file_id 字段
-      // @ts-ignore 后端允许 file_id 可选
       file_id: fileId as any,
     }
     const b = await bookmarksApi.create(bookId.value, payload)
@@ -617,20 +585,6 @@ async function highlightSelection() {
     }
     markTick.value++
   }
-}
-
-async function clearHighlights() {
-  if (!isLoggedIn.value || !bookId.value || bookmarks.value.length === 0) return
-  // try {
-  //   // 简化：删除本章的全部书签（逐个调删除接口）
-  //   for (const b of [...filteredBookmarks.value]) {
-  //     try { await bookmarksApi.remove(bookId.value, b.id) } catch { }
-  //   }
-  // } finally {
-  //   bookmarks.value = []
-  //   selectionRange.value = null
-  //   hideSelectionMenu()
-  // }
 }
 
 function jumpToBookmark(b: Bookmark) {
@@ -677,6 +631,16 @@ function jumpToBookmark(b: Bookmark) {
   } catch { }
 }
 
+function onDeleteFromMenu() {
+  try {
+    if (!currentHitBookmarkId.value) return
+    const b = bookmarks.value.find((x: any) => x.id === currentHitBookmarkId.value)
+    if (!b) return
+    removeBookmarkConfirm(b)
+    hideHighlightMenu()
+  } catch { }
+}
+
 async function removeBookmarkConfirm(b: Bookmark) {
   ElMessageBox.confirm(
     '是否删除该书签？',
@@ -714,9 +678,8 @@ async function initAuthState() {
   }
 }
 
-// 浮动菜单工具函数与监听
 function hideSelectionMenu() { showSelectionMenu.value = false }
-
+function hideHighlightMenu() { showHighlightMenu.value = false }
 function onWindowScroll() { hideSelectionMenu(); hideHighlightMenu() }
 function onWindowResize() { hideSelectionMenu(); hideHighlightMenu() }
 function onDocMouseDown() { hideSelectionMenu(); hideHighlightMenu() }
@@ -730,8 +693,6 @@ onUnmounted(() => {
   window.removeEventListener('resize', onWindowResize)
   document.removeEventListener('mousedown', onDocMouseDown)
 })
-
-function hideHighlightMenu() { showHighlightMenu.value = false }
 
 async function onAddNote() {
   try {

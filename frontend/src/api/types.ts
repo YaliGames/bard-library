@@ -52,6 +52,7 @@ export interface Book {
 export interface Bookmark {
   id: number;
   book_id?: number;
+  file_id?: number;
   // 任意位置信息，具体由后端定义（如 chapterIndex/cfi/page 等）
   location?: string | null;
   note?: string | null;
