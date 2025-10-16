@@ -13,14 +13,52 @@
         <div v-if="meta.title" class="text-sm text-gray-600">{{ meta.title }}</div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <el-input-number v-model="scale" :min="0.25" :max="3" :step="0.25" size="small" />
-        <el-button @click="prevPage">上一页</el-button>
-        <el-button @click="nextPage">下一页</el-button>
-        <div class="text-sm">{{ page }} / {{ totalPages }}</div>
-        <el-button type="primary" @click="download">下载原文件</el-button>
-        <!-- Annotation toolbar -->
-        <el-segmented v-model="tool" :options="['select', 'rect', 'text']" size="small" />
+      <div class="flex items-center gap-3">
+        <!-- scale control (left button, text, right button - match page navigation) -->
+        <div class="flex items-center gap-1 bg-white/60 rounded px-2 py-1 shadow-sm">
+          <el-button size="small" type="text" @click="zoomOut" class="p-1">
+            <span class="material-symbols-outlined">zoom_out</span>
+          </el-button>
+          <div class="text-sm px-2">{{ formattedScale }}</div>
+          <el-button size="small" type="text" @click="zoomIn" class="p-1">
+            <span class="material-symbols-outlined">zoom_in</span>
+          </el-button>
+        </div>
+
+        <!-- page navigation -->
+        <div class="flex items-center gap-1 bg-white/60 rounded px-2 py-1">
+          <el-button size="small" type="text" @click="prevPage" class="p-1">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </el-button>
+          <div class="text-sm px-2">{{ page }} / {{ totalPages }}</div>
+          <el-button size="small" type="text" @click="nextPage" class="p-1">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </el-button>
+        </div>
+
+        <!-- tool switcher (icon buttons) -->
+        <div class="inline-flex items-center rounded overflow-hidden">
+          <el-button-group>
+            <el-button class="mr-0"
+              @click="tool = 'select'" :type="tool === 'select' ? 'primary' : 'default'">
+              <span class="material-symbols-outlined">visibility</span>
+            </el-button>
+            <el-button class="ml-0"
+              @click="tool = 'rect'" :type="tool === 'rect' ? 'primary' : 'default'">
+              <span class="material-symbols-outlined">crop_square</span>
+            </el-button>
+            <el-button class="ml-0"
+              @click="tool = 'text'" :type="tool === 'text' ? 'primary' : 'default'">
+              <span class="material-symbols-outlined">text_snippet</span>
+            </el-button>
+          </el-button-group>
+        </div>
+
+        <!-- download -->
+        <el-button type="primary" @click="download" class="flex items-center gap-1">
+          <span class="material-symbols-outlined">download</span>
+          <span class="hidden sm:inline">下载</span>
+        </el-button>
       </div>
     </div>
 
@@ -89,6 +127,8 @@ const pdfArrayBuffer = ref<ArrayBuffer | null>(null)
 const useIframeFallback = ref(false)
 const fallbackBlobUrl = ref<string | null>(null)
 let triedUrlFallback = false
+// track current pdf.js render task so we can cancel it when starting a new render
+let currentRenderTask: any = null
 
 // annotation tool state
 const tool = ref<'select' | 'rect' | 'text'>('rect')
@@ -105,6 +145,18 @@ const annotations = ref<any[]>(loadAnnotations())
 const pageAnnotations = computed(() => annotations.value.filter(a => a.page === page.value))
 // key to force re-render only the annotations host (won't remount overlay or textLayer)
 const annotationRenderKey = ref(0)
+
+const formattedScale = computed(() => Math.round((scale.value || 1) * 100) + '%')
+
+function zoomIn() {
+  scale.value = Math.min(3, +(Math.round((scale.value + 0.25) * 100) / 100).toFixed(2))
+  renderPage()
+}
+
+function zoomOut() {
+  scale.value = Math.max(0.25, +(Math.round((scale.value - 0.25) * 100) / 100).toFixed(2))
+  renderPage()
+}
 
 async function forceRerenderAnnotations(retries = 3, delay = 40) {
   for (let i = 0; i < retries; i++) {
@@ -348,7 +400,33 @@ async function renderPage() {
       canvasContext: context,
       viewport: viewport
     }
-    await pdfPage.render(renderContext).promise
+    // cancel any previous render that might be using the same canvas
+    try {
+      if (currentRenderTask && typeof currentRenderTask.cancel === 'function') {
+        currentRenderTask.cancel()
+      }
+    } catch (e) {
+      // ignore cancellation errors
+    }
+    const renderTask = pdfPage.render(renderContext)
+    currentRenderTask = renderTask
+    try {
+      await renderTask.promise
+    } catch (e: any) {
+      // pdf.js throws when a render is cancelled; treat cancellation as non-fatal
+      const msg = (e && (e.message || e.toString && e.toString())) || ''
+      if (/cancel/i.test(String(msg))) {
+        // canceled render - do not set error, just return quietly
+        // clear current task reference
+        if (currentRenderTask === renderTask) currentRenderTask = null
+        return
+      }
+      // rethrow other errors to be handled by outer catch
+      throw e
+    } finally {
+      // clear current task when done (either success or error)
+      if (currentRenderTask === renderTask) currentRenderTask = null
+    }
 
     // adjust overlay size and draw annotations from localStorage demo
     nextTick(async () => {
@@ -565,6 +643,8 @@ onUnmounted(() => {
   }
   window.removeEventListener('mouseup', onWindowMouseUp)
   document.removeEventListener('mousedown', onDocMouseDown)
+  // cancel any in-flight render
+  try { if (currentRenderTask && typeof currentRenderTask.cancel === 'function') currentRenderTask.cancel() } catch {}
 })
 
 watch(scale, () => {
