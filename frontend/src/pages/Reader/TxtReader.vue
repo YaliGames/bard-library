@@ -8,7 +8,7 @@
           <el-button type="primary" v-if="isAdmin" @click="goEditChapters">编辑章节</el-button>
         </div>
         <div class="p-2">
-          <ReaderNavTabs v-model:tab="leftTab" :chapters="chapters" :current-chapter-index="currentChapterIndex"
+          <TxtNavTabs v-model:tab="leftTab" :chapters="chapters" :current-chapter-index="currentChapterIndex"
             :is-logged-in="isLoggedIn" :filtered-bookmarks="filteredBookmarks" 
             :auto-scroll-category="userSettings.txtReader?.autoScrollCategory"
             @open-chapter="openChapter"
@@ -24,7 +24,7 @@
           <div class="flex items-center justify-between px-3 py-2">
             <h3 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">{{ 'title' in book && book.title ? book.title : '正文' }}</h3>
             <div class="flex items-center">
-              <ChapterNav
+              <TxtChapterNav
                 :has-prev="hasPrevChapter"
                 :has-next="hasNextChapter"
                 @prev="goPrevChapter"
@@ -63,7 +63,7 @@
         <template v-else>
           <div class="max-w-[var(--reader-content-width)] mx-auto px-4">
             <div class="overflow-hidden">
-              <ReaderContent
+              <TxtReaderContent
                 ref="contentRef"
                 :content="content"
                 :sentences="sentences"
@@ -73,7 +73,7 @@
                 @mark-click="onMarkClickEvent"
               />
               <div class="px-3 py-2 mb-24">
-                <ChapterNav
+                <TxtChapterNav
                   :has-prev="hasPrevChapter"
                   :has-next="hasNextChapter"
                   @prev="goPrevChapter"
@@ -144,11 +144,11 @@
   <!-- 移动端：左侧导览抽屉，仅小屏显示 -->
   <el-drawer v-model="leftDrawerVisible" title="导览" direction="ltr" size="80%" class="md:!hidden">
     <div class="px-2">
-      <ReaderNavTabs v-model:tab="leftTab" :chapters="chapters" :current-chapter-index="currentChapterIndex"
+      <TxtNavTabs v-model:tab="leftTab" :chapters="chapters" :current-chapter-index="currentChapterIndex"
         :is-logged-in="isLoggedIn" :filtered-bookmarks="filteredBookmarks"
         :auto-scroll-category="userSettings.txtReader?.autoScrollCategory"
-        @open-chapter="(i) => { openChapter(i); leftDrawerVisible = false }"
-        @jump="(b) => { jumpToBookmark(b); leftDrawerVisible = false }" @remove="removeBookmarkConfirm" />
+        @open-chapter="(i: number) => { openChapter(i); leftDrawerVisible = false }"
+        @jump="(b: Bookmark) => { jumpToBookmark(b); leftDrawerVisible = false }" @remove="removeBookmarkConfirm" />
     </div>
   </el-drawer>
 </template>
@@ -163,11 +163,11 @@ import { bookmarksApi } from '@/api/bookmarks'
 import type { Book, Bookmark } from '@/api/types'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
-import ReaderNavTabs from '@/components/Reader/NavTabs.vue'
 import HighlightMenu from '@/components/Reader/HighlightMenu.vue'
 import SelectionMenu from '@/components/Reader/SelectionMenu.vue'
-import ReaderContent from '@/components/Reader/Content.vue'
-import ChapterNav from '@/components/Reader/ChapterNav.vue'
+import TxtNavTabs from '@/components/Reader/TxtNavTabs.vue'
+import TxtChapterNav from '@/components/Reader/TxtChapterNav.vue'
+import TxtReaderContent from '@/components/Reader/TxtContent.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/utils/reader'
 

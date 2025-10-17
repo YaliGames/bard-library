@@ -20,7 +20,7 @@
   </article>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { escapeHtml, clampRanges, mergeRanges, buildSentenceOffsets } from '@/utils/reader'
 
 // Props & Emits
