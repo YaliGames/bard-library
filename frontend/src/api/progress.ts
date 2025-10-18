@@ -11,10 +11,12 @@ export interface ProgressPayload {
 }
 
 export const progressApi = {
-  get: (bookId: number) => {
-    return http.get<any>(`/api/v1/books/${bookId}/progress`);
+  get: (bookId: number, fileId?: number | null) => {
+    const path = fileId ? `/api/v1/books/${bookId}/${fileId}/progress` : `/api/v1/books/${bookId}/progress`
+    return http.get<any>(path);
   },
-  save: (bookId: number, payload: ProgressPayload) => {
-    return http.post<any>(`/api/v1/books/${bookId}/progress`, payload);
+  save: (bookId: number, payload: ProgressPayload, fileId?: number | null) => {
+    const path = fileId ? `/api/v1/books/${bookId}/${fileId}/progress` : `/api/v1/books/${bookId}/progress`
+    return http.post<any>(path, payload);
   },
 }

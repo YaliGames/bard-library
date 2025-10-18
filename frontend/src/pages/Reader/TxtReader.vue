@@ -312,7 +312,7 @@ const pendingScroll = ref<{ chapterIndex: number; selectionText?: string; startS
 async function loadBookmarksForChapter() {
   if (!isLoggedIn.value || !bookId.value || currentChapterIndex.value == null) return
   try {
-    const bookmarksResponse = await bookmarksApi.list(bookId.value)
+  const bookmarksResponse = await bookmarksApi.list(bookId.value, fileId)
     const list = bookmarksResponse.bookmarks || []
     book.value = bookmarksResponse.book || {}
 
@@ -370,7 +370,7 @@ async function loadChapters() {
     } else if (bookId.value && isLoggedIn.value) {
       // 服务端进度（仅登录用户）
       try {
-        const p = await progressApi.get(bookId.value)
+        const p = await progressApi.get(bookId.value, fileId)
         const loc = typeof p?.location === 'string' ? (JSON.parse(p.location || '{}')) : undefined
         // 优先使用 absStart 恢复
         if (loc && typeof loc.absStart === 'number') {
@@ -437,7 +437,7 @@ async function openChapter(index: number) {
         progress: Math.min(1, Math.max(0, (index + 1) / total)),
         location: JSON.stringify({ format: 'txt', absStart: base })
       }
-      try { await progressApi.save(bookId.value, payload) } catch { }
+  try { await progressApi.save(bookId.value, payload, fileId) } catch { }
     }
   } finally { loading.value = false }
 }
@@ -561,7 +561,7 @@ async function highlightSelection() {
       location: JSON.stringify({ format: 'txt', fileId: fileId, absStart, absEnd, selectionText }),
       file_id: fileId as any,
     }
-    const b = await bookmarksApi.create(bookId.value, payload)
+  const b = await bookmarksApi.create(bookId.value, payload, fileId)
     bookmarks.value.push(b)
     // 回填 id/color
     for (const [i, arrAdded] of addedBySentence.entries()) {

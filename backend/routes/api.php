@@ -57,14 +57,18 @@ Route::prefix('v1')->group(function () {
             Route::post('/import', [ImportController::class, 'upload']);
         });
 
-        // 阅读进度（公开）
+        // 阅读进度（公开） 支持可选 fileId：/books/{id}/progress 和 /books/{id}/{fileId}/progress
         Route::get('/{id}/progress', [ProgressController::class, 'show']);
         Route::post('/{id}/progress', [ProgressController::class, 'upsert']);
+        Route::get('/{id}/{fileId}/progress', [ProgressController::class, 'showWithFile']);
+        Route::post('/{id}/{fileId}/progress', [ProgressController::class, 'upsertWithFile']);
 
-        // 书签（需登录）
+        // 书签（需登录） 支持可选 fileId：/books/{id}/bookmarks 和 /books/{id}/{fileId}/bookmarks
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/bookmarks', [BookmarksController::class, 'list']);
             Route::post('/{id}/bookmarks', [BookmarksController::class, 'create']);
+            Route::get('/{id}/{fileId}/bookmarks', [BookmarksController::class, 'listByFile']);
+            Route::post('/{id}/{fileId}/bookmarks', [BookmarksController::class, 'createByFile']);
             Route::patch('/{id}/bookmarks/{bookmarkId}', [BookmarksController::class, 'update']);
             Route::delete('/{id}/bookmarks/{bookmarkId}', [BookmarksController::class, 'delete']);
         });

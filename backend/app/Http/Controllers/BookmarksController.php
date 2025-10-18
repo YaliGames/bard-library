@@ -18,6 +18,16 @@ class BookmarksController extends Controller
         return $response;
     }
 
+    public function listByFile(Request $request, int $bookId, int $fileId)
+    {
+        $userId = (int)($request->user()->id ?? $request->query('user_id', 1));
+        $bookId = (int)$bookId;
+        $book = Book::find($bookId);
+        $bm = Bookmark::where('user_id', $userId)->where('book_id', $bookId)->where('file_id', $fileId)->orderBy('id')->get();
+        $response = ['book' => $book, 'bookmarks' => $bm];
+        return $response;
+    }
+
     public function create(Request $request, int $bookId)
     {
         $userId = (int)($request->user()->id ?? $request->input('user_id', 1));
@@ -30,6 +40,23 @@ class BookmarksController extends Controller
             'user_id' => $userId,
             'book_id' => $bookId,
             'file_id' => $data['file_id'] ?? null,
+            'location' => $data['location'],
+            'note' => $data['note'] ?? null,
+        ]);
+        return response()->json($bm, 201);
+    }
+
+    public function createByFile(Request $request, int $bookId, int $fileId)
+    {
+        $userId = (int)($request->user()->id ?? $request->input('user_id', 1));
+        $data = $request->validate([
+            'location' => ['required','string','max:1024'],
+            'note' => ['nullable','string'],
+        ]);
+        $bm = Bookmark::create([
+            'user_id' => $userId,
+            'book_id' => $bookId,
+            'file_id' => $fileId,
             'location' => $data['location'],
             'note' => $data['note'] ?? null,
         ]);
