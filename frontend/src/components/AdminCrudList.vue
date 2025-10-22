@@ -11,26 +11,42 @@
     </div>
 
     <el-card shadow="never" class="mb-3">
+      <!-- Row 1: 搜索 -->
       <div class="flex flex-wrap items-center gap-2">
-        <el-input v-model="q" :placeholder="searchPlaceholder || '搜索名称'" style="width:240px" clearable @keyup.enter="load" />
-        <el-button type="primary" @click="load" :loading="loading">搜索</el-button>
-        <el-divider direction="vertical" />
-        <el-input v-model="newName" :placeholder="createPlaceholder || '新建名称'" style="width:240px" clearable @keyup.enter="create" />
+        <el-input v-model="q" :placeholder="searchPlaceholder || '搜索名称'" class="w-full md:w-[260px]" clearable @keyup.enter="reload" />
+        <el-button type="primary" @click="reload" :loading="loading">搜索</el-button>
+      </div>
+
+      <!-- Row 2: 新建区域 -->
+      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <el-input v-model="newName" :placeholder="createPlaceholder || '新建名称'" />
         <template v-for="ef in extraFields" :key="ef.key">
-          <el-input v-model="newExtras[ef.key]" :placeholder="ef.placeholder || ('新建' + ef.label)" style="width:240px" clearable />
+          <el-input v-model="newExtras[ef.key]" :placeholder="ef.placeholder || ('新建' + ef.label)" />
         </template>
-        <el-button @click="create" :loading="creating">新建</el-button>
+        <div class="flex items-center">
+          <el-button class="w-full sm:w-auto" @click="create" :loading="creating">新建</el-button>
+        </div>
       </div>
     </el-card>
 
     <el-card shadow="never">
       <template #header>
-        <div class="flex items-center justify-between"><span>列表</span><el-button text @click="load">刷新</el-button></div>
+        <div class="flex items-center justify-between"><span>列表</span><el-button text @click="reload">刷新</el-button></div>
       </template>
       <el-empty v-if="!loading && items.length===0" description="暂无数据" />
-      <el-table v-else :data="items" border stripe :height="tableHeight">
-        <el-table-column label="#" prop="id" width="100" />
-        <el-table-column label="名称">
+      <div v-else class="overflow-x-auto">
+        <el-table
+          :data="items"
+          border
+          stripe
+          :height="tableHeight"
+          size="small"
+          class="min-w-[640px]"
+          :default-sort="defaultSort"
+          @sort-change="onSortChange"
+        >
+        <el-table-column label="#" prop="id" width="100" :sortable="sortableMode" />
+        <el-table-column label="名称" prop="name" :sortable="sortableMode">
           <template #default="{ row }">
             <template v-if="editingId===row.id">
               <el-input v-model="editingName" size="small" @keyup.enter="update(row.id)" />
@@ -39,7 +55,7 @@
           </template>
         </el-table-column>
         <template v-for="ef in extraFields" :key="ef.key">
-          <el-table-column :label="ef.label">
+          <el-table-column :label="ef.label" :prop="ef.key" :sortable="sortableMode">
             <template #default="{ row }">
               <template v-if="editingId===row.id">
                 <el-input v-model="editingExtras[ef.key]" size="small" />
@@ -64,7 +80,8 @@
             </template>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
     </el-card>
   </section>
 </template>
@@ -81,12 +98,18 @@ const props = defineProps<{
   searchPlaceholder?: string
   createPlaceholder?: string
   fetchList: (q?: string) => Promise<Item[]>
+  // 可选：带排序的拉取函数；若提供则优先使用
+  fetchListEx?: (params: { q?: string; sortKey?: string; sortOrder?: 'asc'|'desc' }) => Promise<Item[]>
   createItem?: (name: string) => Promise<any>
   updateItem?: (id: number, name: string) => Promise<any>
   deleteItem: (id: number) => Promise<any>
   createItemRaw?: (payload: Record<string, any>) => Promise<any>
   updateItemRaw?: (id: number, payload: Record<string, any>) => Promise<any>
   extraFields?: Array<{ key: string; label: string; placeholder?: string }>
+  // 排序配置（不提供则默认提供 ID/名称 + extraFields）
+  sortOptions?: Array<{ key: string; label: string }>
+  defaultSortKey?: string
+  defaultSortOrder?: 'asc' | 'desc'
   tableHeight?: number | string
 }>()
 
@@ -106,6 +129,15 @@ const editingExtras = ref<Record<string, any>>({})
 
 const tableHeight = computed(()=> props.tableHeight ?? 520)
 
+// 使用 Element Plus 表格自带排序
+const remoteSort = computed(() => !!props.fetchListEx)
+const sortableMode = computed(() => remoteSort.value ? 'custom' : true)
+const sortProp = ref<string | undefined>(props.defaultSortKey || undefined)
+const sortOrderEp = ref<'ascending'|'descending'|null>(
+  props.defaultSortOrder === 'asc' ? 'ascending' : props.defaultSortOrder === 'desc' ? 'descending' : null
+)
+const defaultSort = computed(() => (sortProp.value && sortOrderEp.value) ? { prop: sortProp.value, order: sortOrderEp.value } : undefined)
+
 function back() { router.back() }
 
 async function load(){
@@ -113,6 +145,30 @@ async function load(){
   try { items.value = await props.fetchList(q.value.trim() || undefined) }
   catch (e:any) { ElMessage.error(e?.message || '加载失败') }
   finally { loading.value = false }
+}
+
+async function loadRemote(){
+  if (!props.fetchListEx) return load()
+  loading.value = true
+  try {
+    const order = sortOrderEp.value === 'ascending' ? 'asc' : sortOrderEp.value === 'descending' ? 'desc' : undefined
+    items.value = await props.fetchListEx({ q: q.value.trim() || undefined, sortKey: sortProp.value, sortOrder: order as any })
+  } catch (e:any) {
+    ElMessage.error(e?.message || '加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function reload(){
+  if (remoteSort.value) return loadRemote()
+  return load()
+}
+
+function onSortChange(e: { prop?: string; order?: 'ascending'|'descending'|null }){
+  sortProp.value = e.prop || undefined
+  sortOrderEp.value = e.order ?? null
+  if (remoteSort.value) { loadRemote() }
 }
 
 async function create(){
@@ -130,7 +186,7 @@ async function create(){
     }
     newName.value=''
     newExtras.value = {}
-    await load(); ElMessage.success('已创建')
+  await reload(); ElMessage.success('已创建')
   }
   catch (e:any) { ElMessage.error(e?.message || '创建失败') }
   finally { creating.value = false }
@@ -157,7 +213,7 @@ async function update(id:number){
     } else {
       throw new Error('未提供 updateItem 或 updateItemRaw')
     }
-    cancelEdit(); await load(); ElMessage.success('已保存')
+  cancelEdit(); await reload(); ElMessage.success('已保存')
   }
   catch (e:any) { ElMessage.error(e?.message || '保存失败') }
   finally { updating.value = false }
@@ -165,12 +221,12 @@ async function update(id:number){
 
 async function remove(id:number){
   removingId.value = id
-  try { await props.deleteItem(id); await load(); ElMessage.success('已删除') }
+  try { await props.deleteItem(id); await reload(); ElMessage.success('已删除') }
   catch (e:any) { ElMessage.error(e?.message || '删除失败') }
   finally { removingId.value = null }
 }
 
-onMounted(load)
+onMounted(reload)
 </script>
 
 <style scoped>
