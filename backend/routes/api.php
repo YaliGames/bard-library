@@ -14,6 +14,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TxtController;
 use App\Http\Controllers\MarkController;
 use App\Http\Controllers\CoversController;
+use App\Http\Controllers\MetadataController;
 
 // API v1
 Route::prefix('v1')->group(function () {
@@ -181,5 +182,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [SeriesController::class, 'store']);
             // 若后续需要：Route::patch('/{id}', ...); Route::delete('/{id}', ...);
         });
+    });
+
+    // ============================
+    // Metadata 元数据抓取（公开）
+    // ============================
+    Route::prefix('metadata')->group(function () {
+        // 搜索并返回若干图书元数据项（默认最多5条）
+        Route::get('/douban/search', [MetadataController::class, 'search']);
+        // 根据 id 或 url 返回单本详情
+        Route::get('/douban/book', [MetadataController::class, 'book']);
+        // 代理封面（避免防盗链）
+        Route::get('/douban/cover', [MetadataController::class, 'cover']);
     });
 });

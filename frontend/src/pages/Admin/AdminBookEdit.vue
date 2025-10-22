@@ -70,7 +70,14 @@
             <!-- 基本信息 -->
             <el-card class="lg:col-span-2" shadow="never">
                 <template #header>
-                    <div class="font-medium">基本信息</div>
+                    <div class="flex items-center justify-between">
+                        <div class="font-medium">基本信息</div>
+                        <div class="flex items-center gap-2">
+                            <el-button size="small" @click="openMetaDialog">
+                                <span class="material-symbols-outlined mr-1 text-lg">travel_explore</span> 从网络刮削
+                            </el-button>
+                        </div>
+                    </div>
                 </template>
                 <div class="flex items-start gap-6">
                     <el-form label-width="100px" label-position="left" class="max-w-3xl flex-1">
@@ -130,6 +137,12 @@
             <!-- 右侧列占位（可放其他设置） -->
             <div></div>
         </div>
+
+        <MetadataSearchDialog v-model="metaDialogVisible"
+            :default-provider="'douban'"
+            :default-query="defaultMetaQuery"
+            title="从平台搜索元数据"
+            @apply="onMetaApply" />
     </section>
 </template>
 <script setup lang="ts">
@@ -144,6 +157,10 @@ import type { Book, FileRec, Author, Tag, Series } from '@/api/types'
 import { importsApi } from '@/api/imports'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import CoverEditor from '@/components/CoverEditor.vue'
+import MetadataSearchDialog from '@/components/metadata/MetadataSearchDialog.vue'
+import type { MetaRecord } from '@/types/metadata'
+import { metadataApi } from '@/api/metadata'
+import { coversApi } from '@/api/covers'
 
 const route = useRoute()
 const router = useRouter()
@@ -163,6 +180,23 @@ const authorValues = ref<(number | string)[]>([])
 const tagValues = ref<(number | string)[]>([])
 const pickedFile = ref<File | null>(null)
 const uploading = ref(false)
+const metaDialogVisible = ref(false)
+const pendingCoverUrl = ref<string | null>(null)
+const pendingCoverProvider = ref<string | null>(null)
+const defaultMetaQuery = computed(() => {
+    const t = (form.value.title || '').trim()
+    const authorNames: string[] = []
+    for (const v of authorValues.value) {
+        if (typeof v === 'number') {
+            const found = authorsAll.value.find(a => a.id === v)
+            if (found?.name) authorNames.push(found.name)
+        } else if (typeof v === 'string' && v.trim()) {
+            authorNames.push(v.trim())
+        }
+    }
+    const a = authorNames.join(' ')
+    return [t, a].filter(Boolean).join(' ').trim()
+})
 
 async function load() {
     // 丛书列表总是需要
@@ -198,9 +232,41 @@ async function save() {
             : null
         if (isNew.value) {
             const created = await booksApi.create(payload)
+            // 如果有待设置封面，创建成功后优先使用原始链接导入，失败则回退到代理链接
+            if (pendingCoverUrl.value) {
+                let imported = false
+                try {
+                    const r = await coversApi.fromUrl(created.id, { url: pendingCoverUrl.value })
+                    form.value.cover_file_id = r?.file_id as any
+                    imported = true
+                } catch {}
+                if (!imported && pendingCoverProvider.value) {
+                    try {
+                        const proxyUrl = metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
+                        const r2 = await coversApi.fromUrl(created.id, { url: proxyUrl })
+                        form.value.cover_file_id = r2?.file_id as any
+                    } catch {}
+                }
+            }
             router.replace({ name: 'admin-book-edit', params: { id: created.id } })
         } else {
             await booksApi.update(Number(idParam), payload)
+            // 若编辑已有书且存在待设置封面，则立即导入
+            if (pendingCoverUrl.value) {
+                let imported = false
+                try {
+                    const r = await coversApi.fromUrl(Number(idParam), { url: pendingCoverUrl.value })
+                    form.value.cover_file_id = r?.file_id as any
+                    imported = true
+                } catch {}
+                if (!imported && pendingCoverProvider.value) {
+                    try {
+                        const proxyUrl = metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
+                        const r2 = await coversApi.fromUrl(Number(idParam), { url: proxyUrl })
+                        form.value.cover_file_id = r2?.file_id as any
+                    } catch {}
+                }
+            }
         }
         ElMessage.success('保存成功')
     } catch (e: any) {
@@ -255,4 +321,66 @@ onMounted(load)
 
 function downloadFile(fid: number) { window.location.href = `/api/v1/files/${fid}/download` }
 function editChapters(fileId: number) { router.push({ name: 'admin-txt-chapters', params: { id: String(fileId) } }) }
+
+function openMetaDialog() { metaDialogVisible.value = true }
+async function onMetaApply(payload: { item: MetaRecord; provider: string }) {
+    const item = payload.item
+    const provider = payload.provider
+    // 标题
+    if (item.title) form.value.title = item.title
+    // 作者：将字符串作为新建值传入
+    if (item.authors?.length) {
+        authorValues.value = item.authors.slice(0, 10)
+    }
+    // 标签
+    if (item.tags?.length) {
+        tagValues.value = item.tags.slice(0, 20)
+    }
+    // 出版社
+    if (item.publisher) form.value.publisher = item.publisher
+    // 简介
+    if (item.description) form.value.description = item.description
+    // 评分（0-5 转 0-10）
+    if (typeof item.rating === 'number') {
+        const r = Math.max(0, Math.min(10, Math.round(item.rating * 2)))
+        form.value.rating = r
+    }
+    // 出版日期
+    if (item.publishedDate) {
+        form.value.published_at = item.publishedDate
+    }
+    // 丛书
+    if (item.series) {
+        seriesValue.value = item.series
+    }
+    // ISBN
+    const isbn = item.identifiers?.isbn || ''
+    if (isbn) {
+        const digits = isbn.replace(/[^0-9Xx]/g, '')
+        if (digits.length === 13) form.value.isbn13 = digits
+        else if (digits.length === 10) form.value.isbn10 = digits
+    }
+    // 封面：记录待设置URL（优先使用原始链接），并记录 provider；若是编辑已有书，尝试立即导入，失败再回退到代理
+    if (item.cover) {
+        pendingCoverUrl.value = item.cover
+        pendingCoverProvider.value = provider
+        if (!isNew.value) {
+            let imported = false
+            try {
+                const r = await coversApi.fromUrl(Number(idParam), { url: pendingCoverUrl.value })
+                form.value.cover_file_id = r?.file_id as any
+                imported = true
+            } catch {}
+            if (!imported && pendingCoverProvider.value) {
+                try {
+                    const proxyUrl = metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
+                    const r2 = await coversApi.fromUrl(Number(idParam), { url: proxyUrl })
+                    form.value.cover_file_id = r2?.file_id as any
+                } catch {}
+            }
+        }
+    }
+    metaDialogVisible.value = false
+    ElMessage.success('已填充元数据，请确认并保存')
+}
 </script>
