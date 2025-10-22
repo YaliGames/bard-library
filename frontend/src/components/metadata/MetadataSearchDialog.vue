@@ -1,11 +1,11 @@
 <template>
-  <el-dialog v-model="visible" :title="title || '从网络刮削元数据'" width="840px" @closed="$emit('closed')">
+  <el-dialog v-model="visible" :title="title || '从网络刮削元数据'" width="840px" :close-on-click-modal="false" @closed="onClosed">
     <div class="flex gap-3 items-center mb-3">
-      <el-select v-model="providerId" placeholder="选择平台" style="width: 200px">
+      <el-select v-model="providerId" placeholder="选择平台" style="width: 200px" :disabled="busy">
         <el-option v-for="p in providers" :key="p.id" :label="p.name" :value="p.id" />
       </el-select>
-      <el-input v-model="query" placeholder="输入书名/ISBN/作者" @keyup.enter="doSearch" clearable />
-      <el-button type="primary" :loading="loading" @click="doSearch">搜索</el-button>
+      <el-input v-model="query" placeholder="输入书名/ISBN/作者" @keyup.enter="doSearch" clearable :disabled="busy" />
+      <el-button type="primary" :loading="loading" :disabled="busy" @click="doSearch">搜索</el-button>
     </div>
 
     <div v-if="error" class="text-red-500 text-sm mb-2">{{ error }}</div>
@@ -24,8 +24,8 @@
             <div class="text-xs text-gray-500 truncate" v-if="b.publishedDate">出版：{{ b.publishedDate }}</div>
             <div class="text-xs text-gray-400 truncate" v-if="b.url"><a :href="b.url" target="_blank">来源</a></div>
             <div class="mt-2 flex gap-2">
-              <el-button size="small" @click="emitApply(b)" type="primary">填充</el-button>
-              <el-button size="small" @click="emitPreview(b)">预览</el-button>
+              <el-button size="small" @click="emitApply(b)" type="primary" :disabled="busy">填充</el-button>
+              <el-button size="small" @click="emitPreview(b)" :disabled="busy">预览</el-button>
             </div>
           </div>
         </div>
@@ -55,9 +55,12 @@ const providerId = ref<string>(props.defaultProvider || providers[0]?.id || 'dou
 const query = ref('')
 const items = ref<MetaRecord[]>([])
 const loading = ref(false)
+const applying = ref(false)
+const busy = computed(() => loading.value || applying.value)
 const error = ref('')
 
 async function doSearch() {
+  if (busy.value) return
   items.value = []
   error.value = ''
   const p = getProvider(providerId.value)
@@ -72,8 +75,8 @@ async function doSearch() {
   }
 }
 
-function emitApply(b: MetaRecord) { emit('apply', { item: b, provider: providerId.value }) }
-function emitPreview(b: MetaRecord) { emit('preview', { item: b, provider: providerId.value }) }
+function emitApply(b: MetaRecord) { applying.value = true; emit('apply', { item: b, provider: providerId.value }) }
+function emitPreview(b: MetaRecord) { applying.value = true; emit('preview', { item: b, provider: providerId.value }) }
 function coverUrl(raw: string) { return metadataApi.coverUrl(providerId.value, raw) }
 
 watch(() => props.defaultProvider, (v) => { if (v) providerId.value = v })
@@ -81,7 +84,17 @@ watch(() => visible.value, (v) => {
   if (v && props.defaultQuery) {
     query.value = props.defaultQuery
   }
+  if (!v) {
+    applying.value = false
+    loading.value = false
+  }
 })
+
+function onClosed() {
+  applying.value = false
+  loading.value = false
+  emit('closed')
+}
 </script>
 
 <style scoped>
