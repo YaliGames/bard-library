@@ -12,7 +12,7 @@
       <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="onFileChange">
         <el-button :loading="uploading" type="primary">上传封面</el-button>
       </el-upload>
-      <el-button v-if="modelValue" @click="$emit('update:modelValue', null)" type="danger" plain>移除封面</el-button>
+      <el-button v-if="modelValue" @click="removeCover" type="danger" plain :loading="removing">移除封面</el-button>
     </div>
 
     <!-- 链接导入 -->
@@ -35,6 +35,7 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: number | null): void; (e:
 
 const uploading = ref(false)
 const linking = ref(false)
+const removing = ref(false)
 const url = ref('')
 
 async function onFileChange(file: any) {
@@ -66,5 +67,25 @@ async function importFromUrl() {
   } catch (e:any) {
     ElMessage.error(e?.message || '导入失败')
   } finally { linking.value = false }
+}
+
+async function removeCover() {
+  // 新书未保存：仅本地清空
+  if (!props.bookId) {
+    emit('update:modelValue', null)
+    emit('changed', null)
+    return
+  }
+  removing.value = true
+  try {
+    await coversApi.clear(props.bookId)
+    emit('update:modelValue', null)
+    emit('changed', null)
+    ElMessage.success('已移除封面')
+  } catch (e:any) {
+    ElMessage.error(e?.message || '移除失败')
+  } finally {
+    removing.value = false
+  }
 }
 </script>

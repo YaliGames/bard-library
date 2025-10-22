@@ -145,4 +145,13 @@ class CoversController extends Controller
         $book->save();
         return response()->json(['file_id' => $file->id], 201);
     }
+
+    // 清除书籍封面关联（不删除底层文件记录，避免影响其他书籍复用）
+    public function clear(int $bookId)
+    {
+        $book = Book::findOrFail($bookId);
+        $book->cover_file_id = null;
+        $book->save();
+        return response()->noContent();
+    }
 }

@@ -91,6 +91,7 @@ Route::prefix('v1')->group(function () {
             // 封面：上传与通过 URL 导入
             Route::post('/{id}/cover/upload', [CoversController::class, 'upload']);
             Route::post('/{id}/cover/from-url', [CoversController::class, 'fromUrl']);
+            Route::delete('/{id}/cover', [CoversController::class, 'clear']);
         });
     });
 
