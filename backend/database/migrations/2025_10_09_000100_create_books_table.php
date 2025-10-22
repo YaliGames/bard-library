@@ -13,7 +13,7 @@ return new class extends Migration {
             $table->string('subtitle')->nullable();
             $table->text('description')->nullable();
             $table->string('language', 16)->nullable();
-            $table->date('publisher')->nullable();
+            $table->string('publisher')->nullable();
             $table->date('published_at')->nullable();
             $table->string('isbn10', 10)->nullable()->unique();
             $table->string('isbn13', 13)->nullable()->unique();
