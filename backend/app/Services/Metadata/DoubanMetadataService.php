@@ -309,8 +309,14 @@ class DoubanMetadataService
         if ($date === '') {
             return '';
         }
+        // yyyy-mm -> yyyy-mm-01
         if (preg_match('/^(\d{4})-(\d{1,2})$/', $date, $m)) {
             return sprintf('%04d-%02d-01', (int) $m[1], (int) $m[2]);
+        }
+
+        // yyyy -> yyyy-01-01
+        if (preg_match('/^(\d{4})$/', $date, $m)) {
+            return sprintf('%04d-01-01', (int) $m[1]);
         }
 
         return $date;

@@ -157,7 +157,7 @@ import type { Book, FileRec, Author, Tag, Series } from '@/api/types'
 import { importsApi } from '@/api/imports'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import CoverEditor from '@/components/CoverEditor.vue'
-import MetadataSearchDialog from '@/components/metadata/MetadataSearchDialog.vue'
+import MetadataSearchDialog from '@/components/Metadata/MetadataSearchDialog.vue'
 import type { MetaRecord } from '@/types/metadata'
 import { metadataApi } from '@/api/metadata'
 import { coversApi } from '@/api/covers'
@@ -214,6 +214,11 @@ async function load() {
     const id = Number(idParam)
     const b = await booksApi.get(id)
     form.value = { ...b }
+    // 后端返回 published_at 为 'YYYY-MM-DD' 字符串，转换为 Date 供 el-date-picker 使用
+    if (typeof (form.value as any).published_at === 'string' && (form.value as any).published_at) {
+        const d = parseYmdToDate((form.value as any).published_at as unknown as string)
+        if (d) (form.value as any).published_at = d as any
+    }
     files.value = await booksApi.files(id)
     authorValues.value = (b.authors || []).map(a => a.id)
     tagValues.value = (b.tags || []).map(t => t.id)
@@ -224,6 +229,13 @@ async function load() {
 async function save() {
     try {
         const payload: any = { ...form.value, author_values: authorValues.value, tag_values: tagValues.value }
+        // 统一将 published_at 转为 YYYY-MM-DD 字符串
+        if (payload.published_at instanceof Date) {
+            payload.published_at = formatDateYmd(payload.published_at)
+        } else if (typeof payload.published_at === 'string' && payload.published_at) {
+            const d = parseYmdToDate(payload.published_at)
+            payload.published_at = d ? formatDateYmd(d) : null
+        }
         // 丛书：允许为空；允许选择已有（数字ID）或新建（字符串）
         payload.series_value = seriesValue.value ?? null
         // 丛书编号：必须是整数且 >=1，其他情况置为 null
@@ -347,7 +359,8 @@ async function onMetaApply(payload: { item: MetaRecord; provider: string }) {
     }
     // 出版日期
     if (item.publishedDate) {
-        form.value.published_at = item.publishedDate
+        const d = parseYmdToDate(item.publishedDate)
+        form.value.published_at = (d || item.publishedDate) as any
     }
     // 丛书
     if (item.series) {
@@ -382,5 +395,36 @@ async function onMetaApply(payload: { item: MetaRecord; provider: string }) {
     }
     metaDialogVisible.value = false
     ElMessage.success('已填充元数据，请确认并保存')
+}
+
+function formatDateYmd(d: Date): string {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+}
+
+function parseYmdToDate(s: string): Date | null {
+    const t = String(s || '').trim()
+    if (!t) return null
+    // yyyy-mm-dd
+    let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+    if (m) {
+        const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+        return isNaN(d.getTime()) ? null : d
+    }
+    // yyyy-mm -> use day=1
+    m = t.match(/^(\d{4})-(\d{1,2})$/)
+    if (m) {
+        const d = new Date(Number(m[1]), Number(m[2]) - 1, 1)
+        return isNaN(d.getTime()) ? null : d
+    }
+    // yyyy -> use 01-01
+    m = t.match(/^(\d{4})$/)
+    if (m) {
+        const d = new Date(Number(m[1]), 0, 1)
+        return isNaN(d.getTime()) ? null : d
+    }
+    return null
 }
 </script>
