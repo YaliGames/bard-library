@@ -112,11 +112,25 @@ function reset() { Object.assign(filters.value, { q: '', authorId: null, tagIds:
 function edit(id: number) { router.push({ name: 'admin-book-edit', params: { id } }) }
 async function del(id: number) {
   try {
-    await ElMessageBox.confirm('确认删除该图书？此操作不可撤销', '删除确认', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' })
+    await ElMessageBox.confirm('确认删除该图书？此操作不可撤销', '删除确认', { type: 'warning', confirmButtonText: '继续', cancelButtonText: '取消' })
   } catch { return }
+  // 询问是否连同封面与附件一起删除
+  let withFiles = false
   try {
-    await booksApi.remove(id)
-    ElMessage.success('已删除')
+    await ElMessageBox.confirm('是否连同封面与附件一起删除？', '删除方式', {
+      type: 'warning',
+      confirmButtonText: '是，连同文件',
+      cancelButtonText: '否，仅删除记录',
+      distinguishCancelAndClose: true,
+    })
+    withFiles = true
+  } catch (e) {
+    // 点击“否，仅删除记录”或关闭，则按仅删除记录处理
+    withFiles = false
+  }
+  try {
+    await booksApi.remove(id, { withFiles })
+    ElMessage.success(withFiles ? '已删除（含封面与附件）' : '已删除记录')
     await fetchList(meta.value?.current_page || 1)
   } catch (e: any) { ElMessage.error(e?.message || '删除失败') }
 }

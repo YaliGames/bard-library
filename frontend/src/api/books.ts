@@ -70,8 +70,10 @@ export const booksApi = {
   update: (id: number, payload: Partial<Book>) => {
     return http.patch<Book>(`/api/v1/books/${id}`, payload);
   },
-  remove: (id: number) => {
-    return http.delete<void>(`/api/v1/books/${id}`);
+  remove: (id: number, opts?: { withFiles?: boolean }) => {
+    const u = new URL(`/api/v1/books/${id}`, window.location.origin);
+    if (opts?.withFiles) u.searchParams.set('with_files', 'true');
+    return http.delete<void>(u.toString());
   },
   files: (id: number, opts?: { include_cover?: boolean }) => {
     const u = new URL(`/api/v1/books/${id}/files`, window.location.origin);

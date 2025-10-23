@@ -367,14 +367,48 @@ class BooksController extends Controller
         return $book->load(['authors', 'tags']);
     }
 
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
-        DB::transaction(function () use ($id) {
-            $b = Book::findOrFail($id);
+        $withFiles = filter_var((string) $request->query('with_files', 'false'), FILTER_VALIDATE_BOOLEAN);
+
+        DB::transaction(function () use ($id, $withFiles) {
+            $b = Book::with('files')->findOrFail($id);
+
+            // 先解除作者/标签关联
             $b->authors()->detach();
             $b->tags()->detach();
-            // 此处仅删除记录，不删除物理文件
-            $b->files()->delete();
+
+            if ($withFiles) {
+                // 处理封面：若未被其他书籍引用，则删除物理文件与记录
+                $coverId = $b->cover_file_id;
+                if ($coverId) {
+                    $cover = \App\Models\File::find($coverId);
+                    if ($cover) {
+                        $otherUsed = Book::where('cover_file_id', $cover->id)->where('id', '!=', $b->id)->exists();
+                        if (! $otherUsed) {
+                            // 先清空引用，避免外键/一致性问题
+                            $b->cover_file_id = null;
+                            $b->save();
+                            $disk = \Illuminate\Support\Facades\Storage::disk($cover->storage ?: config('filesystems.default'));
+                            if ($disk->exists($cover->path)) { $disk->delete($cover->path); }
+                            $cover->delete();
+                        }
+                    }
+                }
+
+                // 删除本书关联的附件文件（不含已在上面处理的封面文件）
+                foreach ($b->files as $f) {
+                    if ($coverId && $f->id === $coverId) { continue; }
+                    $disk = \Illuminate\Support\Facades\Storage::disk($f->storage ?: config('filesystems.default'));
+                    if ($disk->exists($f->path)) { $disk->delete($f->path); }
+                    $f->delete();
+                }
+            } else {
+                // 仅删除记录：不动物理文件
+                $b->files()->delete();
+            }
+
+            // 最后删除图书本体记录
             $b->delete();
         });
         return response()->noContent();
