@@ -110,6 +110,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import("./pages/Admin/AdminSeriesList.vue"),
       },
       {
+        path: "files",
+        name: "admin-file-manager",
+        component: () => import("./pages/Admin/AdminFileManager.vue"),
+      },
+      {
         path: "txt/chapters/:id?",
         name: "admin-txt-chapters",
         component: () => import("./pages/Admin/AdminTxtChapters.vue"),

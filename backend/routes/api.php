@@ -15,6 +15,7 @@ use App\Http\Controllers\TxtController;
 use App\Http\Controllers\MarkController;
 use App\Http\Controllers\CoversController;
 use App\Http\Controllers\MetadataController;
+use App\Http\Controllers\FilesAdminController;
 
 // API v1
 Route::prefix('v1')->group(function () {
@@ -106,6 +107,15 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['auth:sanctum', 'admin'])->group(function () {
             Route::delete('/{id}', [FilesController::class, 'destroy']);
         });
+    });
+
+    // ============================
+    // Admin Files 管理（需管理员）
+    // ============================
+    Route::prefix('admin/files')->middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::get('/', [FilesAdminController::class, 'index']);
+        Route::delete('/{id}', [FilesAdminController::class, 'destroy']);
+        Route::post('/cleanup', [FilesAdminController::class, 'cleanup']);
     });
 
     // ============================

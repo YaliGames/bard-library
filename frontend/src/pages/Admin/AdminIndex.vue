@@ -34,6 +34,7 @@ const cards: AdminCard[] = [
   { key: 'tags', title: '标签管理', desc: '标签为图书的可选属性，管理标签列表', icon: 'sell', to: { name: 'admin-tag-list' } },
   { key: 'shelves', title: '书架管理', desc: '书架用于对图书进行分类，管理书架列表', icon: 'newsstand', to: { name: 'admin-shelf-list' } },
   { key: 'series', title: '丛书管理', desc: '丛书为图书的可选属性，当图书属于某个系列时，可以进行归类', icon: 'collections_bookmark', to: { name: 'admin-series-list' } },
+  { key: 'files', title: '文件管理', desc: '查看、下载、删除文件；清理未引用封面/悬挂记录', icon: 'folder_managed', to: { name: 'admin-file-manager' } },
   { key: 'txt', title: 'TXT 章节管理', desc: '当图书包含TXT附件时，可以解析与调整章节', icon: 'subject', to: { name: 'admin-txt-chapters', params: { id: '' } } },
 ]
 </script>
