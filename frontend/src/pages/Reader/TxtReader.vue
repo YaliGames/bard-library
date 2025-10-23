@@ -574,6 +574,7 @@ async function highlightSelection() {
       }
       markRanges.set(i, cur)
     }
+    markTick.value++
   } catch (err) {
     // 回滚已添加的高亮
     for (const [i, arrAdded] of addedBySentence.entries()) {
