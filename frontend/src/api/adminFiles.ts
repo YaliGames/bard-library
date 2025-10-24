@@ -9,6 +9,7 @@ export interface AdminFileItem {
   size: number
   mime: string
   sha256: string
+  filename: string
   path: string
   storage: string
   created_at: string
@@ -30,7 +31,7 @@ export const adminFilesApi = {
     if (physical) u.searchParams.set('physical', 'true')
     return http.delete<void>(u.toString())
   },
-  cleanup: (body: { kind?: 'covers'|'all'; dry?: boolean; removePhysical?: boolean }) => {
+  cleanup: (body: { kind?: 'covers'|'all'|'orphans'; kinds?: Array<'covers'|'dangling'|'missing'|'orphans'>; dry?: boolean; removePhysical?: boolean }) => {
     return http.post<{ dry: boolean; summary: any; removed?: any }>(`/api/v1/admin/files/cleanup`, body)
   }
 }

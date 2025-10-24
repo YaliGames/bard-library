@@ -58,6 +58,7 @@ class FilesAdminController extends Controller
                 'size' => $f->size,
                 'mime' => $f->mime,
                 'sha256' => $f->sha256,
+                'filename' => basename($f->path),
                 'path' => $f->path,
                 'storage' => $f->storage,
                 'created_at' => $f->created_at,
@@ -90,11 +91,12 @@ class FilesAdminController extends Controller
     // 清理：unused covers / dangling records / 物理缺失
     public function cleanup(Request $request)
     {
-        $kind = (string) $request->input('kind', 'covers'); // covers|all
+        $kind = (string) $request->input('kind', 'covers'); // covers|all|orphans (兼容)
+        $kinds = $request->input('kinds'); // 可选数组：['covers','dangling','missing','orphans']
         $dry = filter_var((string) $request->input('dry', 'true'), FILTER_VALIDATE_BOOLEAN);
         $removePhysical = filter_var((string) $request->input('removePhysical','false'), FILTER_VALIDATE_BOOLEAN);
 
-        $removed = ['covers' => [], 'dangling' => [], 'missing_physical' => []];
+        $removed = ['covers' => [], 'dangling' => [], 'missing_physical' => [], 'orphans_physical' => []];
 
         // 未被引用为封面的 cover 文件
         $unusedCovers = File::where('format','cover')
@@ -114,14 +116,82 @@ class FilesAdminController extends Controller
             if (! $disk->exists($f->path)) { $missing->push($f); }
         }
 
+        // 磁盘孤儿文件：磁盘存在，但 files 表里没有对应 path 的记录
+        $disk = Storage::disk(config('filesystems.default'));
+        // 仅扫描 library 盘（与本项目一致），且限定在 books/ 与 covers/ 目录
+        $libDisk = Storage::disk('library');
+        $diskFiles = collect($libDisk->allFiles('books'))
+            ->merge($libDisk->allFiles('covers'))
+            ->values();
+        $dbPaths = File::pluck('path')->all();
+        $dbSet = array_fill_keys($dbPaths, true);
+        $orphans = $diskFiles->filter(function($p) use ($dbSet) {
+            return !isset($dbSet[$p]);
+        })->values();
+
+        // 允许按复选组合进行处理
+        $useKinds = [];
+        if (is_array($kinds)) {
+            $kinds = array_map('strval', $kinds);
+            $useKinds = array_fill_keys($kinds, true);
+        } else {
+            // 兼容旧的 kind 单选
+            if ($kind === 'all') { $useKinds = ['covers'=>true,'dangling'=>true,'missing'=>true]; }
+            elseif ($kind === 'covers') { $useKinds = ['covers'=>true]; }
+            elseif ($kind === 'orphans') { $useKinds = ['orphans'=>true]; }
+            else { $useKinds = ['covers'=>true]; }
+        }
+
         $summary = [
             'unused_covers' => $unusedCovers->count(),
             'dangling_records' => $dangling->count(),
             'missing_physical' => $missing->count(),
+            'orphans_physical' => $orphans->count(),
         ];
 
         if ($dry) {
-            return response()->json(['dry' => true, 'summary' => $summary]);
+            // 预览列表：返回匹配清理项的详细条目
+            $preview = [];
+            if (!empty($useKinds['covers'])) {
+                $preview['covers'] = $unusedCovers->map(fn($f) => [
+                    'id' => $f->id,
+                    'book_id' => $f->book_id,
+                    'path' => $f->path,
+                    'storage' => $f->storage,
+                    'format' => $f->format,
+                    'size' => $f->size,
+                    'mime' => $f->mime,
+                ])->values();
+            }
+            if (!empty($useKinds['dangling'])) {
+                $preview['dangling'] = $dangling->map(fn($f) => [
+                    'id' => $f->id,
+                    'book_id' => $f->book_id,
+                    'path' => $f->path,
+                    'storage' => $f->storage,
+                    'format' => $f->format,
+                    'size' => $f->size,
+                    'mime' => $f->mime,
+                ])->values();
+            }
+            if (!empty($useKinds['missing'])) {
+                $preview['missing_physical'] = $missing->map(fn($f) => [
+                    'id' => $f->id,
+                    'book_id' => $f->book_id,
+                    'path' => $f->path,
+                    'storage' => $f->storage,
+                    'format' => $f->format,
+                    'size' => $f->size,
+                    'mime' => $f->mime,
+                ])->values();
+            }
+            if (!empty($useKinds['orphans'])) {
+                $preview['orphans_physical'] = $orphans->map(fn($p) => [
+                    'path' => $p,
+                    'storage' => 'library',
+                ])->values();
+            }
+            return response()->json(['dry' => true, 'summary' => $summary, 'preview' => $preview]);
         }
 
         // 执行删除
@@ -138,7 +208,7 @@ class FilesAdminController extends Controller
             }
         };
 
-        if ($kind === 'covers' || $kind === 'all') {
+        if (!empty($useKinds['covers'])) {
             $list = $unusedCovers;
             $tmp = [];
             foreach ($list as $f) { $tmp[] = $f; }
@@ -154,9 +224,9 @@ class FilesAdminController extends Controller
             }
         }
 
-        if ($kind === 'all') {
+        if (!empty($useKinds['dangling']) || !empty($useKinds['missing'])) {
             $removed['dangling'] = [];
-            foreach ($dangling as $f) {
+            if (!empty($useKinds['dangling'])) foreach ($dangling as $f) {
                 /** @var File $f */
                 if ($removePhysical) {
                     $disk = Storage::disk($f->storage ?: config('filesystems.default'));
@@ -167,11 +237,21 @@ class FilesAdminController extends Controller
             }
 
             $removed['missing_physical'] = [];
-            foreach ($missing as $f) {
+            if (!empty($useKinds['missing'])) foreach ($missing as $f) {
                 /** @var File $f */
                 // 物理缺失只需要删除记录
                 $removed['missing_physical'][] = $f->id;
                 $f->delete();
+            }
+        }
+
+        if (!empty($useKinds['orphans'])) {
+            $removed['orphans_physical'] = [];
+            foreach ($orphans as $path) {
+                if ($removePhysical) {
+                    if ($libDisk->exists($path)) { $libDisk->delete($path); }
+                    $removed['orphans_physical'][] = $path;
+                }
             }
         }
 
