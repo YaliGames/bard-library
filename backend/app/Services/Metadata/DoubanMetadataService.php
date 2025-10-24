@@ -53,7 +53,7 @@ class DoubanMetadataService
         if (! $id) {
             return null;
         }
-        $cacheKey = 'douban:book:'.$id;
+        $cacheKey = 'douban:book:' . $id;
 
         return Cache::remember($cacheKey, now()->addMinutes(self::CACHE_TTL_MINUTES), function () use ($url) {
             $resp = $this->request()->get($url);
@@ -200,7 +200,8 @@ class DoubanMetadataService
         // Rating (0-10); normalize to 0-5 for convenience
         $ratingRaw = $this->text($xp->query("//strong[@property='v:average']"), '0');
         $rating10 = is_numeric($ratingRaw) ? (float) $ratingRaw : 0.0;
-        $rating5 = $rating10 / 2.0;
+        // Normalize to 0.0-5.0 and round to one decimal
+        $rating5 = round($rating10 / 2.0, 1);
 
         $authors = [];
         $publisher = '';
@@ -230,7 +231,7 @@ class DoubanMetadataService
             } elseif (str_starts_with($label, '副标题')) {
                 $sub = $this->tailText($el);
                 if ($sub !== '') {
-                    $title .= ':'.$sub;
+                    $title .= ':' . $sub;
                 }
             } elseif (str_starts_with($label, '出版年')) {
                 $publishedDate = $this->normalizePublishDate($this->tailText($el));

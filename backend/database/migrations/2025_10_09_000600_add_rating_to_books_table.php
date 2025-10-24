@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('books', function (Blueprint $table) {
-            $table->unsignedTinyInteger('rating')->nullable()->after('description'); // 0-10
+            $table->decimal('rating', 3, 1)->nullable()->after('description'); // 0-5 (one decimal)
         });
     }
 

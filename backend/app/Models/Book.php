@@ -10,14 +10,26 @@ class Book extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title', 'subtitle', 'description', 'rating', 'language', 'publisher', 'published_at',
-        'isbn10', 'isbn13', 'series_id', 'series_index', 'cover_file_id', 'created_by', 'meta',
+        'title',
+        'subtitle',
+        'description',
+        'rating',
+        'language',
+        'publisher',
+        'published_at',
+        'isbn10',
+        'isbn13',
+        'series_id',
+        'series_index',
+        'cover_file_id',
+        'created_by',
+        'meta',
     ];
 
     protected $casts = [
         // ensure published_at serializes as date-only string (Y-m-d)
         'published_at' => 'date:Y-m-d',
-        'rating' => 'integer',
+        'rating' => 'float',
         'meta' => 'array',
     ];
 

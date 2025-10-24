@@ -110,7 +110,7 @@
                                 step="1" />
                         </el-form-item>
                         <el-form-item label="评分">
-                            <el-slider v-model="form.rating" :min="0" :max="10" :step="1" show-input />
+                            <el-slider v-model="form.rating" :min="0" :max="5" :step="0.1" show-input />
                         </el-form-item>
                         <el-form-item label="语言">
                             <el-input v-model="form.language" placeholder="请输入语言" />
@@ -352,10 +352,9 @@ async function onMetaApply(payload: { item: MetaRecord; provider: string }) {
     if (item.publisher) form.value.publisher = item.publisher
     // 简介
     if (item.description) form.value.description = item.description
-    // 评分（0-5 转 0-10）
+    // 评分：后端/元数据均使用 0.0-5.0，保留一位小数
     if (typeof item.rating === 'number') {
-        const r = Math.max(0, Math.min(10, Math.round(item.rating * 2)))
-        form.value.rating = r
+        form.value.rating = Math.max(0, Math.min(5, Math.round(item.rating * 10) / 10))
     }
     // 出版日期
     if (item.publishedDate) {

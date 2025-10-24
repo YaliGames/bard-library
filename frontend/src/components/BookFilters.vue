@@ -108,8 +108,8 @@
           </div>
           <div v-if="showRating">
             <div class="text-sm font-medium mb-2 text-gray-700">评分</div>
-            <el-slider v-model="filters.ratingRange" range :min="0" :max="10" :step="1" />
-            <div class="text-xs text-gray-500 mt-1">{{ filters.ratingRange[0] }} - {{ filters.ratingRange[1] }}</div>
+            <el-slider v-model="filters.ratingRange" range :min="0" :max="5" :step="0.1" />
+            <div class="text-xs text-gray-500 mt-1">{{ filters.ratingRange[0].toFixed(1) }} - {{ filters.ratingRange[1].toFixed(1) }}</div>
           </div>
         </div>
       </div>
@@ -191,7 +191,7 @@ const filters = reactive<FiltersModel>({
   tagIds: [],
   shelfId: null,
   readState: null,
-  ratingRange: [0,10],
+  ratingRange: [0,5],
   publisher: null,
   publishedRange: null,
   language: null,
@@ -226,8 +226,8 @@ function onSelectShelf(index: string){
 }
 
 function onSearch(){ emit('search') }
-function onReset(){
-  Object.assign(filters, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0,10] as [number,number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
+  function onReset(){
+  Object.assign(filters, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0,5] as [number,number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
   emit('reset')
 }
 

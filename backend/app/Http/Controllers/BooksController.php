@@ -114,14 +114,29 @@ class BooksController extends Controller
             }
         }
         // 评分筛选：min_rating/max_rating
-        // 评分范围0-10时直接不筛选
-        if ($request->query('min_rating') !== '0' || $request->query('max_rating') !== '10') {
-            if ($min = $request->query('min_rating')) {
-                $q->where('rating', '>=', (int)$min);
+        if ($request->query('min_rating') !== null || $request->query('max_rating') !== null) {
+            $minRaw = $request->query('min_rating');
+            $maxRaw = $request->query('max_rating');
+            $min = $minRaw !== null ? (float)$minRaw : null;
+            $max = $maxRaw !== null ? (float)$maxRaw : null;
+
+            $includeNull = false;
+            // 只要 0 在用户指定的区间内，就把 NULL 一并包含
+            if ((is_null($min) || $min <= 0.0) && (is_null($max) || $max >= 0.0)) {
+                $includeNull = true;
             }
-            if ($max = $request->query('max_rating')) {
-                $q->where('rating', '<=', (int)$max);
-            }
+
+            $q->where(function ($w) use ($min, $max, $includeNull) {
+                if ($min !== null) {
+                    $w->where('rating', '>=', $min);
+                }
+                if ($max !== null) {
+                    $w->where('rating', '<=', $max);
+                }
+                if ($includeNull) {
+                    $w->orWhereNull('rating');
+                }
+            });
         }
         // 出版社筛选：publisher
         if ($publisher = trim((string)$request->query('publisher', ''))) {
@@ -201,7 +216,7 @@ class BooksController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'rating' => ['nullable', 'integer', 'min:0', 'max:10'],
+            'rating' => ['nullable', 'numeric', 'between:0,5'],
             'language' => ['nullable', 'string', 'max:16'],
             'publisher' => ['nullable', 'max:255'],
             'published_at' => ['nullable', 'date'],
@@ -258,7 +273,7 @@ class BooksController extends Controller
             'title' => ['sometimes', 'string', 'max:255'],
             'subtitle' => ['sometimes', 'nullable', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
-            'rating' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10'],
+            'rating' => ['sometimes', 'nullable', 'numeric', 'between:0,5'],
             'language' => ['sometimes', 'nullable', 'string', 'max:16'],
             'publisher' => ['sometimes', 'nullable', 'string', 'max:255'],
             'published_at' => ['sometimes', 'nullable', 'date'],

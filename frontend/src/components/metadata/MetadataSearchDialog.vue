@@ -20,7 +20,7 @@
             <div class="font-medium truncate">{{ b.title }}</div>
             <div class="text-xs text-gray-500 truncate">{{ (b.authors || []).join(' / ') }}</div>
             <div class="text-xs text-gray-500 truncate" v-if="b.publisher">出版社：{{ b.publisher }}</div>
-            <div class="text-xs text-gray-500" v-if="b.rating">评分：{{ (b.rating || 0).toFixed(2) }} / 5</div>
+            <div class="text-xs text-gray-500" v-if="b.rating">评分：{{ (b.rating || 0).toFixed(1) }} / 5</div>
             <div class="text-xs text-gray-500 truncate" v-if="b.publishedDate">出版：{{ b.publishedDate }}</div>
             <div class="text-xs text-gray-400 truncate" v-if="b.url"><a :href="b.url" target="_blank">来源</a></div>
             <div class="mt-2 flex gap-2">

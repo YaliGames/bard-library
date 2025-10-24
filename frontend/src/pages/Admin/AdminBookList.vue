@@ -79,7 +79,7 @@ const filters = ref({
   tagIds: [] as number[],
   shelfId: null as number | null,
   readState: null as any,
-  ratingRange: [0, 10] as [number, number],
+  ratingRange: [0, 5] as [number, number],
 })
 const rows = ref<Book[]>([])
 const meta = ref<any>(null)
@@ -108,7 +108,7 @@ async function fetchList(page = 1) {
   }
 }
 function go(p: number) { fetchList(p) }
-function reset() { Object.assign(filters.value, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0, 10] as [number, number] }); go(1) }
+function reset() { Object.assign(filters.value, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0, 5] as [number, number] }); go(1) }
 function edit(id: number) { router.push({ name: 'admin-book-edit', params: { id } }) }
 async function del(id: number) {
   try {

@@ -122,7 +122,7 @@ const filters = ref({
   tagIds: [] as number[],
   shelfId: null as number | null,
   readState: null as any,
-  ratingRange: [0, 10] as [number, number],
+  ratingRange: [0, 5] as [number, number],
   publisher: null as string | null,
   publishedRange: null as [string, string] | null,
   language: null as string | null,
@@ -194,7 +194,7 @@ function toggleOrder(){
   searchPage(1)
 }
 function resetFilters() {
-  Object.assign(filters.value, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0, 10] as [number, number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
+  Object.assign(filters.value, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0, 5] as [number, number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
   sort.value = 'created'
   order.value = 'desc'
   searchPage(1)
