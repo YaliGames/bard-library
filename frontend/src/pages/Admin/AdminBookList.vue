@@ -35,9 +35,37 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="简介" min-width="220">
+          <el-table-column label="简介" min-width="260">
             <template #default="{ row }">
-              <div class="font-medium">{{ row.description || '暂无简介' }}</div>
+              <div class="text-sm text-gray-700" :title="row.description || '暂无简介'">
+                <div v-if="row.description" class="desc-clamp font-medium">{{ truncate(row.description, MAX_DESC_CHARS) }}</div>
+                <div v-else class="text-gray-500">暂无简介</div>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="标签" width="160" align="center">
+            <template #default="{ row }">
+              <div class="text-sm text-gray-600" v-if="row.tags?.length">{{ row.tags.map((t: any) => t.name).join(', ') }}</div>
+              <div v-else class="text-gray-400">-</div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="系列" width="140" align="center">
+            <template #default="{ row }">
+              <div class="text-sm text-gray-600">{{ row.series?.title || '-' }}</div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="出版" width="140" align="center">
+            <template #default="{ row }">
+              <div class="text-sm text-gray-600">{{ formatDate(row.published_at) }}</div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="页数" width="80" align="center">
+            <template #default="{ row }">
+              <div>{{ row.pages ?? '-' }}</div>
             </template>
           </el-table-column>
           <el-table-column label="评分" width="160" align="center">
@@ -84,6 +112,23 @@ const filters = ref({
 const rows = ref<Book[]>([])
 const meta = ref<any>(null)
 const loading = ref(false)
+
+// 最大简介字符数与辅助函数
+const MAX_DESC_CHARS = 300
+function truncate(text: string, max = MAX_DESC_CHARS) {
+  if (!text) return ''
+  return text.length <= max ? text : text.slice(0, max) + '…'
+}
+
+function formatDate(dateStr: string | null | undefined) {
+  if (!dateStr) return '-'
+  try {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString()
+  } catch {
+    return dateStr as any
+  }
+}
 
 // 封面地址由 CoverImage 组件内部处理
 
@@ -139,3 +184,13 @@ function goQuickUpload() { router.push({ name: 'admin-upload' }) }
 
 onMounted(() => fetchList(1))
 </script>
+
+<style scoped>
+.desc-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* 显示行数 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
