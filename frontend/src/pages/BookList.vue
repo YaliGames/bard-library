@@ -60,7 +60,7 @@
           <div class="bg-white rounded-lg shadow-sm p-4" v-for="b in data" :key="b.id">
             <div class="flex flex-col gap-1.5">
               <router-link :to="`/books/${b.id}`">
-                <CoverImage :file-id="b.cover_file_id || null" class="rounded">
+                <CoverImage :file-id="b.cover_file_id || null" :title="b.title" :authors="(b.authors || []).map(a => a.name)" class="rounded">
                   <template #overlay v-if="userSettings.bookList?.showReadTag">
                     <el-tag v-if="b.is_read_mark" type="success" effect="dark" size="small">已读</el-tag>
                     <el-tag v-else-if="b.is_reading" type="warning" effect="dark" size="small">正在阅读</el-tag>

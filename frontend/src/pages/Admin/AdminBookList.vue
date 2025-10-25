@@ -24,7 +24,7 @@
             <template #default="{ row }">
               <div class="flex items-center gap-3">
                 <div class="w-16">
-                  <CoverImage :file-id="row.cover_file_id || null" iconSize="32px" />
+                  <CoverImage :file-id="row.cover_file_id || null" :title="row.title" :authors="(row.authors || []).map((a: any) => a.name)" fontSize="12px" />
                 </div>
                 <div class="min-w-0">
                   <div class="font-medium truncate">{{ row.title || ('#' + row.id) }}</div>

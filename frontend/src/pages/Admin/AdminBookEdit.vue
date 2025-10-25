@@ -21,6 +21,7 @@
                     <div class="flex items-start gap-6">
                         <CoverEditor :model-value="(form.cover_file_id as any) || null"
                             :book-id="isNew ? undefined : Number(idParam)"
+                            mode="icon"
                             @update:modelValue="v => form.cover_file_id = v || undefined" />
                     </div>
                 </el-card>

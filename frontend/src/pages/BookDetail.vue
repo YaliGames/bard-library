@@ -81,7 +81,7 @@
         <div class="flex flex-col md:flex-row gap-6 md:gap-8 bg-white shadow-sm rounded-lg p-6">
           <!-- 左侧封面（移动端居中） -->
           <div class="w-full md:w-48 mb-4 md:mb-0 relative">
-            <CoverImage :file-id="book.cover_file_id || null" class="rounded" />
+            <CoverImage :file-id="book.cover_file_id || null" :title="book.title" :authors="(book.authors || []).map(a => a.name)" class="rounded" />
             <div class="absolute top-2 right-2 flex gap-1" v-if="settings.bookDetail?.showReadTag">
               <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
               <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>

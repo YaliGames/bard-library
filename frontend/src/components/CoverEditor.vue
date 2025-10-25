@@ -3,7 +3,15 @@
     <!-- 预览 -->
     <div class="w-full flex justify-center">
       <div class="w-full max-w-[240px]">
-        <CoverImage :file-id="modelValue || null" alt="cover" aspect="3/4" />
+        <CoverImage
+          :file-id="modelValue || null"
+          alt="cover"
+          aspect="3/4"
+          :mode="mode"
+          :font-size="fontSize"
+          :title="title"
+          :authors="authors"
+        />
       </div>
     </div>
 
@@ -30,7 +38,15 @@ import CoverImage from './CoverImage.vue'
 import { ElMessage } from 'element-plus'
 import { coversApi } from '@/api/covers'
 
-const props = defineProps<{ modelValue: number | null | undefined; bookId?: number }>()
+const props = defineProps<{ 
+  modelValue: number | null | undefined; 
+  bookId?: number,
+  // forwarded to CoverImage
+  mode?: 'auto' | 'placeholder' | 'icon',
+  fontSize?: string,
+  title?: string,
+  authors?: string | string[]
+}>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: number | null): void; (e:'changed', v:number|null): void }>()
 
 const uploading = ref(false)
