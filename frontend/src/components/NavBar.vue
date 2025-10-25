@@ -38,6 +38,7 @@
           <el-dropdown-menu>
             <el-dropdown-item command="profile">个人资料</el-dropdown-item>
             <el-dropdown-item command="settings">用户设置</el-dropdown-item>
+            <el-dropdown-item v-if="isAdmin" command="system">系统设置</el-dropdown-item>
             <el-dropdown-item v-if="isAdmin" command="admin">管理入口</el-dropdown-item>
             <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
@@ -92,11 +93,14 @@ async function onCommand(cmd: string){
     case 'profile':
       router.push({ name: 'profile' })
       break
-    case 'admin':
-      router.push({ name: 'admin-index' })
-      break
     case 'settings':
       router.push({ name: 'user-settings' })
+      break
+    case 'system':
+      router.push({ name: 'system-settings' })
+      break
+    case 'admin':
+      router.push({ name: 'admin-index' })
       break
     case 'logout':
       await authApi.logout()

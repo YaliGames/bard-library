@@ -96,6 +96,12 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    // 管理：系统设置（需管理员）
+    Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        Route::get('/admin/settings', [\App\Http\Controllers\SystemSettingsController::class, 'get']);
+        Route::post('/admin/settings', [\App\Http\Controllers\SystemSettingsController::class, 'update']);
+    });
+
     // ============================
     // Files 文件
     // ============================
