@@ -63,8 +63,8 @@ function createClient(): AxiosInstance {
 const client = createClient()
 
 export const http = {
-  get: async <T>(url: string): Promise<T> => client.get(url) as any,
-  post: async <T>(url: string, body?: any): Promise<T> => client.post(url, body) as any,
-  patch: async <T>(url: string, body?: any): Promise<T> => client.patch(url, body) as any,
-  delete: async <T>(url: string): Promise<T> => client.delete(url) as any,
+  get: async <T>(url: string, config?: any): Promise<T> => client.get(url, config) as any,
+  post: async <T>(url: string, body?: any, config?: any): Promise<T> => client.post(url, body, config) as any,
+  patch: async <T>(url: string, body?: any, config?: any): Promise<T> => client.patch(url, body, config) as any,
+  delete: async <T>(url: string, config?: any): Promise<T> => client.delete(url, config) as any,
 }
