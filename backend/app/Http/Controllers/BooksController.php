@@ -36,11 +36,13 @@ class BooksController extends Controller
                 $q->whereHas('authors', fn($qa) => $qa->whereIn('authors.id', $ids));
             }
         }
-        // 标签筛选：tag_id 多值
+        // 标签筛选：tag_id 多值，匹配包含全部已选择的标签
         if ($tagIds = trim((string)$request->query('tag_id', ''))) {
-            $ids = array_filter(array_map('intval', explode(',', $tagIds)));
+            $ids = array_values(array_unique(array_filter(array_map('intval', explode(',', $tagIds)))));
             if ($ids) {
-                $q->whereHas('tags', fn($qt) => $qt->whereIn('tags.id', $ids));
+                $q->whereHas('tags', function ($qt) use ($ids) {
+                    $qt->whereIn('tags.id', $ids);
+                }, '=', count($ids));
             }
         }
         // 书架筛选：shelf_id 多值
