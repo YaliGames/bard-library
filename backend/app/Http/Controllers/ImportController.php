@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Book;
 use App\Models\File as BookFile;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -12,11 +13,19 @@ class ImportController extends Controller
 {
     public function upload(Request $request)
     {
-        $data = $request->validate([
-            'file' => ['required','file','max:524288'], // 512 MB 上限，可按需调整
-            'book_id' => ['nullable','integer'],
-            'parse_txt' => ['nullable','boolean'],
-        ]);
+        $limitBytes = (int) SystemSetting::value('book.upload_max_size', 100 * 1024 * 1024);
+        $limitKB = $limitBytes > 0 ? (int) ceil($limitBytes / 1024) : null; // Laravel 文件 max 单位为 KB
+
+        $rules = [
+            'file' => ['required', 'file'],
+            'book_id' => ['nullable', 'integer'],
+            'parse_txt' => ['nullable', 'boolean'],
+        ];
+        if ($limitKB) {
+            $rules['file'][] = 'max:' . $limitKB;
+        }
+
+        $data = $request->validate($rules);
 
         $uploaded = $data['file'];
         $tmpPath = $uploaded->getRealPath();
@@ -40,17 +49,25 @@ class ImportController extends Controller
         $origName = $uploaded->getClientOriginalName() ?: ($sha . '.' . ($uploaded->extension() ?: 'bin'));
         $safeName = $this->sanitizeFilename($origName);
         $ext = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
-        $format = in_array($ext, ['epub','pdf','txt']) ? $ext : $ext;
+        $format = in_array($ext, ['epub', 'pdf', 'txt']) ? $ext : $ext;
         $mime = $uploaded->getClientMimeType() ?: 'application/octet-stream';
         $size = (int) $uploaded->getSize();
+
+        if ($limitBytes > 0 && $size > $limitBytes) {
+            return response()->json([
+                'message' => '上传文件超过系统限制大小',
+                'limit_bytes' => $limitBytes,
+                'actual_bytes' => $size,
+            ], 413);
+        }
 
         // 目录分层：books/a1/b2/sha/filename.ext
         $a = Str::substr($sha, 0, 2);
         $b = Str::substr($sha, 2, 2);
         $relPath = "books/{$a}/{$b}/{$sha}/{$safeName}";
 
-    // 强制写入到 library 盘，避免默认盘配置导致落到 storage/app
-    $disk = Storage::disk('library');
+        // 强制写入到 library 盘，避免默认盘配置导致落到 storage/app
+        $disk = Storage::disk('library');
         // 确保目录存在，使用 putStream 写入
         $stream = fopen($tmpPath, 'r');
         $disk->put($relPath, $stream);

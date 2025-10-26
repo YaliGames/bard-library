@@ -32,7 +32,8 @@
             ref="uploader"
             drag
             multiple
-            :limit="10"
+            :limit="maxBatch"
+            v-model:file-list="uiFileList"
             :auto-upload="false"
             :on-change="onFileChange"
             :on-remove="onFileRemove"
@@ -44,7 +45,7 @@
               拖拽文件到此处，或 <em>点击选择</em>
             </div>
             <template #tip>
-              <div class="el-upload__tip">单次最多 10 个文件；支持 EPUB/PDF/TXT/ZIP</div>
+              <div class="el-upload__tip">单次最多 {{ maxBatch }} 个文件；支持 EPUB/PDF/TXT/ZIP<span v-if="sizeLimitText">；单文件不超过 {{ sizeLimitText }}</span></div>
             </template>
           </el-upload>
         </el-form-item>
@@ -83,7 +84,9 @@
       <div v-if="step === 2 && results.length > 0" class="mt-4">
         <!-- 单文件结果：保持原有成功展示 -->
         <template v-if="results.length === 1">
-          <el-alert v-if="results[0].status === 'error'" type="error" show-icon :title="results[0].error" class="mb-3" />
+          <template v-if="results[0].status === 'error'">
+            <el-result icon="error" title="上传失败" :sub-title="results[0].error"></el-result>
+          </template>
           <template v-else>
             <el-result icon="success" title="上传完成" :sub-title="results[0].data?.duplicate ? '文件已存在，已定位到原书籍' : '已成功创建/更新图书'">
               <template #extra>
@@ -156,18 +159,24 @@
   </section>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { importsApi } from '@/api/imports'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { systemSettingsApi } from '@/api/systemSettings'
+import { formatBytes } from '@/utils/systemSettings'
 
 const uploader = ref()
 const uploadKey = ref(0)
+const uiFileList = ref<any[]>([])
 const files = ref<File[]>([])
 const uploading = ref(false)
 const results = ref<any[]>([])
 const parseTxt = ref(false)
 const router = useRouter()
+const maxBatch = ref(10)
+const sizeLimitBytes = ref<number | null>(null)
+const sizeLimitText = computed(() => sizeLimitBytes.value ? formatBytes(sizeLimitBytes.value) : '')
 
 const STORAGE_KEY = 'admin.upload.results'
 const hasSaved = ref<boolean>(false)
@@ -177,12 +186,27 @@ refreshHasSaved()
 function back() { router.push({ name: 'admin-book-list' }) }
 
 function onFileChange(_fileObj: any, fileList?: any[]) {
-  // 从 fileList 收集原始 File
-  const raws = (fileList || []).map((f: any) => f?.raw).filter((f: File) => !!f)
-  if (raws.length > 10) {
-    ElMessage.warning('最多一次性上传 10 个文件，已保留前 10 个')
+  const list = (fileList || uiFileList.value || []) as any[]
+  // 按顺序保留前 maxBatch 个
+  const limited = list.slice(0, Math.max(1, maxBatch.value))
+  if (list.length > limited.length) {
+    ElMessage.warning(`最多一次性上传 ${maxBatch.value} 个文件，已保留前 ${maxBatch.value} 个`)
   }
-  files.value = (raws.slice(0, 10)) as File[]
+
+  // 过滤超过大小限制的文件（基于 raw.size）
+  let allowed = limited
+  if (sizeLimitBytes.value) {
+    const limit = sizeLimitBytes.value
+    const overs = allowed.filter((it: any) => ((it?.raw?.size ?? 0) > limit))
+    if (overs.length) {
+      ElMessage.warning(`已移除 ${overs.length} 个超过大小限制（>${formatBytes(limit)}）的文件`)
+      allowed = allowed.filter((it: any) => ((it?.raw?.size ?? 0) <= limit))
+    }
+  }
+
+  // 更新上传组件可见列表与内部 files 原始 File 列表
+  uiFileList.value = allowed
+  files.value = allowed.map((it: any) => it?.raw).filter((f: File) => !!f) as File[]
   step.value = 0
 }
 function onFileRemove(_fileObj: any, fileList?: any[]) {
@@ -191,7 +215,7 @@ function onFileRemove(_fileObj: any, fileList?: any[]) {
 }
 
 function onExceed() {
-  ElMessage.warning('最多一次性上传 10 个文件')
+  ElMessage.warning(`最多一次性上传 ${maxBatch.value} 个文件`)
 }
 
 function reset() {
@@ -200,6 +224,7 @@ function reset() {
   uploading.value = false
   step.value = 0
   try { uploader.value?.clearFiles?.() } catch {}
+  uiFileList.value = []
   uploadKey.value++
 }
 
@@ -293,4 +318,17 @@ function clearSaved() {
   refreshHasSaved()
   ElMessage.success('已清除保存的导入记录')
 }
+
+onMounted(async () => {
+  try {
+    const res = await systemSettingsApi.get()
+    const vals = res.values || {}
+    if (typeof vals['book.upload_max_batch'] === 'number') {
+      maxBatch.value = Math.max(1, Math.min(100, vals['book.upload_max_batch']))
+    }
+    if (typeof vals['book.upload_max_size'] === 'number') {
+      sizeLimitBytes.value = vals['book.upload_max_size']
+    }
+  } catch {}
+})
 </script>
