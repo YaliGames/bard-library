@@ -282,12 +282,6 @@ onMounted(async () => {
   }
 })
 
-
-function startRead() {
-  const t = txtFiles.value[0]
-  if (!t) return
-  router.push({ name: 'reader-txt', params: { id: String(t.id) } })
-}
 function readFile(f: FileRec) {
   const fmt = (f.format || '').toLowerCase()
   if (fmt === 'txt') {
