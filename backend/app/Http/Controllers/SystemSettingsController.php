@@ -35,4 +35,20 @@ class SystemSettingsController extends Controller
         $values = SystemSetting::updateAll($payload);
         return response()->json([ 'values' => $values, 'schema' => SystemSetting::schema() ]);
     }
+
+    // 公开：仅返回前端路由守卫所需的权限类配置
+    public function public(Request $request)
+    {
+        $all = SystemSetting::getAll();
+        $pick = function(string $key, $default) use ($all) {
+            return array_key_exists($key, $all) ? $all[$key] : $default;
+        };
+        return response()->json([
+            'permissions' => [
+                'allow_guest_access' => (bool) $pick('permissions.allow_guest_access', true),
+                'allow_user_registration' => (bool) $pick('permissions.allow_user_registration', true),
+                'allow_recover_password' => (bool) $pick('permissions.allow_recover_password', true),
+            ],
+        ]);
+    }
 }

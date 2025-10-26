@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import { isLoggedIn, isRole } from "@/stores/auth";
+import { http } from "@/api/http";
 
 const routes: RouteRecordRaw[] = [
   { path: "/", name: "home", component: () => import("./pages/Home.vue") },
@@ -133,9 +134,45 @@ const router = createRouter({
   routes,
 });
 
+// 公共权限设置缓存（避免每次路由都拉取）
+let publicPerms: null | {
+  allow_guest_access: boolean;
+  allow_user_registration: boolean;
+  allow_recover_password: boolean;
+} = null;
+let loadingPerms: Promise<any> | null = null;
+
+async function ensurePublicPerms() {
+  if (publicPerms) return publicPerms;
+  if (!loadingPerms) {
+    loadingPerms = http.get<{ permissions: typeof publicPerms }>("/api/v1/settings/public").then((res: any) => {
+      publicPerms = (res?.permissions as any) || {
+        allow_guest_access: true, allow_user_registration: true, allow_recover_password: true,
+      };
+      return publicPerms;
+    }).catch(() => {
+      publicPerms = { allow_guest_access: true, allow_user_registration: true, allow_recover_password: true };
+      return publicPerms;
+    }).finally(() => { loadingPerms = null; });
+  }
+  return loadingPerms;
+}
+
 // 路由守卫
 router.beforeEach(async (to) => {
   const token = isLoggedIn();
+  // 确保拿到公开权限配置
+  await ensurePublicPerms();
+  const perms = publicPerms!;
+
+  if (!token && perms && !perms.allow_guest_access) {
+    const name = String(to.name || "");
+    const allow = ["login", "register", "forgot", "reset"];
+    if (!allow.includes(name)) {
+      return { name: "login", query: { redirect: to.fullPath } };
+    }
+  }
+
   const isAdminRoute = to.path.startsWith("/admin");
   // 未登录禁止访问 /admin
   if (isAdminRoute && !token) {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FilesController extends Controller
@@ -70,5 +71,27 @@ class FilesController extends Controller
             'Content-Type' => $mime,
             'Content-Disposition' => 'inline; filename="'.$filename.'"'
         ]);
+    }
+
+    // 全局资源访问令牌（可用于所有预览/下载/代理封面等资源访问），默认 10 分钟
+    public function accessToken(Request $request)
+    {
+        $minutes = max(1, min(60, intval($request->query('ttl', 10))));
+        $exp = time() + ($minutes * 60);
+        $payload = json_encode(['exp' => $exp], JSON_UNESCAPED_SLASHES);
+        $p64 = rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
+        $sig = $this->hmac($p64);
+        $token = $p64 . '.' . $sig;
+        return response()->json(['token' => $token, 'expires_in' => $minutes * 60]);
+    }
+
+    protected function hmac(string $data): string
+    {
+        $key = config('app.key');
+        if (is_string($key) && Str::startsWith($key, 'base64:')) {
+            $key = base64_decode(substr($key, 7));
+        }
+        $key = is_string($key) ? $key : '';
+        return rtrim(strtr(base64_encode(hash_hmac('sha256', $data, $key, true)), '+/', '-_'), '=');
     }
 }

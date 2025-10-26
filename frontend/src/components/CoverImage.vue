@@ -1,6 +1,6 @@
 <template>
   <div :class="wrapperClass" :style="wrapperStyle">
-    <img v-if="fileId" :src="coverUrl(fileId)" :alt="alt" class="w-full h-full object-cover" />
+    <img v-if="displaySrc" :src="displaySrc" :alt="alt" class="w-full h-full object-cover" />
     <template v-else>
       <div v-if="renderPlaceholder" class="placeholder relative w-full h-full flex flex-col" :style="placeholderStyle">
         <div class="image absolute right-0 bottom-[6%] left-[14%] top-1/2 bg-no-repeat bg-right-bottom bg-contain"></div>
@@ -24,7 +24,8 @@
   
 </template>
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { getPreviewUrl } from '@/utils/signedUrls'
 
 const props = defineProps<{
   fileId?: number | null
@@ -52,7 +53,37 @@ const wrapperStyle = computed(() => {
   return { aspectRatio: ratio }
 })
 
-function coverUrl(fileId: number) { return `/api/v1/files/${fileId}/preview` }
+const displaySrc = ref<string>('')
+let ticket = 0
+function preload(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('image load failed'))
+    img.src = url
+  })
+}
+
+async function resolveCover() {
+  const fid = props.fileId
+  const my = ++ticket
+  if (!fid) { displaySrc.value = ''; return }
+  try {
+    const url = await getPreviewUrl(Number(fid))
+    await preload(url)
+    if (my === ticket) displaySrc.value = url
+  } catch {
+    // 回退直链再尝试一次
+    try {
+      const fallback = `/api/v1/files/${fid}/preview`
+      await preload(fallback)
+      if (my === ticket) displaySrc.value = fallback
+    } catch {
+      if (my === ticket) displaySrc.value = ''
+    }
+  }
+}
+watch(() => props.fileId, resolveCover, { immediate: true })
 
 const iconSizeComputed = computed(() => props.fontSize || props.iconSize || '48px')
 

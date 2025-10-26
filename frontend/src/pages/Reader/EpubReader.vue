@@ -36,12 +36,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { getDownloadUrl } from '@/utils/signedUrls'
 
 const route = useRoute()
 const fileId = computed(() => Number(route.params.id))
 
-function download() {
+async function download() {
   if (!fileId.value) return
-  try { window.location.href = `/api/v1/files/${fileId.value}/download` } catch {}
+  try { window.location.href = await getDownloadUrl(fileId.value) } catch {}
 }
 </script>

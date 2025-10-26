@@ -170,6 +170,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { adminFilesApi, type AdminFileItem } from '@/api/adminFiles'
+import { getPreviewUrl, getDownloadUrl } from '@/utils/signedUrls'
 
 const router = useRouter()
 
@@ -229,8 +230,8 @@ function onSortChange(e: { prop?: string; order?: 'ascending'|'descending'|null 
   reload()
 }
 
-function preview(id:number){ window.open(`/api/v1/files/${id}/preview`, '_blank') }
-function download(id:number){ window.location.href = `/api/v1/files/${id}/download` }
+async function preview(id:number){ const u = await getPreviewUrl(id); window.open(u, '_blank') }
+async function download(id:number){ window.location.href = await getDownloadUrl(id) }
 
 async function remove(id:number, physical:boolean){
   try { await adminFilesApi.remove(id, physical); ElMessage.success('已删除'); reload() }

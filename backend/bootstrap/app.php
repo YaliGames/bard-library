@@ -20,8 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminOnly::class,
             'wrap' => \App\Http\Middleware\FormatJsonResponse::class,
+            'enforce_guest' => \App\Http\Middleware\EnforceGuestAccess::class,
         ]);
-        $middleware->appendToGroup('api', [\App\Http\Middleware\FormatJsonResponse::class]);
+        $middleware->appendToGroup('api', [
+            \App\Http\Middleware\FormatJsonResponse::class,
+            \App\Http\Middleware\EnforceGuestAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {

@@ -7,7 +7,7 @@
             重置密码
           </h1>
           <div class="w-full flex-1 mt-8">
-            <div class="mx-auto max-w-xs">
+            <div v-if="canRecover" class="mx-auto max-w-xs">
               <input
                 class="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
                 type="email" v-model="email" placeholder="请输入邮箱" />
@@ -32,6 +32,13 @@
               <el-alert v-if="msg" type="success" :title="msg" class="mt-4" />
               <el-alert v-if="err" type="error" :title="err" class="mt-4" />
             </div>
+            <div v-else class="mx-auto max-w-xs">
+              <el-result icon="warning" title="重置密码已关闭" sub-title="管理员已关闭找回密码功能">
+                <template #extra>
+                  <router-link :to="{ name: 'login' }"><el-button type="primary">返回登录</el-button></router-link>
+                </template>
+              </el-result>
+            </div>
           </div>
         </div>
       </div>
@@ -47,6 +54,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
+import { getPublicPermissions } from '@/utils/publicSettings'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,12 +66,14 @@ const password2 = ref('')
 const loading = ref(false)
 const err = ref('')
 const msg = ref('')
+const canRecover = ref(true)
 
 onMounted(() => {
   // 支持从 query 带入 token/email
   const q = route.query
   if (typeof q.token === 'string') token.value = q.token
   if (typeof q.email === 'string') email.value = q.email
+  getPublicPermissions().then(p => { canRecover.value = !!p.allow_recover_password }).catch(() => {})
 })
 
 async function onSubmit(){

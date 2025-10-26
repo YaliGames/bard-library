@@ -1,4 +1,5 @@
 import { http } from './http'
+import { ensureResourceQuery, ensureResourceQuerySync } from '@/utils/signedUrls'
 import type { MetaRecord } from "@/types/metadata";
 
 const BASE = "/api/v1/metadata";
@@ -18,10 +19,15 @@ export const metadataApi = {
     return http.get<MetaRecord>(u.toString())
   },
   coverUrl(provider: string, cover: string): string {
-    return `${BASE}/${provider}/cover?cover=${encodeURIComponent(cover)}`
+    const path = `${BASE}/${provider}/cover?cover=${encodeURIComponent(cover)}`
+    return ensureResourceQuerySync(path)
   },
-  coverAbsoluteUrl(provider: string, cover: string): string {
-    const path = this.coverUrl(provider, cover)
+  async coverUrlWithToken(provider: string, cover: string): Promise<string> {
+    const path = `${BASE}/${provider}/cover?cover=${encodeURIComponent(cover)}`
+    return ensureResourceQuery(path)
+  },
+  async coverAbsoluteUrl(provider: string, cover: string): Promise<string> {
+    const path = await this.coverUrlWithToken(provider, cover)
     const origin = window.location.origin
     return `${origin}${path}`
   },

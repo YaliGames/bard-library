@@ -207,6 +207,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { getDownloadUrl } from '@/utils/signedUrls'
 import CoverImage from '@/components/CoverImage.vue'
 import BookActions from '@/components/Book/BookActions.vue'
 import { booksApi } from '@/api/books'
@@ -282,7 +283,7 @@ onMounted(async () => {
   }
 })
 
-function readFile(f: FileRec) {
+async function readFile(f: FileRec) {
   const fmt = (f.format || '').toLowerCase()
   if (fmt === 'txt') {
     router.push({ name: 'reader-txt', params: { id: String(f.id) } })
@@ -291,8 +292,8 @@ function readFile(f: FileRec) {
   } else if (fmt === 'pdf') {
     router.push({ name: 'reader-pdf', params: { id: String(f.id) } })
   } else {
-    // 未知格式：直接下载
-    try { window.location.href = `/api/v1/files/${f.id}/download` } catch { }
+    // 未知格式：直接下载（签名或直链）
+    try { window.location.href = await getDownloadUrl(f.id) } catch { }
   }
 }
 
@@ -301,9 +302,9 @@ function onRead(payload: { type: string; file: FileRec }) {
   readFile(payload.file)
 }
 
-function onDownload(fileId: number) {
+async function onDownload(fileId: number) {
   if (!fileId) return
-  try { window.location.href = `/api/v1/files/${fileId}/download` } catch {}
+  try { window.location.href = await getDownloadUrl(fileId) } catch {}
 }
 
 function onSend() {

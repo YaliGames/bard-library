@@ -45,6 +45,7 @@ import { computed, ref, watch } from 'vue'
 import type { MetaRecord } from '@/types/metadata'
 import { listProviders, getProvider } from '@/providers/metadata'
 import { metadataApi } from '@/api/metadata'
+import { prefetchResourceToken } from '@/utils/signedUrls'
 
 const props = defineProps<{ modelValue: boolean; defaultProvider?: string; title?: string; defaultQuery?: string }>()
 const emit = defineEmits<{ (e:'update:modelValue', v:boolean):void; (e:'apply', payload: { item: MetaRecord; provider: string }):void; (e:'preview', payload: { item: MetaRecord; provider: string }):void; (e:'closed'):void }>()
@@ -84,6 +85,7 @@ watch(() => visible.value, (v) => {
   if (v && props.defaultQuery) {
     query.value = props.defaultQuery
   }
+  if (v) { prefetchResourceToken().catch(() => {}) }
   if (!v) {
     applying.value = false
     loading.value = false

@@ -102,16 +102,23 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/settings', [\App\Http\Controllers\SystemSettingsController::class, 'update']);
     });
 
+    // 公开：权限相关的公开设置，供前端路由守卫使用
+    Route::get('/settings/public', [\App\Http\Controllers\SystemSettingsController::class, 'public']);
+
     // ============================
     // Files 文件
     // ============================
     Route::prefix('files')->group(function () {
         // 下载/预览（公开）
-        Route::get('/{id}/download', [FilesController::class, 'download']);
-        Route::get('/{id}/preview', [FilesController::class, 'preview']);
+        Route::get('/{id}/download', [FilesController::class, 'download'])->name('files.download');
+        Route::get('/{id}/preview', [FilesController::class, 'preview'])->name('files.preview');
         // 删除（需管理员）
         Route::middleware(['auth:sanctum', 'admin'])->group(function () {
             Route::delete('/{id}', [FilesController::class, 'destroy']);
+        });
+        // 全局资源访问令牌（需登录）
+        Route::middleware(['auth:sanctum'])->group(function(){
+            Route::get('/access-token', [FilesController::class, 'accessToken']);
         });
     });
 

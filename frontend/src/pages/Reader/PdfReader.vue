@@ -96,7 +96,8 @@
       </div>
     </div>
 
-  <div ref="scrollRef" class="flex-1 min-h-0 bg-gray-50 dark:bg-[#111] overflow-auto flex items-start justify-center" @scroll="onContainerScroll">
+    <div ref="scrollRef" class="flex-1 min-h-0 bg-gray-50 dark:bg-[#111] overflow-auto flex items-start justify-center"
+      @scroll="onContainerScroll">
       <div v-if="loading" class="text-gray-500">正在加载 PDF…</div>
       <div v-else-if="error" class="text-red-500">加载失败：{{ error }}</div>
       <div v-else-if="!useIframeFallback" ref="containerRef" class="relative" style="max-width: 100%;"
@@ -231,6 +232,7 @@ import { onUnmounted } from 'vue'
 import HighlightMenu from '@/components/Reader/HighlightMenu.vue'
 import PdfPage from '@/components/Reader/PdfPage.vue'
 import { useRoute } from 'vue-router'
+import { getPreviewUrl, getDownloadUrl } from '@/utils/signedUrls'
 
 // route + fileId
 const route = useRoute()
@@ -724,10 +726,7 @@ function getContinuousDrawingStyle(p: number) {
 
 // load pdf.js dynamically
 let pdfjsLib: any = null
-
-function previewUrlFor(id: number) {
-  return `/api/v1/files/${id}/preview`
-}
+async function resolvePreviewUrl(id: number) { return await getPreviewUrl(id) }
 
 async function initPdf() {
   loading.value = true
@@ -746,8 +745,8 @@ async function initPdf() {
       // fallback: attempt to set a common path
       try { pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js' } catch { }
     }
-    // Fetch arrayBuffer first to avoid header/issues; this loads the whole file but is more compatible for MVP
-    const resp = await fetch(previewUrlFor(fileId.value), { credentials: 'include' })
+    // Fetch arrayBuffer first via signed or direct URL
+    const resp = await fetch(await resolvePreviewUrl(fileId.value), { credentials: 'include' })
     if (!resp.ok) throw new Error(`Failed to fetch PDF: ${resp.status}`)
     const arrayBuffer = await resp.arrayBuffer()
     pdfArrayBuffer.value = arrayBuffer
@@ -757,8 +756,8 @@ async function initPdf() {
     pdfDocRef.value = markRaw(pdfDoc)
     totalPages.value = pdfDoc.numPages
     meta.value.title = `File ${fileId.value}`
-  // load annotations from storage into reactive ref
-  annotations.value = loadAnnotations()
+    // load annotations from storage into reactive ref
+    annotations.value = loadAnnotations()
   } catch (err: any) {
     console.error('PDF load error', err)
     error.value = err?.message || String(err)
@@ -785,7 +784,7 @@ async function renderPage() {
       // try reloading via URL (let pdf.js handle range/worker) before blob fallback
       triedUrlFallback = true
       try {
-        const loadingTask2 = pdfjsLib.getDocument({ url: previewUrlFor(fileId.value), withCredentials: true })
+        const loadingTask2 = pdfjsLib.getDocument({ url: await resolvePreviewUrl(fileId.value), withCredentials: true })
         pdfDoc = await loadingTask2.promise
         totalPages.value = pdfDoc.numPages
         await renderPage()
@@ -836,9 +835,9 @@ function nextPage() {
   saveProgressDebounced()
 }
 
-function download() {
+async function download() {
   if (!fileId.value) return
-  try { window.location.href = `/api/v1/files/${fileId.value}/download` } catch { }
+  try { window.location.href = await getDownloadUrl(fileId.value) } catch { }
 }
 
 // Simple localStorage-backed annotations for demo: keyed by fileId

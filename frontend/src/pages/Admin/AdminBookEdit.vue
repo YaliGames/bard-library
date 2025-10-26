@@ -162,6 +162,7 @@ import MetadataSearchDialog from '@/components/Metadata/MetadataSearchDialog.vue
 import type { MetaRecord } from '@/types/metadata'
 import { metadataApi } from '@/api/metadata'
 import { coversApi } from '@/api/covers'
+import { getDownloadUrl } from '@/utils/signedUrls'
 
 const route = useRoute()
 const router = useRouter()
@@ -255,7 +256,7 @@ async function save() {
                 } catch {}
                 if (!imported && pendingCoverProvider.value) {
                     try {
-                        const proxyUrl = metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
+                        const proxyUrl = await metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
                         const r2 = await coversApi.fromUrl(created.id, { url: proxyUrl })
                         form.value.cover_file_id = r2?.file_id as any
                     } catch {}
@@ -274,7 +275,7 @@ async function save() {
                 } catch {}
                 if (!imported && pendingCoverProvider.value) {
                     try {
-                        const proxyUrl = metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
+                        const proxyUrl = await metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
                         const r2 = await coversApi.fromUrl(Number(idParam), { url: proxyUrl })
                         form.value.cover_file_id = r2?.file_id as any
                     } catch {}
@@ -332,7 +333,7 @@ function back() { router.back() }
 
 onMounted(load)
 
-function downloadFile(fid: number) { window.location.href = `/api/v1/files/${fid}/download` }
+async function downloadFile(fid: number) { window.location.href = await getDownloadUrl(fid) }
 function editChapters(fileId: number) { router.push({ name: 'admin-txt-chapters', params: { id: String(fileId) } }) }
 
 function openMetaDialog() { metaDialogVisible.value = true }
@@ -386,7 +387,7 @@ async function onMetaApply(payload: { item: MetaRecord; provider: string }) {
             } catch {}
             if (!imported && pendingCoverProvider.value) {
                 try {
-                    const proxyUrl = metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
+                    const proxyUrl = await metadataApi.coverAbsoluteUrl(pendingCoverProvider.value, pendingCoverUrl.value)
                     const r2 = await coversApi.fromUrl(Number(idParam), { url: proxyUrl })
                     form.value.cover_file_id = r2?.file_id as any
                 } catch {}

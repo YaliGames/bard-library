@@ -7,7 +7,7 @@
             找回密码
           </h1>
           <div class="w-full flex-1 mt-8">
-            <div class="mx-auto max-w-xs">
+            <div v-if="canRecover" class="mx-auto max-w-xs">
               <input
                 class="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
                 type="email" v-model="email" placeholder="请输入注册邮箱" />
@@ -22,6 +22,13 @@
               </button>
               <el-alert v-if="msg" type="success" :title="msg" class="mt-4" />
               <el-alert v-if="err" type="error" :title="err" class="mt-4" />
+            </div>
+            <div v-else class="mx-auto max-w-xs">
+              <el-result icon="warning" title="找回密码已关闭" sub-title="管理员已关闭找回密码功能">
+                <template #extra>
+                  <router-link :to="{ name: 'login' }"><el-button type="primary">返回登录</el-button></router-link>
+                </template>
+              </el-result>
             </div>
             <div class="my-6 border-gray-600 border-b text-center">
               <div
@@ -50,13 +57,19 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { authApi } from '@/api/auth'
+import { getPublicPermissions } from '@/utils/publicSettings'
 
 const email = ref('')
 const loading = ref(false)
 const err = ref('')
 const msg = ref('')
+const canRecover = ref(true)
+
+onMounted(async () => {
+  try { const p = await getPublicPermissions(); canRecover.value = !!p.allow_recover_password } catch {}
+})
 
 async function onSubmit(){
   const e = (email.value || '').trim()

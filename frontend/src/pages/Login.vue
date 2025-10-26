@@ -50,20 +50,25 @@
               </div>
             </div>
             <div class="flex flex-col items-center">
-              <router-link :to="{ name: 'register' }"
+              <router-link v-if="canRegister" :to="{ name: 'register' }"
                 class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 outline-none hover:shadow focus:shadow-sm">
                 <span class="material-symbols-outlined">person_add</span>
                 <span class="ml-4">
                   立即注册
                 </span>
               </router-link>
-              <router-link :to="{ name: 'forgot' }"
+              <router-link v-if="canRecover" :to="{ name: 'forgot' }"
                 class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 outline-none hover:shadow focus:shadow-sm mt-4">
                 <span class="material-symbols-outlined">passkey</span>
                 <span class="ml-4">
                   找回密码
                 </span>
               </router-link>
+              <div v-if="!canRegister || !canRecover" class="text-xs text-gray-500 mt-3">
+                <template v-if="!canRegister">管理员已关闭注册</template>
+                <template v-if="!canRegister && !canRecover">；</template>
+                <template v-if="!canRecover">管理员已关闭找回密码</template>
+              </div>
             </div>
           </div>
         </div>
@@ -78,10 +83,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
+import { getPublicPermissions } from '@/utils/publicSettings'
 
 const router = useRouter()
 const { setUser } = useAuthStore()
@@ -92,6 +98,16 @@ const err = ref('')
 const msg = ref('')
 const needVerify = ref(false)
 const resending = ref(false)
+const canRegister = ref(true)
+const canRecover = ref(true)
+
+onMounted(async () => {
+  try {
+    const p = await getPublicPermissions()
+    canRegister.value = !!p.allow_user_registration
+    canRecover.value = !!p.allow_recover_password
+  } catch { }
+})
 
 async function onSubmit() {
   if (!validateForm()) return

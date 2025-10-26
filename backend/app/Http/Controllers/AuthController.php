@@ -36,6 +36,9 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        if (!\App\Models\SystemSetting::value('permissions.allow_user_registration', true)) {
+            return response()->json(['message' => 'Registration disabled'], 403);
+        }
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'unique:users,email'],
@@ -53,6 +56,9 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
+        if (!\App\Models\SystemSetting::value('permissions.allow_recover_password', true)) {
+            return response()->json(['message' => 'Password recovery disabled'], 403);
+        }
         $data = $request->validate([
             'email' => ['required', 'email']
         ]);
@@ -82,6 +88,9 @@ class AuthController extends Controller
 
     public function resetPassword(Request $request)
     {
+        if (!\App\Models\SystemSetting::value('permissions.allow_recover_password', true)) {
+            return response()->json(['message' => 'Password recovery disabled'], 403);
+        }
         $data = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:6'],
