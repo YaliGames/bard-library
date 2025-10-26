@@ -2,14 +2,10 @@
   <div>
     <!-- 搜索栏 -->
     <div class="mb-4">
-      <div class="relative w-full rounded-lg bg-white shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-[var(--el-color-primary)]">
-        <input
-          v-model="filters.q"
-          type="text"
-          :placeholder="searchPlaceholder"
-          @keyup.enter="onSearch"
-          class="block w-full max-w-full min-w-0 px-4 py-3 pr-28 appearance-none box-border outline-none focus:outline-none border-0 focus:ring-0"
-        />
+      <div
+        class="relative w-full rounded-lg bg-white shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-[var(--el-color-primary)]">
+        <input v-model="filters.q" type="text" :placeholder="searchPlaceholder" @keyup.enter="onSearch"
+          class="block w-full max-w-full min-w-0 px-4 py-3 pr-28 appearance-none box-border outline-none focus:outline-none border-0 focus:ring-0" />
         <!-- <div class="absolute inset-y-0 right-0 flex items-center gap-2 pr-2">
           <el-button size="small" @click="onReset" plain>重置</el-button>
           <el-button size="small" type="primary" @click="onSearch">查询</el-button>
@@ -34,15 +30,12 @@
       <div v-if="showShelves" class="mb-4">
         <div class="text-sm font-medium mb-2 text-gray-700">书架</div>
         <div class="flex flex-wrap gap-2">
-          <el-button :type="!filters.shelfId ? 'primary' : 'default'" plain class="rounded-full" @click="onSelectShelf('all')">全部</el-button>
-          <el-button
-            v-for="s in shelves"
-            :key="s.id"
-            :type="filters.shelfId === s.id ? 'primary' : 'default'"
-            plain
-            class="rounded-full"
-            @click="onSelectShelf(String(s.id))"
-          >{{ s.name }}</el-button>
+          <el-button :type="!filters.shelfId ? 'primary' : 'default'" plain class="rounded-full"
+            @click="onSelectShelf('all')">全部</el-button>
+          <div v-for="s in shelves" :key="s.id">
+            <el-button :type="filters.shelfId === s.id ? 'primary' : 'default'" plain class="rounded-full"
+              @click="onSelectShelf(String(s.id))">{{ s.name }}</el-button>
+          </div>
         </div>
       </div>
 
@@ -51,14 +44,10 @@
         <div v-if="showTags" class="mb-4">
           <div class="text-sm font-medium mb-2 text-gray-700">标签</div>
           <div class="flex flex-wrap gap-2">
-            <el-button
-              v-for="t in tags"
-              :key="t.id"
-              :type="filters.tagIds.includes(t.id) ? 'primary' : 'default'"
-              plain
-              class="rounded-full"
-              @click="toggleTag(t.id)"
-            >{{ t.name }}</el-button>
+            <div v-for="t in tags" :key="t.id">
+              <el-button :type="filters.tagIds.includes(t.id) ? 'primary' : 'default'" plain class="rounded-full"
+                @click="toggleTag(t.id)">{{ t.name }}</el-button>
+            </div>
           </div>
         </div>
 
@@ -84,15 +73,8 @@
           </div>
           <div v-if="showPublishedAt">
             <div class="text-sm font-medium mb-2 text-gray-700">出版日期</div>
-            <el-date-picker
-              v-model="filters.publishedRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              value-format="YYYY-MM-DD"
-              style="width:100%"
-            />
+            <el-date-picker v-model="filters.publishedRange" type="daterange" range-separator="至"
+              start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width:100%" />
           </div>
           <div v-if="showLanguage">
             <div class="text-sm font-medium mb-2 text-gray-700">语言</div>
@@ -109,7 +91,8 @@
           <div v-if="showRating">
             <div class="text-sm font-medium mb-2 text-gray-700">评分</div>
             <el-slider v-model="filters.ratingRange" range :min="0" :max="5" :step="0.1" />
-            <div class="text-xs text-gray-500 mt-1">{{ filters.ratingRange[0].toFixed(1) }} - {{ filters.ratingRange[1].toFixed(1) }}</div>
+            <div class="text-xs text-gray-500 mt-1">{{ filters.ratingRange[0].toFixed(1) }} - {{
+              filters.ratingRange[1].toFixed(1) }}</div>
           </div>
         </div>
       </div>
@@ -191,7 +174,7 @@ const filters = reactive<FiltersModel>({
   tagIds: [],
   shelfId: null,
   readState: null,
-  ratingRange: [0,5],
+  ratingRange: [0, 5],
   publisher: null,
   publishedRange: null,
   language: null,
@@ -215,29 +198,29 @@ watch(filters, (v) => {
   emit('update:modelValue', { ...v })
 }, { deep: true })
 
-function toggleTag(id: number){
+function toggleTag(id: number) {
   const i = filters.tagIds.indexOf(id)
-  if (i >= 0) filters.tagIds.splice(i,1)
+  if (i >= 0) filters.tagIds.splice(i, 1)
   else filters.tagIds.push(id)
 }
-function onSelectShelf(index: string){
-  if(index==='all') filters.shelfId = null
+function onSelectShelf(index: string) {
+  if (index === 'all') filters.shelfId = null
   else filters.shelfId = Number(index)
 }
 
-function onSearch(){ emit('search') }
-  function onReset(){
-  Object.assign(filters, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0,5] as [number,number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
+function onSearch() { emit('search') }
+function onReset() {
+  Object.assign(filters, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0, 5] as [number, number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
   emit('reset')
 }
 
 onMounted(async () => {
-  try{
+  try {
     const ps: Promise<any>[] = []
-    if (props.showAuthor) ps.push(authorsApi.list().then(r=>authors.splice(0, authors.length, ...r)))
-    if (props.showTags) ps.push(tagsApi.list().then(r=>tags.splice(0, tags.length, ...r)))
-    if (props.showShelves) ps.push(shelvesApi.listAll().then(r=>shelves.splice(0, shelves.length, ...r)))
+    if (props.showAuthor) ps.push(authorsApi.list().then(r => authors.splice(0, authors.length, ...r)))
+    if (props.showTags) ps.push(tagsApi.list().then(r => tags.splice(0, tags.length, ...r)))
+    if (props.showShelves) ps.push(shelvesApi.listAll().then(r => shelves.splice(0, shelves.length, ...r)))
     await Promise.all(ps)
-  }catch{}
+  } catch { }
 })
 </script>
