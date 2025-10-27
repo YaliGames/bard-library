@@ -21,9 +21,16 @@
     <el-tab-pane label="书签" name="bookmarks">
       <el-empty v-if="!isLoggedIn" description="登录后可查看书签"></el-empty>
       <el-empty v-else-if="filteredBookmarks.length===0" description="当前文件暂无书签"></el-empty>
-      <div class="max-h-[60vh] overflow-auto space-y-1">
+      <div v-else class="max-h-[60vh] overflow-auto space-y-1">
+        <div class="sticky top-0 z-10 bg-white/80 backdrop-blur px-2 pt-1 pb-2 flex items-center justify-between">
+          <span class="text-xs text-gray-500">排序</span>
+          <el-radio-group v-model="sortMode" size="small">
+            <el-radio-button label="article">章节顺序</el-radio-button>
+            <el-radio-button label="created">创建时间</el-radio-button>
+          </el-radio-group>
+        </div>
         <div
-          v-for="b in filteredBookmarks"
+          v-for="b in sortedBookmarks"
           :key="b.id"
           @click="emit('jump', b)"
           class="px-2 py-1 rounded-md cursor-pointer transition flex items-center gap-2 hover:bg-gray-200"
@@ -80,6 +87,37 @@ const innerTab = computed({
   get: () => props.tab,
   set: (v: TabKey) => emit('update:tab', v)
 })
+
+// 书签排序：article = 按文本顺序（从前到后），created = 按创建时间（新到旧）
+const sortMode = ref<'article'|'created'>('article')
+
+const sortedBookmarks = computed(() => {
+  const list = (props.filteredBookmarks || []).slice()
+  if (sortMode.value === 'article') {
+    list.sort((a, b) => bookmarkPos(a) - bookmarkPos(b))
+  } else {
+    list.sort((a, b) => bookmarkCreatedAt(b) - bookmarkCreatedAt(a))
+  }
+  return list
+})
+
+function bookmarkPos(b: Bookmark): number {
+  try {
+    const loc = JSON.parse((b as any).location || '{}')
+    if (typeof loc?.absStart === 'number') return Number(loc.absStart) || 0
+    if (typeof loc?.start === 'number') return Number(loc.start) || 0
+    if (typeof loc?.chapterIndex === 'number') return Number(loc.chapterIndex) * 1_000_000
+    return 0
+  } catch { return 0 }
+}
+
+function bookmarkCreatedAt(b: Bookmark): number {
+  const v = (b as any).createdAt ?? (b as any).created_at ?? null
+  if (!v) return 0
+  if (typeof v === 'number') return v
+  const t = Date.parse(String(v))
+  return isNaN(t) ? 0 : t
+}
 
 function bookmarkLabel(b: Bookmark, showChap?: boolean): string {
   try {
