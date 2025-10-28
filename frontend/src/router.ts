@@ -25,13 +25,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import("./pages/ResetPassword.vue"),
   },
   {
+    path: "/shelf",
+    name: "shelf",
+    component: () => import("./pages/ShelfList.vue"),
+  },
+  {
     path: "/books",
     name: "books",
     component: () => import("./pages/BookList.vue"),
   },
   {
     path: "/shelf/:id",
-    name: "shelf",
+    name: "shelf-detail",
     component: () => import("./pages/Shelf.vue"),
   },
   {

@@ -65,3 +65,11 @@ export interface Series {
   id: number;
   name: string;
 }
+
+export interface Shelf {
+  id: number;
+  name: string;
+  description?: string;
+  cover?: string;
+  books?: Book[];
+}

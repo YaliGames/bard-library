@@ -1,25 +1,45 @@
 <template>
   <section class="book-list">
     <div class="container mx-auto px-4 py-4 max-w-7xl">
-      <h2 class="text-xl font-semibold mb-4">书架 · {{ shelf?.name || ('#'+shelfId) }}</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold">书架 · {{ shelf?.name || ('#' + shelfId) }}</h2>
+        <div class="flex items-center">
+          <el-button @click="back">
+            <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span> 返回
+          </el-button>
+        </div>
+      </div>
 
       <!-- 书架信息 -->
-      <el-card shadow="never" class="mb-4">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <span>书架信息</span>
+      <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <el-skeleton animated :loading="shelfLoading">
+          <template #template>
+            <el-skeleton-item variant="text" class="w-[40%] h-[18px]" />
+            <el-skeleton-item variant="text" class="w-[70%] h-[14px]" />
+            <div class="flex items-center justify-between mt-2">
+              <el-skeleton-item variant="text" class="w-[50%] h-[18px]" />
+            </div>
+          </template>
+          <div class="text-gray-700 text-sm leading-6">
+            <div class="mb-1">
+              <span class="text-gray-500">名称：</span>
+              <span class="font-medium">{{ shelf?.name || '未命名书架' }}</span>
+            </div>
+            <div class="mb-1">
+              <span class="text-gray-500">简介：</span>
+              <span>{{ shelf?.description || '暂无简介' }}</span>
+            </div>
+            <div class="mt-2 text-gray-400">更多信息区域 · 占位</div>
           </div>
-        </template>
-        <div class="text-gray-700 text-sm leading-6">
-          <div class="mb-1"><span class="text-gray-500">名称：</span><span class="font-medium">{{ shelf?.name || '未命名书架' }}</span></div>
-          <div class="mb-1"><span class="text-gray-500">简介：</span><span>这里展示书架简介（占位）</span></div>
-          <div class="mt-2 text-gray-400">更多信息区域 · 占位</div>
-        </div>
-      </el-card>
+        </el-skeleton>
+      </div>
 
-      <BookFilters v-model="filters" :showShelves="false" :showTags="true" :showAuthor="true" :showReadState="true"
-        :showRating="true" :enableExpand="true" :defaultExpanded="userSettings.preferences?.expandFilterMenu" @search="searchPage(1)" @reset="resetFilters"
-        class="mb-4" />
+      <template v-if="false">
+        <BookFilters v-model="filters" :showShelves="false" :showTags="true" :showAuthor="true"
+          :showReadState="true" :showRating="true" :enableExpand="true"
+          :defaultExpanded="userSettings.preferences?.expandFilterMenu" @search="searchPage(1)"
+          @reset="resetFilters" class="mb-4" />
+      </template>
 
       <!-- 排序控件（与书库页一致） -->
       <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
@@ -111,19 +131,21 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CoverImage from '@/components/CoverImage.vue'
 import BookFilters from '@/components/BookFilters.vue'
 import { booksApi } from '@/api/books'
-import type { Book } from '@/api/types'
+import type { Book, Shelf } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
-import { shelvesApi, type Shelf } from '@/api/shelves'
+import { shelvesApi } from '@/api/shelves'
 
 const data = ref<Book[]>([])
 const meta = ref<{ current_page: number; last_page: number; per_page: number; total: number } | null>(null)
 const loading = ref(true)
+const shelfLoading = ref(true)
+const router = useRouter()
 const route = useRoute()
 const shelfId = computed(() => Number(route.params.id))
 const shelf = ref<(Shelf & { description?: string }) | null>(null)
@@ -151,17 +173,22 @@ const isLoggedIn = loggedIn
 const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
 const { state: userSettings } = useSettingsStore()
 
+function back() { router.back() }
+
 function filterByAuthor(id: number) {
   filters.value.authorId = id
   searchPage(1)
 }
 
 async function fetchShelfInfo(){
+  shelfLoading.value = true
   try {
     const list = await shelvesApi.listAll()
     shelf.value = list.find(s => s.id === shelfId.value) || { id: shelfId.value, name: `#${shelfId.value}` }
   } catch {
     shelf.value = { id: shelfId.value, name: `#${shelfId.value}` }
+  } finally {
+    shelfLoading.value = false
   }
 }
 

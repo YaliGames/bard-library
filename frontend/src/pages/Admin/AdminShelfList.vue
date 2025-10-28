@@ -12,7 +12,8 @@
 </template>
 <script setup lang="ts">
 import AdminCrudList from '@/components/AdminCrudList.vue'
-import { shelvesApi, type Shelf } from '@/api/shelves'
+import type { Shelf } from '@/api/types'
+import { shelvesApi } from '@/api/shelves'
 
 // shelvesApi 提供分页/聚合两种方式，这里使用 listAll 简化
 const fetchList = async (q?: string): Promise<Array<Shelf & { name: string }>> => {

@@ -1,5 +1,5 @@
 import { http, PageResp } from './http'
-export interface Shelf { id: number; name: string }
+import type { Shelf } from './types'
 
 function normalizePage<T>(raw: any): PageResp<T> {
   if (raw && raw.data && raw.meta) {
@@ -27,6 +27,10 @@ export const shelvesApi = {
   },
   listAll: async (): Promise<Shelf[]> => {
     return http.get<Shelf[]>('/api/v1/shelves/all');
+  },
+  listSummaries: async (limit = 5): Promise<Shelf[]> => {
+    const raw = await http.get<any>(`/api/v1/shelves/summary?limit=${encodeURIComponent(String(limit))}`)
+    return raw as Shelf[];
   },
   createRaw: (payload: Partial<Shelf> & Record<string, any>) => {
     return http.post<Shelf>('/api/v1/shelves', payload);
