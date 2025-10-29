@@ -214,11 +214,9 @@ Route::prefix('v1')->group(function () {
     // Metadata 元数据抓取（公开）
     // ============================
     Route::prefix('metadata')->group(function () {
-        // 搜索并返回若干图书元数据项（默认最多5条）
-        Route::get('/douban/search', [MetadataController::class, 'search']);
-        // 根据 id 或 url 返回单本详情
-        Route::get('/douban/book', [MetadataController::class, 'book']);
-        // 代理封面（避免防盗链）
-        Route::get('/douban/cover', [MetadataController::class, 'cover']);
+        Route::get('/providers', [MetadataController::class, 'providers']);
+        Route::get('/{provider}/search', [MetadataController::class, 'search']);
+        Route::get('/{provider}/book', [MetadataController::class, 'book']);
+        Route::get('/{provider}/cover', [MetadataController::class, 'cover']);
     });
 });
