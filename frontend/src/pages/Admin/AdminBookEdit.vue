@@ -140,7 +140,6 @@
         </div>
 
         <MetadataSearchDialog v-model="metaDialogVisible"
-            :default-provider="'douban'"
             :default-query="defaultMetaQuery"
             title="从平台搜索元数据"
             @apply="onMetaApply" />

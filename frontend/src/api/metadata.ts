@@ -5,6 +5,9 @@ import type { MetaRecord } from "@/types/metadata";
 const BASE = "/api/v1/metadata";
 
 export const metadataApi = {
+  async listProviders(): Promise<{ id: string; name: string; description?: string }[]> {
+    return http.get<{ id: string; name: string; description?: string }[]>(`${BASE}/providers`)
+  },
   async search(provider: string, q: string, limit = 5): Promise<MetaRecord[]> {
     const u = new URL(`${BASE}/${provider}/search`, window.location.origin)
     if (q) u.searchParams.set('q', q)

@@ -56,11 +56,23 @@ class MetadataScraper
         if (!$searchCfg) return [];
         $params = $searchCfg['params'] ?? [];
         foreach ($params as $k => &$v) { $v = str_replace('$query', $query, (string)$v); }
+        $enc = strtolower($this->config['encoding'] ?? 'utf-8');
+        if (in_array($enc, ['gbk','gb2312'])) {
+            foreach ($params as $k => &$v) {
+                if (is_string($v) && function_exists('mb_convert_encoding')) {
+                    $v = @mb_convert_encoding($v, 'GBK', 'UTF-8');
+                }
+            }
+        }
         $method = strtoupper($searchCfg['method'] ?? 'GET');
         $url = $searchCfg['url'] ?? '';
         if (!$url) return [];
         $res = $this->client->request($method, $url, [ 'query' => $params ]);
         $html = (string)$res->getBody();
+        if ($html !== '' && $enc !== 'utf-8' && function_exists('mb_convert_encoding')) {
+            $to = 'UTF-8'; $from = strtoupper($enc);
+            $html = @mb_convert_encoding($html, $to, $from);
+        }
         $crawler = new Crawler($html);
         $listXpath = $searchCfg['result_list_xpath'] ?? '';
         if (!$listXpath) return [];
@@ -73,6 +85,14 @@ class MetadataScraper
             $u = $node->attr($attr);
             if (!empty($searchCfg['detail_url_parse']) && $searchCfg['detail_url_parse'] === 'extract_redirect_target') {
                 $u = $this->extractRedirectTarget($u);
+            }
+            // 规范化为绝对 URL
+            if ($u) {
+                if (str_starts_with($u, '//')) { $u = 'https:' . $u; }
+                elseif (!preg_match('#^https?://#i', $u)) {
+                    $base = rtrim((string)($this->config['base_url'] ?? ''), '/');
+                    if ($base) { $u = $base . '/' . ltrim($u, '/'); }
+                }
             }
             if ($u) {
                 $urls[] = $u;
@@ -88,6 +108,11 @@ class MetadataScraper
     {
         $res = $this->client->request('GET', $url);
         $html = (string)$res->getBody();
+        $enc = strtolower($this->config['encoding'] ?? 'utf-8');
+        if ($html !== '' && $enc !== 'utf-8' && function_exists('mb_convert_encoding')) {
+            $to = 'UTF-8'; $from = strtoupper($enc);
+            $html = @mb_convert_encoding($html, $to, $from);
+        }
         $crawler = new Crawler($html);
         $fields = $this->config['detail']['fields'] ?? [];
         $result = [];

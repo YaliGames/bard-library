@@ -15,7 +15,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[420px] overflow-auto pr-1">
       <el-card v-for="(b, idx) in items" :key="b.id + '_' + idx" shadow="hover">
         <div class="flex gap-3">
-          <img v-if="b.cover" :src="coverUrl(b.cover)" class="w-20 h-28 object-cover rounded border"/>
+          <img v-if="b.cover" :src="coverUrlForItem(b)" class="w-20 h-28 object-cover rounded border"/>
           <div class="flex-1 min-w-0">
             <div class="font-medium truncate">{{ b.title }}</div>
             <div class="text-xs text-gray-500 truncate">{{ (b.authors || []).join(' / ') }}</div>
@@ -41,18 +41,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import type { MetaRecord } from '@/types/metadata'
-import { listProviders, getProvider } from '@/providers/metadata'
 import { metadataApi } from '@/api/metadata'
 import { prefetchResourceToken } from '@/utils/signedUrls'
 
 const props = defineProps<{ modelValue: boolean; defaultProvider?: string; title?: string; defaultQuery?: string }>()
 const emit = defineEmits<{ (e:'update:modelValue', v:boolean):void; (e:'apply', payload: { item: MetaRecord; provider: string }):void; (e:'preview', payload: { item: MetaRecord; provider: string }):void; (e:'closed'):void }>()
 
+type ProviderInfo = { id: string; name: string; description?: string }
 const visible = computed({ get: () => props.modelValue, set: v => emit('update:modelValue', v) })
-const providers = listProviders()
-const providerId = ref<string>(props.defaultProvider || providers[0]?.id || 'douban')
+const providers = ref<ProviderInfo[]>([])
+const providerId = ref<string>(props.defaultProvider || '')
 const query = ref('')
 const items = ref<MetaRecord[]>([])
 const loading = ref(false)
@@ -64,11 +64,10 @@ async function doSearch() {
   if (busy.value) return
   items.value = []
   error.value = ''
-  const p = getProvider(providerId.value)
-  if (!p) { error.value = '未找到平台实现'; return }
+  if (!providerId.value) { error.value = '请选择平台'; return }
   loading.value = true
   try {
-    items.value = await p.search(query.value, 5)
+    items.value = await metadataApi.search(providerId.value, query.value, 5)
   } catch (e:any) {
     error.value = e?.message || '搜索失败'
   } finally {
@@ -78,7 +77,10 @@ async function doSearch() {
 
 function emitApply(b: MetaRecord) { applying.value = true; emit('apply', { item: b, provider: providerId.value }) }
 function emitPreview(b: MetaRecord) { applying.value = true; emit('preview', { item: b, provider: providerId.value }) }
-function coverUrl(raw: string) { return metadataApi.coverUrl(providerId.value, raw) }
+function coverUrlForItem(b: MetaRecord) {
+  const p = b?.source?.id || providerId.value
+  return b.cover ? metadataApi.coverUrl(p, b.cover) : ''
+}
 
 watch(() => props.defaultProvider, (v) => { if (v) providerId.value = v })
 watch(() => visible.value, (v) => {
@@ -91,6 +93,19 @@ watch(() => visible.value, (v) => {
     loading.value = false
   }
 })
+
+async function ensureProvidersLoaded() {
+  if (providers.value.length > 0) return
+  try {
+    providers.value = await metadataApi.listProviders()
+    if (!providerId.value && providers.value[0]?.id) providerId.value = providers.value[0].id
+  } catch (e:any) {
+    error.value = e?.message || '加载平台列表失败'
+  }
+}
+
+onMounted(() => { ensureProvidersLoaded() })
+watch(() => visible.value, (v) => { if (v) ensureProvidersLoaded() })
 
 function onClosed() {
   applying.value = false
