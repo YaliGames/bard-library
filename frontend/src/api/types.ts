@@ -47,6 +47,8 @@ export interface Book {
   cover_file_id?: number;
   is_read_mark?: 0 | 1 | boolean;
   is_reading?: 0 | 1 | boolean;
+  // Detail API 可能返回书架列表（用于前端在“书架详情页”添加/移除书籍时做差异化计算）
+  shelves?: Array<{ id: number; name: string; user_id?: number | null }>;
 }
 
 export interface Bookmark {
@@ -70,6 +72,8 @@ export interface Shelf {
   id: number;
   name: string;
   description?: string;
+  is_public?: boolean;
+  user_id?: number | null;
   cover?: string;
   books?: Book[];
 }

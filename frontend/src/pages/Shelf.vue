@@ -3,7 +3,11 @@
     <div class="container mx-auto px-4 py-4 max-w-7xl">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold">书架 · {{ shelf?.name || ('#' + shelfId) }}</h2>
-        <div class="flex items-center">
+        <div class="flex items-center gap-2">
+          <template v-if="canManage">
+            <el-button type="primary" @click="openEdit">编辑</el-button>
+            <el-button @click="openAddDialog">添加书籍</el-button>
+          </template>
           <el-button @click="back">
             <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span> 返回
           </el-button>
@@ -24,6 +28,8 @@
             <div class="mb-1">
               <span class="text-gray-500">名称：</span>
               <span class="font-medium">{{ shelf?.name || '未命名书架' }}</span>
+              <el-tag v-if="shelf?.is_public" size="small" type="success" class="ml-2">公开</el-tag>
+              <el-tag v-else size="small" class="ml-2">私有</el-tag>
             </div>
             <div class="mb-1">
               <span class="text-gray-500">简介：</span>
@@ -107,6 +113,7 @@
               </div>
               <div class="flex items-center justify-between gap-2">
                 <el-rate v-model="b.rating" :max="5" allow-half disabled show-score score-template="{value}" />
+                <el-button v-if="canManage" size="small" type="danger" @click="removeFromShelf(b)">移出</el-button>
                 <template v-if="userSettings.bookList?.showMarkReadButton && isLoggedIn">
                   <el-tooltip :content="b.is_read_mark ? '取消已读' : '标为已读'" placement="top">
                     <el-button size="small" :type="b.is_read_mark ? 'success' : 'default'" @click="toggleRead(b)" circle>
@@ -127,6 +134,36 @@
       </template>
     </div>
   </section>
+  <!-- 编辑弹窗 -->
+  <el-dialog v-model="editVisible" title="编辑书架" width="480px">
+    <el-form label-width="100px">
+      <el-form-item label="名称"><el-input v-model="form.name" maxlength="190" /></el-form-item>
+      <el-form-item label="描述"><el-input v-model="form.description" type="textarea" maxlength="500" /></el-form-item>
+      <el-form-item v-if="isRole('admin')" label="公开">
+        <el-switch v-model="form.is_public" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="editVisible=false">取消</el-button>
+      <el-button type="primary" @click="saveEdit">保存</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- 添加书籍 -->
+  <el-dialog v-model="addVisible" title="添加书籍到当前书架" width="720px">
+    <div class="flex items-center gap-2 mb-3">
+      <el-input v-model="addQ" placeholder="搜索书名/作者" class="w-[300px]" @keyup.enter="searchAdd" />
+      <el-button type="primary" :loading="addLoading" @click="searchAdd">搜索</el-button>
+    </div>
+    <el-empty v-if="!addLoading && addList.length===0" description="输入关键字搜索书籍" />
+    <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div v-for="b in addList" :key="b.id" class="bg-white rounded-lg shadow-sm p-2">
+        <router-link :to="`/books/${b.id}`" class="block font-semibold truncate mb-1">{{ b.title }}</router-link>
+        <div class="text-xs text-gray-500 truncate mb-2">{{ (b.authors||[]).map(a=>a.name).join(' / ') || '无作者' }}</div>
+        <el-button size="small" type="primary" @click="addToShelf(b)">添加</el-button>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -149,6 +186,12 @@ const router = useRouter()
 const route = useRoute()
 const shelfId = computed(() => Number(route.params.id))
 const shelf = ref<(Shelf & { description?: string }) | null>(null)
+const { state: authState, isRole } = useAuthStore()
+const canManage = computed(() => {
+  if (!shelf.value) return false
+  if (isRole('admin')) return true
+  return (shelf.value.user_id ?? 0) === (authState.user?.id ?? -1)
+})
 
 // 统一的筛选模型（固定 shelfId）
 const filters = ref({
@@ -183,8 +226,8 @@ function filterByAuthor(id: number) {
 async function fetchShelfInfo(){
   shelfLoading.value = true
   try {
-    const list = await shelvesApi.listAll()
-    shelf.value = list.find(s => s.id === shelfId.value) || { id: shelfId.value, name: `#${shelfId.value}` }
+    const s = await shelvesApi.show(shelfId.value)
+    shelf.value = s
   } catch {
     shelf.value = { id: shelfId.value, name: `#${shelfId.value}` }
   } finally {
@@ -258,6 +301,67 @@ onMounted(() => {
   fetchShelfInfo()
   fetchBooks(1)
 })
+
+// 编辑弹窗
+const editVisible = ref(false)
+const form = ref<{ name: string; description?: string; is_public?: boolean }>({ name: '' })
+function openEdit(){ if (!shelf.value) return; form.value = { name: shelf.value.name, description: shelf.value.description || '', is_public: shelf.value.is_public }; editVisible.value = true }
+async function saveEdit(){
+  if (!shelf.value) return
+  try { await shelvesApi.updateRaw(shelf.value.id, { name: form.value.name.trim(), description: form.value.description || '', is_public: form.value.is_public }); editVisible.value=false; await fetchShelfInfo(); ElMessage.success('已保存') }
+  catch(e:any){ ElMessage.error(e?.message || '保存失败') }
+}
+
+// 添加书籍
+const addVisible = ref(false)
+const addQ = ref('')
+const addLoading = ref(false)
+const addList = ref<Book[]>([])
+function openAddDialog(){ addVisible.value = true; addQ.value=''; addList.value=[] }
+async function searchAdd(){
+  addLoading.value = true
+  try { const r = await booksApi.list({ q: addQ.value || undefined, per_page: 12 }); addList.value = r.data }
+  catch{ addList.value = [] }
+  finally { addLoading.value = false }
+}
+async function addToShelf(b: Book){
+  if (!shelf.value) return
+  try {
+    // 取该书当前的书架列表
+  const full = await booksApi.get(b.id)
+    const allIds = (full.shelves || []).map((s:any)=>s.id)
+    // 根据权限构造要提交的 shelf_ids
+    let submitIds: number[] = []
+    if (isRole('admin')) {
+      submitIds = Array.from(new Set([...allIds, shelf.value.id]))
+    } else {
+      const myIds = (full.shelves || []).filter((s:any)=> (s.user_id ?? 0) === (authState.user?.id ?? -1)).map((s:any)=>s.id)
+      submitIds = Array.from(new Set([...myIds, shelf.value.id]))
+    }
+  await booksApi.setShelves(b.id, submitIds)
+    ElMessage.success('已添加')
+  } catch(e:any){ ElMessage.error(e?.message || '添加失败') }
+}
+
+// 从书架移除
+async function removeFromShelf(b: Book){
+  if (!shelf.value) return
+  try {
+  const full = await booksApi.get(b.id)
+    const allIds = (full.shelves || []).map((s:any)=>s.id)
+    let submitIds: number[] = []
+    if (isRole('admin')) {
+  submitIds = allIds.filter((id: number) => id !== shelf.value!.id)
+    } else {
+      const myIds = (full.shelves || []).filter((s:any)=> (s.user_id ?? 0) === (authState.user?.id ?? -1)).map((s:any)=>s.id)
+  submitIds = myIds.filter((id: number) => id !== shelf.value!.id)
+    }
+    await booksApi.setShelves(b.id, submitIds)
+    // 本页列表移除该书
+    data.value = data.value.filter(x => x.id !== b.id)
+    ElMessage.success('已移出')
+  } catch(e:any){ ElMessage.error(e?.message || '操作失败') }
+}
 </script>
 
 <style scoped>

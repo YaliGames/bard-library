@@ -64,6 +64,9 @@ export const booksApi = {
   get: (id: number) => {
     return http.get<Book>(`/api/v1/books/${id}`);
   },
+  setShelves: (id: number, shelf_ids: number[]) => {
+    return http.post<Book>(`/api/v1/books/${id}/shelves`, { shelf_ids });
+  },
   create: (payload: Partial<Book>) => {
     return http.post<Book>("/api/v1/books", payload);
   },

@@ -65,14 +65,27 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: "/profile",
-    name: "profile",
-    component: () => import("./pages/Profile.vue"),
-  },
-  {
-    path: "/settings",
-    name: "user-settings",
-    component: () => import("./pages/UserSettings.vue"),
+    path: "/user",
+    redirect: {
+      name: "user-index",
+    },
+    children: [
+      {
+        path: "profile",
+        name: "user-profile",
+        component: () => import("./pages/Profile.vue"),
+      },
+      {
+        path: "settings",
+        name: "user-settings",
+        component: () => import("./pages/UserSettings.vue"),
+      },
+      {
+        path: "shelves",
+        name: "user-shelves",
+        component: () => import("./pages/UserShelf.vue"),
+      },
+    ],
   },
   {
     path: "/admin",

@@ -6,9 +6,12 @@
     </div>
 
     <div class="hidden md:flex items-center gap-4 ml-4">
-      <router-link to="/" class="nav-link">首页</router-link>
-      <router-link to="/books" class="nav-link">书库</router-link>
-      <router-link to="/admin/index" class="nav-link" v-if="isAdmin">管理入口</router-link>
+      <template v-for="item in menuItems" :key="item.id">
+        <router-link v-if="!item.external" :to="item.path || '/'" class="nav-link"
+          v-show="!item.adminOnly || isAdmin">{{ item.label }}</router-link>
+        <a v-else :href="item.path" class="nav-link" target="_blank" rel="noopener"
+          v-show="!item.adminOnly || isAdmin">{{ item.label }}</a>
+      </template>
     </div>
 
     <span class="flex-1"></span>
@@ -36,18 +39,21 @@
     </div>
 
     <template v-else>
-      <el-dropdown trigger="hover" @command="onCommand" class="hidden md:block">
+      <el-dropdown trigger="hover" class="hidden md:block">
         <div class="el-dropdown-link flex items-center gap-2 cursor-pointer text-white">
           <el-avatar :size="28">{{ avatarLetter }}</el-avatar>
           <span class="text-sm">{{ user?.name || user?.email }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-            <el-dropdown-item command="settings">用户设置</el-dropdown-item>
-            <el-dropdown-item v-if="isAdmin" command="system">系统设置</el-dropdown-item>
-            <el-dropdown-item v-if="isAdmin" command="admin">管理入口</el-dropdown-item>
-            <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+            <template v-for="item in userMenuItems" :key="item.id">
+              <el-dropdown-item
+                :divided="!!item.divided"
+                v-show="!item.adminOnly || isAdmin"
+                @click="handleUserMenuItem(item)">
+                {{ item.label }}
+              </el-dropdown-item>
+            </template>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -69,9 +75,11 @@
       </div>
 
       <div class="flex flex-col gap-2 py-2">
-        <button class="drawer-link" @click="go('/')">首页</button>
-        <button class="drawer-link" @click="go('/books')">书库</button>
-        <button v-if="isAdmin" class="drawer-link" @click="go('/admin/index')">管理入口</button>
+        <template v-for="item in menuItems" :key="item.id">
+          <button v-if="!item.external" class="drawer-link" @click="go(item.path || '/')"
+            v-show="!item.adminOnly || isAdmin">{{ item.label }}</button>
+          <a v-else class="drawer-link" :href="item.path" target="_blank" rel="noopener">{{ item.label }}</a>
+        </template>
       </div>
 
       <div class="border-t my-3"></div>
@@ -89,16 +97,27 @@
           </template>
         </el-skeleton>
       </div>
-      <div v-else class="flex flex-col gap-2">
+        <div v-else class="flex flex-col gap-2">
         <div class="flex items-center gap-2 text-gray-600 mb-1">
           <el-avatar :size="28">{{ avatarLetter }}</el-avatar>
           <span class="text-sm">{{ user?.name || user?.email }}</span>
         </div>
-        <button class="drawer-link" @click="go('/profile')">个人资料</button>
-        <button class="drawer-link" @click="go('/user-settings')">用户设置</button>
-        <button v-if="isAdmin" class="drawer-link" @click="go('/system-settings')">系统设置</button>
-        <button v-if="isAdmin" class="drawer-link" @click="go('/admin/index')">管理入口</button>
-        <button class="drawer-link text-red-600" @click="logoutAndGo">退出登录</button>
+        <template v-for="item in userMenuItems" :key="item.id">
+          <button
+            v-if="item.action === 'logout'"
+            class="drawer-link text-red-600"
+            @click="logoutAndGo"
+            v-show="!item.adminOnly || isAdmin">
+            {{ item.label }}
+          </button>
+          <button
+            v-else
+            class="drawer-link"
+            @click="item.path ? go(item.path) : null"
+            v-show="!item.adminOnly || isAdmin">
+            {{ item.label }}
+          </button>
+        </template>
       </div>
     </div>
   </el-drawer>
@@ -110,6 +129,7 @@ import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { settingsApi } from '@/api/settings'
+import { navMenu, userMenu } from '@/config/navMenu'
 const router = useRouter()
 const { state: authState, setUser } = useAuthStore()
 const { setAll: setAllSettings } = useSettingsStore()
@@ -120,6 +140,20 @@ const mobileOpen = ref(false)
 const { isRole } = useAuthStore()
 const isAdmin = computed(() => isRole('admin'))
 const avatarLetter = computed(() => (user.value?.name?.[0] || user.value?.email?.[0] || 'U').toUpperCase())
+
+const menuItems = computed(() => {
+  return (navMenu || []).filter((i: any) => {
+    if (i.adminOnly && !isAdmin.value) return false
+    return true
+  })
+})
+
+const userMenuItems = computed(() => {
+  return (userMenu || []).filter((i: any) => {
+    if (i.adminOnly && !isAdmin.value) return false
+    return true
+  })
+})
 
 async function fetchUser() {
   const token = localStorage.getItem('token')
@@ -144,25 +178,16 @@ watchEffect(() => {
   }
 })
 
-async function onCommand(cmd: string) {
-  switch (cmd) {
-    case 'profile':
-      router.push({ name: 'profile' })
-      break
-    case 'settings':
-      router.push({ name: 'user-settings' })
-      break
-    case 'system':
-      router.push({ name: 'system-settings' })
-      break
-    case 'admin':
-      router.push({ name: 'admin-index' })
-      break
-    case 'logout':
-      await authApi.logout()
-      setUser(null)
-      router.push({ name: 'login' })
-      break
+function handleUserMenuItem(item: any) {
+  // 支持 action=logout 与基于 path 的导航
+  if (!item) return
+  if (item.action === 'logout') {
+    logoutAndGo()
+    return
+  }
+  if (item.path) {
+    go(item.path)
+    return
   }
 }
 

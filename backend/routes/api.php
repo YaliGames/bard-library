@@ -87,12 +87,15 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [BooksController::class, 'destroy']);
             Route::post('/{id}/authors', [BooksController::class, 'setAuthors']);
             Route::post('/{id}/tags', [BooksController::class, 'setTags']);
-            // 为书籍设置书架
-            Route::post('/{id}/shelves', [ShelvesController::class, 'setShelvesForBook']);
             // 封面：上传与通过 URL 导入
             Route::post('/{id}/cover/upload', [CoversController::class, 'upload']);
             Route::post('/{id}/cover/from-url', [CoversController::class, 'fromUrl']);
             Route::delete('/{id}/cover', [CoversController::class, 'clear']);
+        });
+
+        // 用户为书籍设置书架（需登录）：管理员可设置任意书架，普通用户仅能设置自己的书架
+        Route::middleware(['auth:sanctum'])->group(function () {
+            Route::post('/{id}/shelves', [ShelvesController::class, 'setShelvesForBook']);
         });
     });
 
@@ -159,9 +162,11 @@ Route::prefix('v1')->group(function () {
         Route::get('/all', [ShelvesController::class, 'all']);
         // 返回书架列表并附带每个书架的若干书籍摘要（用于导览页面）
         Route::get('/summary', [ShelvesController::class, 'summaryAll']);
+        // 详情
+        Route::get('/{id}', [ShelvesController::class, 'show']);
 
-        // Admin：书架管理（需管理员）
-        Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+        // 书架管理（需登录）：管理员可管理所有书架，普通用户仅可管理自己的书架
+        Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/', [ShelvesController::class, 'store']);
             Route::patch('/{id}', [ShelvesController::class, 'update']);
             Route::delete('/{id}', [ShelvesController::class, 'destroy']);
