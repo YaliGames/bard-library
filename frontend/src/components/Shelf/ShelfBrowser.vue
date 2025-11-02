@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import ShelfCardList from '@/components/ShelfCardList.vue'
+import ShelfCardList from '@/components/Shelf/ShelfCardList.vue'
 import type { Shelf } from '@/api/types'
 import { shelvesApi } from '@/api/shelves'
 import { ElMessage } from 'element-plus'

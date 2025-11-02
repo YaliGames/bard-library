@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import ShelfCardList from '@/components/ShelfCardList.vue'
+import ShelfCardList from '@/components/Shelf/ShelfCardList.vue'
 import type { Shelf } from '@/api/types'
 import { shelvesApi } from '@/api/shelves'
 import { useAuthStore } from '@/stores/auth'
