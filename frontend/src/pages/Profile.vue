@@ -40,32 +40,24 @@
             </template>
             <template v-else>
               <SettingsItem title="昵称" description="昵称为必填选项，为显示在站内的名称，用户间的昵称不可重复">
-                <template #default>
                   <el-form-item prop="name" class="w-full">
                     <el-input v-model="profile.name" placeholder="请输入昵称" />
                   </el-form-item>
-                </template>
               </SettingsItem>
               <SettingsItem title="位置" description="可选择填写你的所在城市/地区，将展示在你的个人主页上">
-                <template #default>
                   <el-form-item prop="location" class="w-full">
                     <el-input v-model="profile.location" placeholder="请输入位置" />
                   </el-form-item>
-                </template>
               </SettingsItem>
               <SettingsItem title="网站" description="可选择填写你的个人网站或社交媒体链接，将展示在你的个人主页上">
-                <template #default>
                   <el-form-item prop="website" class="w-full">
                     <el-input v-model="profile.website" placeholder="https://example.com" />
                   </el-form-item>
-                </template>
               </SettingsItem>
               <SettingsItem title="简介" description="可选择填写个人简介，将展示在你的个人主页上">
-                <template #default>
                   <el-form-item prop="bio" class="w-full">
                     <el-input v-model="profile.bio" type="textarea" :rows="3" maxlength="2000" show-word-limit placeholder="简要介绍自己" />
                   </el-form-item>
-                </template>
               </SettingsItem>
               <div class="flex justify-end">
                 <el-button type="primary" :loading="savingProfile" @click="onSaveProfile">保存</el-button>
@@ -79,25 +71,19 @@
           <h2 class="text-xl font-semibold mb-4">修改密码</h2>
           <el-form ref="pwdRef" :model="pwd" :rules="pwdRules" label-width="0">
             <SettingsItem title="当前密码" description="请输入当前密码">
-              <template #default>
                 <el-form-item prop="current_password" class="w-full">
                   <el-input v-model="pwd.current_password" type="password" show-password />
                 </el-form-item>
-              </template>
             </SettingsItem>
             <SettingsItem title="新密码" description="请设定一个新密码">
-              <template #default>
                 <el-form-item prop="new_password" class="w-full">
                   <el-input v-model="pwd.new_password" type="password" show-password />
                 </el-form-item>
-              </template>
             </SettingsItem>
             <SettingsItem title="确认新密码" description="请再次输入新密码">
-              <template #default>
                 <el-form-item prop="new_password2" class="w-full">
                   <el-input v-model="pwd.new_password2" type="password" show-password />
                 </el-form-item>
-              </template>
             </SettingsItem>
             <div class="flex justify-end">
               <el-button type="primary" :loading="savingPwd" @click="onChangePwd">更新密码</el-button>
@@ -109,11 +95,9 @@
         <div v-if="active==='danger'">
           <h2 class="text-xl font-semibold mb-4 text-red-600">删除账号</h2>
           <SettingsItem title="危险操作" description="申请后 7 个工作日执行删除，可在此期间撤回，删除后不可恢复。">
-            <template #default>
               <div class="flex items-center justify-end">
                 <el-button type="danger" :loading="deleting" @click="onRequestDelete">申请删除账号</el-button>
               </div>
-            </template>
           </SettingsItem>
         </div>
       </div>
@@ -128,7 +112,7 @@ import { ElMessage } from 'element-plus'
 import { authApi } from '@/api/auth'
 import { type User } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
-import SettingsItem from '@/components/SettingsItem.vue'
+import SettingsItem from '@/components/Settings/SettingsItem.vue'
 
 const { setUser } = useAuthStore()
 

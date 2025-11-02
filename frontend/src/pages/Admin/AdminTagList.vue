@@ -11,7 +11,7 @@
   />
 </template>
 <script setup lang="ts">
-import AdminCrudList from '@/components/AdminCrudList.vue'
+import AdminCrudList from '@/components/Admin/AdminCrudList.vue'
 import { tagsApi } from '@/api/tags'
 
 const fetchList = async (q?: string) => tagsApi.list(q ? { q } : undefined)

@@ -76,7 +76,7 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { settingsApi, type UserSettings } from '@/api/settings'
 import { useSettingsStore, defaultSettings } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
-import SettingsItem from '@/components/SettingsItem.vue'
+import SettingsItem from '@/components/Settings/SettingsItem.vue'
 
 const { state, setAll } = useSettingsStore()
 const local = reactive<UserSettings>(JSON.parse(JSON.stringify(defaultSettings)))

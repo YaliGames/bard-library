@@ -21,7 +21,7 @@
                     </div>
                 </div>
             </router-link>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                 <router-link v-for="b in (s.books || [])" :key="b.id" :to="`/books/${b.id}`">
                     <el-button type="primary" class="justify-start w-full">
                         <span class="material-symbols-outlined mr-2">book</span>

@@ -10,7 +10,7 @@
   />
 </template>
 <script setup lang="ts">
-import AdminCrudList from '@/components/AdminCrudList.vue'
+import AdminCrudList from '@/components/Admin/AdminCrudList.vue'
 import { seriesApi } from '@/api/series'
 
 const fetchList = async (q?: string) => seriesApi.list(q)

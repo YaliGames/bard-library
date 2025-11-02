@@ -38,7 +38,6 @@
                             :title="labelOf(String(key), def)"
                             :description="def.description || ''"
                         >
-                            <template #default>
                                 <template v-if="def.type === 'bool'">
                                     <el-switch v-model="valuesReactive[key]" />
                                 </template>
@@ -61,7 +60,6 @@
                                 <template v-else>
                                     <el-input class="w-full max-w-xl" v-model="valuesReactive[key]" />
                                 </template>
-                            </template>
                         </SettingsItem>
                         <div class="flex gap-2 mt-4 items-center justify-end">
                             <el-button type="primary" :loading="saving" :disabled="loading" @click="save">保存</el-button>
@@ -86,7 +84,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { systemSettingsApi, type SettingDef, type SettingsResponse } from '@/api/systemSettings'
 import { parseSizeToBytes, formatBytes } from '@/utils/systemSettings'
-import SettingsItem from '@/components/SettingsItem.vue'
+import SettingsItem from '@/components/Settings/SettingsItem.vue'
 
 const loading = ref(true)
 const saving = ref(false)
