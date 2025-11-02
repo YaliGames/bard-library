@@ -4,6 +4,9 @@ export interface User {
   name: string;
   email: string;
   role?: string;
+  location?: string;
+  website?: string;
+  bio?: string;
 }
 
 export interface Author {

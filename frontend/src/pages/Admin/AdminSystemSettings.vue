@@ -1,33 +1,44 @@
 <template>
-    <section class="container mx-auto px-4 py-6 max-w-4xl">
-        <h2 class="text-2xl font-semibold mb-6">系统设置</h2>
-        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <div class="text-lg font-medium mb-2">说明</div>
-            <div class="text-sm text-gray-600 mb-4">
-                此页面用于管理系统全设置，修改后将立即对所有用户生效。
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <el-skeleton :loading="loading" animated>
-                <template #template>
-                    <el-skeleton-item variant="text" class="w-40 h-6 mb-2" />
-                    <div class="flex flex-col gap-2 p-2">
-                        <el-skeleton-item variant="text" class="w-64 h-6" />
-                        <el-skeleton-item variant="text" class="w-48 h-6" />
-                        <el-skeleton-item variant="text" class="w-32 h-6" />
+    <div class="flex flex-col md:flex-row max-w-7xl mx-auto mt-4 md:mt-8 px-4 md:px-6 md:space-x-10 gap-4 md:gap-0">
+        <!-- 左侧菜单 -->
+        <aside class="w-full md:w-64 space-y-4 text-sm">
+            <div>
+                <h2 class="text-xl font-semibold mb-4">系统设置</h2>
+                <div class="space-y-1">
+                    <div v-for="m in menu" :key="m.id" @click="active = m.id"
+                        :class="['flex items-center px-3 py-2 rounded-md cursor-pointer', active===m.id ? 'bg-gray-200 text-blue-700 font-medium' : 'hover:bg-gray-200 text-gray-700']">
+                        <span class="material-symbols-outlined mr-2 text-lg">{{ m.icon }}</span>
+                        <span>{{ m.label }}</span>
                     </div>
-                </template>
-                <template #default>
-                    <div class="divide-y">
-                        <div v-for="(def, key) in schema" :key="String(key)" class="pb-2">
-                            <div class="mb-2">
-                                <div class="font-medium">{{ labelOf(key, def) }}</div>
-                                <div v-if="def.description" class="text-xs text-gray-500 mt-1">
-                                    {{ def.description }}
-                                </div>
-                            </div>
-                            <div class="max-w-xl">
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧内容 -->
+        <section class="flex-1 space-y-6">
+            <div class="bg-white shadow-sm rounded-xl p-6">
+                <!-- 说明 -->
+                <div v-if="active==='intro'">
+                    <h2 class="text-xl font-semibold mb-4">系统设置</h2>
+                    <div class="text-sm text-gray-600">
+                        此页面用于管理系统全设置，修改后将立即对所有用户生效。
+                    </div>
+                </div>
+
+                <!-- 通用设置（根据 schema 渲染） -->
+                <div v-if="active==='general'">
+                    <h2 class="text-xl font-semibold mb-4">通用设置</h2>
+                    <template v-if="loading">
+                        <SettingsItem v-for="i in 4" :key="i" :title="' '" :description="''" :loading="true" />
+                    </template>
+                    <template v-else>
+                        <SettingsItem
+                            v-for="(def, key) in schema"
+                            :key="String(key)"
+                            :title="labelOf(String(key), def)"
+                            :description="def.description || ''"
+                        >
+                            <template #default>
                                 <template v-if="def.type === 'bool'">
                                     <el-switch v-model="valuesReactive[key]" />
                                 </template>
@@ -35,32 +46,39 @@
                                     <el-input-number v-model="valuesReactive[key]" :min="0" :step="1" />
                                 </template>
                                 <template v-else-if="def.type === 'size'">
-                                    <el-input v-model="sizeInputs[key]" placeholder="例如 100MB 或 1GB">
-                                        <template #append>{{ hintSize(key, def) }}</template>
-                                    </el-input>
-                                    <div v-if="sizeInputs[key]" class="text-xs text-gray-400 mt-1">
-                                        解析后：{{ parsedSizeText(key) }}
+                                    <div class="w-full max-w-xl">
+                                        <el-input v-model="sizeInputs[key]" placeholder="例如 100MB 或 1GB">
+                                            <template #append>{{ hintSize(String(key), def) }}</template>
+                                        </el-input>
+                                        <div v-if="sizeInputs[key]" class="text-xs text-gray-400 mt-1">
+                                            解析后：{{ parsedSizeText(String(key)) }}
+                                        </div>
                                     </div>
                                 </template>
                                 <template v-else-if="def.type === 'json'">
-                                    <el-input type="textarea" :rows="6" v-model="jsonInputs[key]" />
+                                    <el-input class="w-full max-w-xl" type="textarea" :rows="6" v-model="jsonInputs[key]" />
                                 </template>
                                 <template v-else>
-                                    <el-input v-model="valuesReactive[key]" />
+                                    <el-input class="w-full max-w-xl" v-model="valuesReactive[key]" />
                                 </template>
-                            </div>
+                            </template>
+                        </SettingsItem>
+                        <div class="flex gap-2 mt-4 items-center justify-end">
+                            <el-button type="primary" :loading="saving" :disabled="loading" @click="save">保存</el-button>
+                            <el-button :disabled="loading" @click="reload">重置为服务器值</el-button>
                         </div>
+                    </template>
+                </div>
 
-                        <div class="flex gap-2 mt-4 items-center">
-                            <el-button type="primary" :loading="saving" @click="save">保存</el-button>
-                            <el-button @click="reload">重置为服务器值</el-button>
-                            <el-alert v-if="message" class="inline-flex" :title="message" :type="messageType" />
-                        </div>
-                    </div>
-                </template>
-            </el-skeleton>
-        </div>
-    </section>
+                <!-- 重置说明 -->
+                <div v-if="active==='reset'">
+                    <h2 class="text-xl font-semibold mb-4">重置</h2>
+                    <p class="text-sm text-gray-600 mb-4">将当前未保存的改动丢弃，并从服务器重新加载设置。</p>
+                    <el-button :disabled="loading" @click="reload">重置为服务器值</el-button>
+                </div>
+            </div>
+        </section>
+    </div>
 </template>
 
 <script setup lang="ts">
@@ -68,16 +86,24 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { systemSettingsApi, type SettingDef, type SettingsResponse } from '@/api/systemSettings'
 import { parseSizeToBytes, formatBytes } from '@/utils/systemSettings'
+import SettingsItem from '@/components/SettingsItem.vue'
 
 const loading = ref(true)
 const saving = ref(false)
-const message = ref('')
-const messageType = ref<'success' | 'error' | 'info'>('info')
 
 const valuesReactive = reactive<Record<string, any>>({})
 const schema = reactive<Record<string, SettingDef>>({})
 const sizeInputs = reactive<Record<string, string>>({})
 const jsonInputs = reactive<Record<string, string>>({})
+
+// 左侧菜单：与 UserSettings 一致的风格
+type MenuId = 'intro' | 'general' | 'reset'
+const active = ref<MenuId>('general')
+const menu: Array<{ id: MenuId; label: string; icon: string }> = [
+    { id: 'intro', label: '说明', icon: 'info' },
+    { id: 'general', label: '系统设置', icon: 'settings' },
+    { id: 'reset', label: '重置', icon: 'restart_alt' },
+]
 
 function labelOf(key: string, def: SettingDef) { return def.label || key }
 function hintSize(key: string, def: SettingDef) {
@@ -111,8 +137,7 @@ async function load() {
             }
         }
     } catch (e: any) {
-        message.value = e?.message || '加载失败'
-        messageType.value = 'error'
+        ElMessage.error(e?.message || '加载失败')
     } finally { loading.value = false }
 }
 
@@ -160,13 +185,9 @@ async function save() {
                 try { jsonInputs[k] = JSON.stringify(v ?? null, null, 2) } catch { jsonInputs[k] = '' }
             }
         }
-        message.value = '已保存'
-        messageType.value = 'success'
         ElMessage.success('已保存')
     } catch (e: any) {
-        message.value = e?.message || '保存失败'
-        messageType.value = 'error'
-        ElMessage.error(message.value)
+        ElMessage.error(e?.message || '保存失败')
     } finally { saving.value = false }
 }
 
