@@ -160,8 +160,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [ShelvesController::class, 'index']);
         // 不分页
         Route::get('/all', [ShelvesController::class, 'all']);
-        // 返回书架列表并附带每个书架的若干书籍摘要（用于导览页面）
-        Route::get('/summary', [ShelvesController::class, 'summaryAll']);
         // 详情
         Route::get('/{id}', [ShelvesController::class, 'show']);
 

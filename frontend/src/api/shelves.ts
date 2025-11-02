@@ -17,13 +17,13 @@ function normalizePage<T>(raw: any): PageResp<T> {
 }
 
 export const shelvesApi = {
-  // 拉取单页（分页） 支持 q 与 bookLimit（每个书架携带的书本数）
-  listPage: async (params?: { page?: number; per_page?: number; q?: string; bookLimit?: number; owner?: 'me'; visibility?: 'public'|'private' }): Promise<PageResp<Shelf>> => {
+  // 拉取单页（分页） 支持 q 与 book_limit（每个书架携带的书本数）
+  listPage: async (params?: { page?: number; per_page?: number; q?: string; book_limit?: number; owner?: 'me'; visibility?: 'public'|'private' }): Promise<PageResp<Shelf>> => {
     const u = new URL('/api/v1/shelves', window.location.origin)
     if (params?.page) u.searchParams.set('page', String(params.page))
     if (params?.per_page) u.searchParams.set('per_page', String(params.per_page))
     if (params?.q) u.searchParams.set('q', params.q)
-    if (typeof params?.bookLimit === 'number') u.searchParams.set('bookLimit', String(params.bookLimit))
+    if (typeof params?.book_limit === 'number') u.searchParams.set('book_limit', String(params.book_limit))
     if (params?.owner) u.searchParams.set('owner', params.owner)
     if (params?.visibility) u.searchParams.set('visibility', params.visibility)
     const raw = await http.get<any>(u.toString())

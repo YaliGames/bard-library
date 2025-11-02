@@ -57,7 +57,7 @@ class ShelvesController extends Controller
             }
         }
         $perPage = min(max((int)$request->query('per_page', 20),1),100);
-        $bookLimit = (int)$request->query('bookLimit', 0); // 统一 summary 的 limit 改名为 bookLimit
+        $bookLimit = (int)$request->query('book_limit', 0);
         $page = $q->orderBy('name')->paginate($perPage);
         if ($bookLimit > 0) {
             $limit = min(max($bookLimit, 1), 50);
@@ -89,18 +89,6 @@ class ShelvesController extends Controller
             $q->where('name', 'like', "%{$kw}%");
         }
         return $q->orderBy('name')->get();
-    }
-
-    /**
-     * 返回所有书架并附带每个书架的若干书籍摘要，用于书架导览页面
-     * 可通过 ?limit=5 控制每个书架包含的书籍数量
-     */
-    public function summaryAll(Request $request)
-    {
-        // 为兼容旧接口，转向 index 的新语义：分页 + bookLimit
-        $request->query->set('bookLimit', (int)$request->query('limit', 5));
-        $request->query->remove('limit');
-        return $this->index($request);
     }
 
     public function store(Request $request)
