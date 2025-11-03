@@ -19,7 +19,7 @@
           <div v-for="i in 8" :key="i" class="bg-white rounded-lg shadow-sm p-4 h-[160px]"></div>
         </div>
       </template>
-      <ShelfCardList :items="list" :can-manage="canManage" @open="goDetail" @edit="openEdit" @delete="onDelete" />
+      <ShelfCardList :items="list" />
       <el-empty v-if="!loading && list.length===0" description="暂无书架" />
     </el-skeleton>
 
@@ -41,18 +41,7 @@
       </template>
     </el-dialog>
 
-    <!-- 编辑 -->
-    <el-dialog v-model="editVisible" title="编辑书架" width="460px">
-      <el-form label-width="90px">
-        <el-form-item label="名称"><el-input v-model="form.name" maxlength="190" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="form.description" type="textarea" maxlength="500" /></el-form-item>
-        <el-form-item v-if="admin" label="公开"><el-switch v-model="form.is_public" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editVisible=false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveEdit">保存</el-button>
-      </template>
-    </el-dialog>
+    <!-- 列表页不再提供编辑/删除弹窗，编辑能力移动至详情页 -->
   </section>
 </template>
 
@@ -66,7 +55,7 @@ import { ElMessage } from 'element-plus'
 
 const props = withDefaults(defineProps<{
   title: string
-  owner?: 'me'
+  owner?: 'me' | 'admin'
   showSearch?: boolean
   showVisibility?: boolean
   canManage?: boolean
@@ -107,13 +96,13 @@ async function reload(page = 1){
   } catch { list.value = [] } finally { loading.value = false }
 }
 
-function goDetail(s: Shelf){ router.push(`/shelf/${s.id}`) }
+// 点击卡片直接通过卡片内部的 router-link 进入详情
 
 // 创建/编辑
 const createVisible = ref(false)
-const editVisible = ref(false)
-const currentId = ref<number | null>(null)
-const form = ref<{ name: string; description?: string; is_public?: boolean }>({ name: '' })
+const editVisible = ref(false) // 已废弃：保留变量避免潜在引用报错（不再使用）
+const currentId = ref<number | null>(null) // 已废弃
+const form = ref<{ name: string; description?: string; is_public?: boolean }>({ name: '' }) // 已废弃
 const saving = ref(false)
 
 function openCreate(){
@@ -121,11 +110,7 @@ function openCreate(){
   form.value = { name: '', description: '', is_public: props.admin ? true : undefined }
   createVisible.value = true
 }
-function openEdit(s: Shelf){
-  currentId.value = s.id
-  form.value = { name: s.name, description: s.description || '', is_public: props.admin ? !!s.is_public : undefined }
-  editVisible.value = true
-}
+// 列表不再提供编辑入口
 
 async function createShelf(){
   if (!props.canManage) return
@@ -142,27 +127,9 @@ async function createShelf(){
   catch (e:any){ ElMessage.error(e?.message || '创建失败') }
   finally { saving.value = false }
 }
-async function saveEdit(){
-  if (!props.canManage) return
-  if (!currentId.value) return
-  saving.value = true
-  try {
-    const payload: Record<string, any> = { name: form.value.name.trim(), description: form.value.description || '' }
-    if (props.admin) payload.is_public = !!form.value.is_public
-    await shelvesApi.updateRaw(currentId.value, payload)
-    editVisible.value=false
-    await reload()
-    ElMessage.success('已保存')
-  }
-  catch (e:any){ ElMessage.error(e?.message || '保存失败') }
-  finally { saving.value = false }
-}
+// 列表不再保存编辑
 
-async function onDelete(s: Shelf){
-  if (!props.canManage) return
-  try { await shelvesApi.remove(s.id); await reload(); ElMessage.success('已删除') }
-  catch (e:any){ ElMessage.error(e?.message || '删除失败') }
-}
+// 列表不再提供删除入口
 
 onMounted(reload)
 </script>

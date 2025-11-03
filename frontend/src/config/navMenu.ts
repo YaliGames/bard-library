@@ -28,10 +28,7 @@ export type UserMenuItem = {
 export const userMenu: UserMenuItem[] = [
   { id: 'user-profile', label: '个人资料', path: '/user/profile' },
   { id: 'user-settings', label: '用户设置', path: '/user/settings' },
-  { id: 'user-shelves', label: '我的书架', path: '/user/shelves' },
-  { id: 'system', label: '系统设置', path: '/admin/settings', adminOnly: true },
+  { id: 'system', label: '系统设置', path: '/admin/settings', divided: true, adminOnly: true },
   { id: 'admin', label: '管理入口', path: '/admin/index', adminOnly: true },
   { id: 'logout', label: '退出登录', action: 'logout', divided: true },
 ]
-
- 

@@ -18,10 +18,14 @@
                             </div>
                         </div>
                         <p class="text-gray-600 text-sm mb-2">{{ s.description || '暂无简介' }}</p>
+                        <p v-if="(s as any).user && (s as any).user.name" class="text-gray-400 text-xs">创建者：{{ (s as any).user.name }}</p>
                     </div>
                 </div>
             </router-link>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            <div v-if="s.books && s.books.length === 0" class="text-gray-500 mt-5">
+                该书架暂无图书
+            </div>
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                 <router-link v-for="b in (s.books || [])" :key="b.id" :to="`/books/${b.id}`">
                     <el-button type="primary" class="justify-start w-full">
                         <span class="material-symbols-outlined mr-2">book</span>
@@ -29,28 +33,13 @@
                     </el-button>
                 </router-link>
             </div>
-            <div class="mt-3 flex items-center justify-between">
-                <el-button text type="primary" @click="$emit('open', s)">
-                    <span class="material-symbols-outlined mr-1">open_in_new</span> 打开
-                </el-button>
-                <div v-if="canManage" class="flex items-center gap-1">
-                    <el-button text @click="$emit('edit', s)"><span
-                            class="material-symbols-outlined">edit</span></el-button>
-                    <el-popconfirm title="确认删除该书架？" @confirm="$emit('delete', s)">
-                        <template #reference>
-                            <el-button text type="danger"><span
-                                    class="material-symbols-outlined">delete</span></el-button>
-                        </template>
-                    </el-popconfirm>
-                </div>
-            </div>
         </div>
     </div>
 </template>
 <script setup lang="ts">
 import type { Book, Shelf } from '@/api/types'
 
-const props = defineProps<{ items: (Shelf & { books?: Book[] })[]; canManage?: boolean }>()
+    const props = defineProps<{ items: (Shelf & { books?: Book[] })[]; canManage?: boolean }>()
 
 function coverUrl(b: Book) {
     if (b.cover_file_id) return `/api/v1/files/${b.cover_file_id}/preview`

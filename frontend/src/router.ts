@@ -80,11 +80,6 @@ const routes: RouteRecordRaw[] = [
         name: "user-settings",
         component: () => import("./pages/UserSettings.vue"),
       },
-      {
-        path: "shelves",
-        name: "user-shelves",
-        component: () => import("./pages/UserShelf.vue"),
-      },
     ],
   },
   {

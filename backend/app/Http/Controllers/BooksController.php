@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
+use App\Models\Shelf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\OptionalUserResolver;
@@ -15,6 +16,8 @@ class BooksController extends Controller
         $q = Book::query()->with(['authors', 'tags']);
         $q->select('books.*');
         $userId = $this->userResolver->id($request);
+        $user = $this->userResolver->user($request);
+        $isAdmin = $user && (($user->role ?? 'user') === 'admin');
         // is_reading（当前用户是否存在阅读进度）与 is_read_mark（用户手动标注已读）
         if ($userId > 0) {
             $q->selectRaw('EXISTS(SELECT 1 FROM user_reading_progress rp WHERE rp.book_id = books.id AND rp.user_id = ? AND (rp.progress IS NULL OR rp.progress < 1)) as is_reading', [$userId])
@@ -45,10 +48,27 @@ class BooksController extends Controller
                 }, '=', count($ids));
             }
         }
-        // 书架筛选：shelf_id 多值
+        // 书架筛选：shelf_id 多值（校验权限：非管理员不可筛选他人私有书架）
         if ($shelfIds = trim((string)$request->query('shelf_id', ''))) {
             $ids = array_filter(array_map('intval', explode(',', $shelfIds)));
             if ($ids) {
+                if (!$isAdmin) {
+                    // 仅允许筛选 公开 或 自己的 书架
+                    $allowed = Shelf::query()
+                        ->whereIn('id', $ids)
+                        ->where(function($w) use ($userId) {
+                            $w->where('is_public', true);
+                            if ($userId > 0) {
+                                $w->orWhere('user_id', $userId);
+                            }
+                        })
+                        ->pluck('id')->all();
+                    sort($allowed);
+                    $sortedIds = $ids; sort($sortedIds);
+                    if (count($allowed) !== count($sortedIds) || array_values($allowed) !== array_values($sortedIds)) {
+                        return response()->json(['message' => '包含无权限的书架筛选'], 403);
+                    }
+                }
                 $q->whereHas('shelves', fn($qs) => $qs->whereIn('shelves.id', $ids));
             }
         }

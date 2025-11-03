@@ -18,7 +18,7 @@ function normalizePage<T>(raw: any): PageResp<T> {
 
 export const shelvesApi = {
   // 拉取单页（分页） 支持 q 与 book_limit（每个书架携带的书本数）
-  listPage: async (params?: { page?: number; per_page?: number; q?: string; book_limit?: number; owner?: 'me'; visibility?: 'public'|'private' }): Promise<PageResp<Shelf>> => {
+  listPage: async (params?: { page?: number; per_page?: number; q?: string; book_limit?: number; owner?: 'me'|'admin'; visibility?: 'public'|'private' }): Promise<PageResp<Shelf>> => {
     const u = new URL('/api/v1/shelves', window.location.origin)
     if (params?.page) u.searchParams.set('page', String(params.page))
     if (params?.per_page) u.searchParams.set('per_page', String(params.per_page))

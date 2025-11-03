@@ -14,7 +14,7 @@ class ShelvesController extends Controller
     }
     public function show(Request $request, int $id)
     {
-        $s = Shelf::with(['books.authors'])->findOrFail($id);
+        $s = Shelf::with(['books.authors', 'user:id,name,email'])->findOrFail($id);
         $user = $this->userResolver->user($request);
         $isAdmin = $user && (($user->role ?? 'user') === 'admin');
         $isOwner = $user && ((int)$s->user_id === (int)$user->id);
@@ -25,10 +25,14 @@ class ShelvesController extends Controller
     }
     public function index(Request $request)
     {
-        $q = Shelf::query();
+        $q = Shelf::query()->with(['user:id,name,email']);
         $user = $this->userResolver->user($request);
         $isAdmin = $user && (($user->role ?? 'user') === 'admin');
-        if (!$isAdmin) {
+
+        // owner=admin 时（且当前用户为管理员）返回所有书架；
+        // 否则（包括管理员未指定 owner=admin 的默认情况）仅返回公开 + 自己的书架
+        $owner = (string)$request->query('owner', '');
+        if (!($isAdmin && $owner === 'admin')) {
             if ($user) {
                 $q->where(function($qq) use ($user) {
                     $qq->where('is_public', true)->orWhere('user_id', $user->id);
@@ -40,8 +44,7 @@ class ShelvesController extends Controller
         if ($kw = trim((string)$request->query('q'))) {
             $q->where('name', 'like', "%{$kw}%");
         }
-        // 过滤：owner=me
-        $owner = (string)$request->query('owner', '');
+        // 过滤：owner=me（仅在用户存在时生效）
         if ($owner === 'me' && $user) {
             $q->where('user_id', $user->id);
         }
@@ -73,10 +76,12 @@ class ShelvesController extends Controller
     // 返回全部书架（不分页），用于前端筛选列表等场景
     public function all(Request $request)
     {
-        $q = Shelf::query();
+        $q = Shelf::query()->with(['user:id,name,email']);
         $user = $this->userResolver->user($request);
         $isAdmin = $user && (($user->role ?? 'user') === 'admin');
-        if (!$isAdmin) {
+        // 与 index 一致的默认权限：除非明确 owner=admin，否则默认返回公开+自己的
+        $owner = (string)$request->query('owner', '');
+        if (!($isAdmin && $owner === 'admin')) {
             if ($user) {
                 $q->where(function($qq) use ($user) {
                     $qq->where('is_public', true)->orWhere('user_id', $user->id);
