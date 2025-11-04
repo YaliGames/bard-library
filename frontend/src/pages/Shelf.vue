@@ -154,10 +154,10 @@
               <div>添加书籍</div>
             </div>
           </div>
-          <div class="bg-white rounded-lg shadow-sm p-4" v-for="b in data" :key="b.id">
-            <div class="flex flex-col gap-1.5">
-              <router-link :to="`/books/${b.id}`">
-                <div class="relative group">
+          <div class="relative group" v-for="b in data" :key="b.id">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+              <div class="flex flex-col gap-1.5">
+                <router-link :to="`/books/${b.id}`">
                   <CoverImage
                     :file-id="b.cover_file_id || null"
                     :title="b.title"
@@ -173,48 +173,50 @@
                       </el-tag>
                     </template>
                   </CoverImage>
-                  <!-- 编辑模式：悬浮删除按钮 -->
-                  <div
-                    v-if="isEditing"
-                    class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
-                  >
-                    <el-button type="danger" @click.prevent="confirmRemove(b)" circle>
-                      <span class="material-symbols-outlined">delete</span>
-                    </el-button>
-                  </div>
+                  <div class="font-semibold mt-2">{{ b.title || '#' + b.id }}</div>
+                </router-link>
+                <div class="text-gray-600 text-sm flex flex-wrap gap-1">
+                  <template v-for="(a, idx) in b.authors || []" :key="a.id">
+                    <div class="cursor-pointer text-primary" @click="filterByAuthor(a.id)">
+                      {{ a.name }}
+                    </div>
+                    <span v-if="idx < (b?.authors ?? []).length - 1">/</span>
+                  </template>
+                  <div class="text-gray-500" v-if="(b.authors || []).length === 0">暂无作者</div>
                 </div>
-                <div class="font-semibold mt-2">{{ b.title || '#' + b.id }}</div>
-              </router-link>
-              <div class="text-gray-600 text-sm flex flex-wrap gap-1">
-                <template v-for="(a, idx) in b.authors || []" :key="a.id">
-                  <div class="cursor-pointer text-primary" @click="filterByAuthor(a.id)">
-                    {{ a.name }}
-                  </div>
-                  <span v-if="idx < (b?.authors ?? []).length - 1">/</span>
-                </template>
-                <div class="text-gray-500" v-if="(b.authors || []).length === 0">暂无作者</div>
+                <div class="flex items-center justify-between gap-2">
+                  <el-rate
+                    v-model="b.rating"
+                    :max="5"
+                    allow-half
+                    disabled
+                    show-score
+                    score-template="{value}"
+                  />
+                  <template v-if="userSettings.bookList?.showMarkReadButton && isLoggedIn">
+                    <el-tooltip :content="b.is_read_mark ? '取消已读' : '标为已读'" placement="top">
+                      <el-button
+                        size="small"
+                        :type="b.is_read_mark ? 'success' : 'default'"
+                        @click="toggleRead(b)"
+                        circle
+                      >
+                        <span class="material-symbols-outlined">done_all</span>
+                      </el-button>
+                    </el-tooltip>
+                  </template>
+                </div>
               </div>
-              <div class="flex items-center justify-between gap-2">
-                <el-rate
-                  v-model="b.rating"
-                  :max="5"
-                  allow-half
-                  disabled
-                  show-score
-                  score-template="{value}"
-                />
-                <template v-if="userSettings.bookList?.showMarkReadButton && isLoggedIn">
-                  <el-tooltip :content="b.is_read_mark ? '取消已读' : '标为已读'" placement="top">
-                    <el-button
-                      size="small"
-                      :type="b.is_read_mark ? 'success' : 'default'"
-                      @click="toggleRead(b)"
-                      circle
-                    >
-                      <span class="material-symbols-outlined">done_all</span>
-                    </el-button>
-                  </el-tooltip>
-                </template>
+            </div>
+            <div
+              v-if="isEditing"
+              class="absolute inset-0 rounded-lg bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+            >
+              <div
+                @click.prevent="confirmRemove(b)"
+                class="rounded-full p-2 bg-white cursor-pointer hover:bg-danger hover:text-white flex items-center justify-center"
+              >
+                <span class="material-symbols-outlined">delete</span>
               </div>
             </div>
           </div>
