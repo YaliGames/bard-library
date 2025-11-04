@@ -20,9 +20,9 @@
       <template v-if="shelfError && !shelfLoading">
         <div class="h-4"></div>
       </template>
-
+      <template v-if="!shelfError">
       <!-- 书架信息 -->
-  <div v-if="!shelfError" class="bg-white rounded-lg shadow-sm p-4 mb-4">
+  <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
         <el-skeleton animated :loading="shelfLoading">
           <template #template>
             <el-skeleton-item variant="text" class="w-[40%] h-[18px]" />
@@ -93,6 +93,7 @@
           </span>
         </el-button>
       </div>
+      </template>
 
   <div v-if="!shelfError && loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         <div v-for="i in skeletonCount" :key="i" class="bg-white rounded-lg shadow-sm p-4">
