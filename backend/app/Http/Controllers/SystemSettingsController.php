@@ -12,13 +12,23 @@ class SystemSettingsController extends Controller
     public function get(Request $request)
     {
         $values = SystemSetting::getAll();
-        $schema = SystemSetting::schema();
-        foreach ($schema as $k => &$def) {
-            if (($def['type'] ?? 'string') === 'size') {
-                $def['default_bytes'] = SystemSetting::parseSizeToBytes($def['default'] ?? null);
+        $categories = SystemSetting::categories();
+        
+        // 为每个分类的设置项处理 size 类型的 default_bytes
+        foreach ($categories as &$category) {
+            if (isset($category['items'])) {
+                foreach ($category['items'] as $k => &$def) {
+                    if (($def['type'] ?? 'string') === 'size') {
+                        $def['default_bytes'] = SystemSetting::parseSizeToBytes($def['default'] ?? null);
+                    }
+                }
             }
         }
-        return response()->json([ 'values' => $values, 'schema' => $schema ]);
+        
+        return response()->json([
+            'values' => $values,
+            'categories' => $categories,
+        ]);
     }
 
     public function update(Request $request)
@@ -33,7 +43,12 @@ class SystemSettingsController extends Controller
             return response()->json(['message' => 'Invalid payload, expected object of settings'], 422);
         }
         $values = SystemSetting::updateAll($payload);
-        return response()->json([ 'values' => $values, 'schema' => SystemSetting::schema() ]);
+        $categories = SystemSetting::categories();
+        
+        return response()->json([
+            'values' => $values,
+            'categories' => $categories,
+        ]);
     }
 
     // 公开：仅返回前端路由守卫所需的权限类配置

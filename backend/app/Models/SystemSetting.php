@@ -43,17 +43,31 @@ class SystemSetting extends Model
         return sprintf($i === 0 ? '%d%s' : '%.0f%s', $bytes, $units[$i]);
     }
 
-    // 读取后端定义的 schema（config/settings.php）
-    public static function schema(): array
+    // 返回带分类的完整 schema 结构
+    public static function categories(): array
     {
-        return config('settings', []);
+        $config = config('settings', []);
+        return $config['categories'] ?? [];
+    }
+
+    // 返回扁平化的设置项定义（从所有分类中提取）
+    private static function flattenedSchema(): array
+    {
+        $categories = self::categories();
+        $flat = [];
+        foreach ($categories as $category) {
+            if (isset($category['items']) && is_array($category['items'])) {
+                $flat = array_merge($flat, $category['items']);
+            }
+        }
+        return $flat;
     }
 
     // 返回 key => typed value 的关联数组（若 DB 缺失则使用默认值）
     public static function getAll(): array
     {
         $rows = self::all()->keyBy('key');
-        $schema = self::schema();
+        $schema = self::flattenedSchema();
         $out = [];
         foreach ($schema as $k => $def) {
             $type = $def['type'] ?? 'string';
@@ -66,39 +80,23 @@ class SystemSetting extends Model
             }
             $out[$k] = self::castValue($type, $val);
         }
-        // 也包含 DB 中存在但 schema 未定义的项（向下兼容）
-        foreach ($rows as $k => $r) {
-            if (!array_key_exists($k, $out)) {
-                $out[$k] = self::castValue($r->type, $r->value);
-            }
-        }
         return $out;
     }
 
     /**
      * 更新多个配置项。
-     * 接受的 $data 可以是关联数组 key=>value（会根据 PHP 类型推断 type），
-     * 或 key => ['type'=>..., 'value'=>...] 的显式形式。
+     * 接受的 $data 必须是 key => ['type'=>..., 'value'=>...] 的显式形式。
      */
     public static function updateAll(array $data): array
     {
-        $schema = self::schema();
+        $schema = self::flattenedSchema();
         foreach ($data as $key => $v) {
-            $explicit = false;
-            $type = 'string';
-            $valueToStore = null;
-
-            if (is_array($v) && array_key_exists('type', $v) && array_key_exists('value', $v)) {
-                $explicit = true;
-                $type = $v['type'] ?? 'string';
-                $value = $v['value'];
-            } else {
-                $value = $v;
-                if (is_bool($value)) $type = 'bool';
-                else if (is_int($value)) $type = 'int';
-                else if (is_array($value) || is_object($value)) $type = 'json';
-                else $type = 'string';
+            if (!is_array($v) || !array_key_exists('type', $v) || !array_key_exists('value', $v)) {
+                continue; // 跳过格式不正确的数据
             }
+
+            $type = $v['type'] ?? 'string';
+            $value = $v['value'];
 
             // 若 schema 中声明了类型，则以 schema 为准
             if (isset($schema[$key]['type'])) {

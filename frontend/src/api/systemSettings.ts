@@ -8,9 +8,15 @@ export interface SettingDef {
   default_bytes?: number | null
 }
 
+export interface CategoryDef {
+  label: string
+  icon: string
+  items: Record<string, SettingDef>
+}
+
 export interface SettingsResponse {
   values: Record<string, any>
-  schema: Record<string, SettingDef>
+  categories: Record<string, CategoryDef>
 }
 
 export const systemSettingsApi = {

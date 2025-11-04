@@ -160,7 +160,7 @@
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore, logoutLocal } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { settingsApi } from '@/api/settings'
 import { navMenu, userMenu } from '@/config/navMenu'
@@ -191,18 +191,32 @@ const userMenuItems = computed(() => {
   })
 })
 
+const fetchUserFailed = ref(false)
+
 async function fetchUser() {
   const token = localStorage.getItem('token')
   if (!token) {
     setUser(null)
+    fetchUserFailed.value = false
     return
   }
   loadingUser.value = true
   try {
     const me = await authApi.me()
     setUser(me)
-  } catch {
+    fetchUserFailed.value = false
+  } catch (e: any) {
     setUser(null)
+    fetchUserFailed.value = true
+    // 如果是服务器错误(500)或认证错误(401,403),清除 token 并跳转登录
+    const status = e?.status || e?.response?.status
+    if (status === 401 || status === 403 || status === 500) {
+      logoutLocal()
+      const redirect = encodeURIComponent(
+        window.location.pathname + window.location.search + window.location.hash,
+      )
+      router.push({ name: 'login', query: { redirect } })
+    }
   } finally {
     loadingUser.value = false
   }
@@ -213,8 +227,8 @@ onMounted(fetchUser)
 // 响应登录后 localStorage token/role 变化：登录页成功后会设置 token，可触发刷新
 watchEffect(() => {
   const token = localStorage.getItem('token') || ''
-  // 当 token 存在但本地 user 还没就绪时尝试读取一次
-  if (token && !user.value && !loadingUser.value) {
+  // 当 token 存在但本地 user 还没就绪且之前没有失败时,尝试读取一次
+  if (token && !user.value && !loadingUser.value && !fetchUserFailed.value) {
     fetchUser()
   }
 })
