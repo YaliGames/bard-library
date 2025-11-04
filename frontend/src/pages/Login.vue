@@ -1,68 +1,84 @@
 <template>
   <div class="text-gray-900 flex justify-center">
-    <div class="max-w-screen-xl m-0 sm:m-10 bg-white shadow sm:rounded-lg flex justify-center flex-1">
+    <div
+      class="max-w-screen-xl m-0 sm:m-10 bg-white shadow sm:rounded-lg flex justify-center flex-1"
+    >
       <div class="lg:w-1/2 xl:w-5/12 p-6 sm:p-12">
         <div class="flex flex-col items-center">
-          <h1 class="text-2xl xl:text-3xl font-extrabold">
-            登录 Bard Library
-          </h1>
+          <h1 class="text-2xl xl:text-3xl font-extrabold">登录 Bard Library</h1>
           <div class="w-full flex-1 mt-8">
             <div class="mx-auto max-w-xs">
               <input
                 class="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white"
-                type="email" v-model="email" placeholder="邮箱" />
+                type="email"
+                v-model="email"
+                placeholder="邮箱"
+              />
               <input
                 class="w-full px-8 py-4 rounded-lg font-medium bg-gray-100 border border-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-gray-400 focus:bg-white mt-4"
-                type="password" v-model="password" placeholder="密码" />
-              <button @click="() => { loading ? null : onSubmit() }"
+                type="password"
+                v-model="password"
+                placeholder="密码"
+              />
+              <button
+                @click="
+                  () => {
+                    loading ? null : onSubmit()
+                  }
+                "
                 :class="loading ? 'opacity-50 cursor-not-allowed' : ''"
-                class="mt-5 tracking-wide font-semibold bg-blue-500 text-gray-100 w-full py-4 rounded-lg hover:bg-blue-700 transition-all duration-300 flex items-center justify-center focus:shadow-outline focus:outline-none">
+                class="mt-5 tracking-wide font-semibold bg-blue-500 text-gray-100 w-full py-4 rounded-lg hover:bg-blue-700 transition-all duration-300 flex items-center justify-center focus:shadow-outline focus:outline-none"
+              >
                 <span class="material-symbols-outlined text-3xl">
                   <template v-if="!loading">person</template>
                   <template v-else>pending</template>
                 </span>
-                <span class="ml-3">
-                  登录
-                </span>
+                <span class="ml-3">登录</span>
               </button>
-              <button v-if="needVerify" @click="() => { resending ? null : onResend() }"
+              <button
+                v-if="needVerify"
+                @click="
+                  () => {
+                    resending ? null : onResend()
+                  }
+                "
                 :class="resending ? 'opacity-50 cursor-not-allowed' : ''"
-                class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 focus:outline-none hover:shadow focus:shadow-sm focus:shadow-outline mt-4">
+                class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 focus:outline-none hover:shadow focus:shadow-sm focus:shadow-outline mt-4"
+              >
                 重发验证邮件
               </button>
               <el-alert v-if="err" type="error" :title="err" show-icon class="mt-4" />
               <el-alert v-if="msg" type="success" :title="msg" show-icon class="mt-4" />
               <p class="mt-6 text-xs text-gray-600 text-center">
                 登录则表示您同意我们的
-                <a href="#" class="border-b border-gray-500 border-dotted">
-                  服务条款
-                </a>
+                <a href="#" class="border-b border-gray-500 border-dotted">服务条款</a>
                 和
-                <a href="#" class="border-b border-gray-500 border-dotted">
-                  隐私政策
-                </a>
+                <a href="#" class="border-b border-gray-500 border-dotted">隐私政策</a>
               </p>
             </div>
             <div class="my-6 border-gray-600 border-b text-center">
               <div
-                class="leading-none px-2 inline-block text-sm text-gray-600 tracking-wide font-medium bg-white transform translate-y-1/2">
+                class="leading-none px-2 inline-block text-sm text-gray-600 tracking-wide font-medium bg-white transform translate-y-1/2"
+              >
                 没有帐号或忘记密码？
               </div>
             </div>
             <div class="flex flex-col items-center">
-              <router-link v-if="canRegister" :to="{ name: 'register' }"
-                class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 outline-none hover:shadow focus:shadow-sm">
+              <router-link
+                v-if="canRegister"
+                :to="{ name: 'register' }"
+                class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 outline-none hover:shadow focus:shadow-sm"
+              >
                 <span class="material-symbols-outlined">person_add</span>
-                <span class="ml-4">
-                  立即注册
-                </span>
+                <span class="ml-4">立即注册</span>
               </router-link>
-              <router-link v-if="canRecover" :to="{ name: 'forgot' }"
-                class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 outline-none hover:shadow focus:shadow-sm mt-4">
+              <router-link
+                v-if="canRecover"
+                :to="{ name: 'forgot' }"
+                class="w-full max-w-xs font-bold shadow-sm rounded-lg py-3 bg-blue-100 text-gray-800 flex items-center justify-center transition-all duration-300 outline-none hover:shadow focus:shadow-sm mt-4"
+              >
                 <span class="material-symbols-outlined">passkey</span>
-                <span class="ml-4">
-                  找回密码
-                </span>
+                <span class="ml-4">找回密码</span>
               </router-link>
               <div v-if="!canRegister || !canRecover" class="text-xs text-gray-500 mt-3">
                 <template v-if="!canRegister">管理员已关闭注册</template>
@@ -106,7 +122,7 @@ onMounted(async () => {
     const p = await getPublicPermissions()
     canRegister.value = !!p.allow_user_registration
     canRecover.value = !!p.allow_recover_password
-  } catch { }
+  } catch {}
 })
 
 async function onSubmit() {
@@ -118,7 +134,10 @@ async function onSubmit() {
     if (res?.user) {
       setUser(res.user as any)
     } else {
-      try { const me = await authApi.me(); setUser(me as any) } catch { }
+      try {
+        const me = await authApi.me()
+        setUser(me as any)
+      } catch {}
     }
     const redirect = (router.currentRoute.value.query.redirect as string) || ''
     if (redirect) {
@@ -141,17 +160,32 @@ async function onSubmit() {
 function validateForm(): boolean {
   err.value = ''
   const e = (email.value || '').trim()
-  if (!e) { err.value = '请输入邮箱'; return false }
+  if (!e) {
+    err.value = '请输入邮箱'
+    return false
+  }
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRe.test(e)) { err.value = '邮箱格式不正确'; return false }
+  if (!emailRe.test(e)) {
+    err.value = '邮箱格式不正确'
+    return false
+  }
 
-  if (!password.value) { err.value = '请输入密码'; return false }
-  if (password.value.length < 6) { err.value = '至少 6 位'; return false }
+  if (!password.value) {
+    err.value = '请输入密码'
+    return false
+  }
+  if (password.value.length < 6) {
+    err.value = '至少 6 位'
+    return false
+  }
   return true
 }
 
 async function onResend() {
-  if (!email.value) { err.value = '请先填写邮箱'; return }
+  if (!email.value) {
+    err.value = '请先填写邮箱'
+    return
+  }
   resending.value = true
   err.value = ''
   msg.value = ''

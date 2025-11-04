@@ -2,11 +2,14 @@
   <section class="book-list">
     <div class="container mx-auto px-4 py-4 max-w-7xl">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold">书架 · {{ shelf?.name || ('#' + shelfId) }}</h2>
+        <h2 class="text-xl font-semibold">书架 · {{ shelf?.name || '#' + shelfId }}</h2>
         <div class="flex items-center gap-2">
-          <el-button v-if="canManage" type="primary" @click="toggleEdit">{{ isEditing ? '退出编辑' : '编辑' }}</el-button>
+          <el-button v-if="canManage" type="primary" @click="toggleEdit">
+            {{ isEditing ? '退出编辑' : '编辑' }}
+          </el-button>
           <el-button @click="back">
-            <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span> 返回
+            <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span>
+            返回
           </el-button>
         </div>
       </div>
@@ -21,81 +24,104 @@
         <div class="h-4"></div>
       </template>
       <template v-if="!shelfError">
-      <!-- 书架信息 -->
-  <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
-        <el-skeleton animated :loading="shelfLoading">
-          <template #template>
-            <el-skeleton-item variant="text" class="w-[40%] h-[18px]" />
-            <el-skeleton-item variant="text" class="w-[70%] h-[14px]" />
-            <div class="flex items-center justify-between mt-2">
-              <el-skeleton-item variant="text" class="w-[50%] h-[18px]" />
-            </div>
-          </template>
-          <template v-if="!isEditing">
-            <div class="text-gray-700 text-sm leading-6">
-              <div class="mb-1">
-                <span class="text-gray-500">名称：</span>
-                <span class="font-medium">{{ shelf?.name || '未命名书架' }}</span>
-                <el-tag v-if="shelf?.is_public" size="small" type="success" class="ml-2">公开</el-tag>
-                <el-tag v-else size="small" class="ml-2">私有</el-tag>
+        <!-- 书架信息 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <el-skeleton animated :loading="shelfLoading">
+            <template #template>
+              <el-skeleton-item variant="text" class="w-[40%] h-[18px]" />
+              <el-skeleton-item variant="text" class="w-[70%] h-[14px]" />
+              <div class="flex items-center justify-between mt-2">
+                <el-skeleton-item variant="text" class="w-[50%] h-[18px]" />
               </div>
-              <div class="mb-1">
-                <span class="text-gray-500">简介：</span>
-                <span>{{ shelf?.description || '暂无简介' }}</span>
+            </template>
+            <template v-if="!isEditing">
+              <div class="text-gray-700 text-sm leading-6">
+                <div class="mb-1">
+                  <span class="text-gray-500">名称：</span>
+                  <span class="font-medium">{{ shelf?.name || '未命名书架' }}</span>
+                  <el-tag v-if="shelf?.is_public" size="small" type="success" class="ml-2">
+                    公开
+                  </el-tag>
+                  <el-tag v-else size="small" class="ml-2">私有</el-tag>
+                </div>
+                <div class="mb-1">
+                  <span class="text-gray-500">简介：</span>
+                  <span>{{ shelf?.description || '暂无简介' }}</span>
+                </div>
+                <div class="mt-2 text-gray-400">更多信息区域 · 占位</div>
               </div>
-              <div class="mt-2 text-gray-400">更多信息区域 · 占位</div>
-            </div>
-          </template>
-          <template v-else>
-            <div class="space-y-3">
-              <el-form label-width="90px">
-                <el-form-item label="名称"><el-input v-model="form.name" maxlength="190" /></el-form-item>
-                <el-form-item label="描述"><el-input v-model="form.description" type="textarea" maxlength="500" /></el-form-item>
-                <el-form-item v-if="isRole('admin')" label="公开">
-                  <el-switch v-model="form.is_public" />
-                </el-form-item>
-              </el-form>
-              <div class="flex justify-end gap-2">
-                <el-button type="danger" @click="deleteShelf">删除书架</el-button>
-                <el-button type="primary" @click="saveShelf">保存</el-button>
+            </template>
+            <template v-else>
+              <div class="space-y-3">
+                <el-form label-width="90px">
+                  <el-form-item label="名称">
+                    <el-input v-model="form.name" maxlength="190" />
+                  </el-form-item>
+                  <el-form-item label="描述">
+                    <el-input v-model="form.description" type="textarea" maxlength="500" />
+                  </el-form-item>
+                  <el-form-item v-if="isRole('admin')" label="公开">
+                    <el-switch v-model="form.is_public" />
+                  </el-form-item>
+                </el-form>
+                <div class="flex justify-end gap-2">
+                  <el-button type="danger" @click="deleteShelf">删除书架</el-button>
+                  <el-button type="primary" @click="saveShelf">保存</el-button>
+                </div>
               </div>
-            </div>
-          </template>
-        </el-skeleton>
-      </div>
-
-      <template v-if="false">
-        <BookFilters v-model="filters" :showShelves="false" :showTags="true" :showAuthor="true"
-          :showReadState="true" :showRating="true" :enableExpand="true"
-          :defaultExpanded="userSettings.preferences?.expandFilterMenu" @search="searchPage(1)"
-          @reset="resetFilters" class="mb-4" />
-      </template>
-
-      <!-- 排序控件（与书库页一致） -->
-      <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
-        <div class="flex flex-row items-center">
-          <el-select v-model="sort" placeholder="选择排序" @change="() => searchPage(1)" class="min-w-[150px]">
-            <el-option label="创建时间" value="created" />
-            <el-option label="修改时间" value="modified" />
-            <el-option label="评分" value="rating" />
-            <el-option label="ID" value="id" />
-          </el-select>
+            </template>
+          </el-skeleton>
         </div>
-        <el-button @click="toggleOrder">
-          <span class="material-symbols-outlined" v-if="sort == 'created'">
-            {{ order === 'desc' ? 'clock_arrow_down' : 'clock_arrow_up' }}
-          </span>
-          <span class="material-symbols-outlined" v-else-if="sort == 'modified'">
-            {{ order === 'desc' ? 'edit_arrow_down' : 'edit_arrow_up' }}
-          </span>
-          <span class="material-symbols-outlined" v-else>
-            {{ order === 'desc' ? 'arrow_downward' : 'arrow_upward' }}
-          </span>
-        </el-button>
-      </div>
+
+        <template v-if="false">
+          <BookFilters
+            v-model="filters"
+            :showShelves="false"
+            :showTags="true"
+            :showAuthor="true"
+            :showReadState="true"
+            :showRating="true"
+            :enableExpand="true"
+            :defaultExpanded="userSettings.preferences?.expandFilterMenu"
+            @search="searchPage(1)"
+            @reset="resetFilters"
+            class="mb-4"
+          />
+        </template>
+
+        <!-- 排序控件（与书库页一致） -->
+        <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
+          <div class="flex flex-row items-center">
+            <el-select
+              v-model="sort"
+              placeholder="选择排序"
+              @change="() => searchPage(1)"
+              class="min-w-[150px]"
+            >
+              <el-option label="创建时间" value="created" />
+              <el-option label="修改时间" value="modified" />
+              <el-option label="评分" value="rating" />
+              <el-option label="ID" value="id" />
+            </el-select>
+          </div>
+          <el-button @click="toggleOrder">
+            <span class="material-symbols-outlined" v-if="sort == 'created'">
+              {{ order === 'desc' ? 'clock_arrow_down' : 'clock_arrow_up' }}
+            </span>
+            <span class="material-symbols-outlined" v-else-if="sort == 'modified'">
+              {{ order === 'desc' ? 'edit_arrow_down' : 'edit_arrow_up' }}
+            </span>
+            <span class="material-symbols-outlined" v-else>
+              {{ order === 'desc' ? 'arrow_downward' : 'arrow_upward' }}
+            </span>
+          </el-button>
+        </div>
       </template>
 
-  <div v-if="!shelfError && loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div
+        v-if="!shelfError && loading"
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      >
         <div v-for="i in skeletonCount" :key="i" class="bg-white rounded-lg shadow-sm p-4">
           <el-skeleton animated :loading="true">
             <template #template>
@@ -113,11 +139,16 @@
           </el-skeleton>
         </div>
       </div>
-  <template v-else-if="!shelfError">
-        <div v-if="data.length > 0"
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          <div v-if="isEditing" class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 border-2 border-dashed border-gray-200"
-               @click="openAddDialog">
+      <template v-else-if="!shelfError">
+        <div
+          v-if="data.length > 0"
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+        >
+          <div
+            v-if="isEditing"
+            class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 border-2 border-dashed border-gray-200"
+            @click="openAddDialog"
+          >
             <div class="flex flex-col items-center text-gray-500">
               <span class="material-symbols-outlined text-3xl mb-1">add</span>
               <div>添加书籍</div>
@@ -127,35 +158,59 @@
             <div class="flex flex-col gap-1.5">
               <router-link :to="`/books/${b.id}`">
                 <div class="relative group">
-                  <CoverImage :file-id="b.cover_file_id || null" :title="b.title" :authors="(b.authors || []).map(a => a.name)" class="rounded">
-                  <template #overlay v-if="userSettings.bookList?.showReadTag">
-                    <el-tag v-if="b.is_read_mark" type="success" effect="dark" size="small">已读</el-tag>
-                    <el-tag v-else-if="b.is_reading" type="warning" effect="dark" size="small">正在阅读</el-tag>
-                  </template>
+                  <CoverImage
+                    :file-id="b.cover_file_id || null"
+                    :title="b.title"
+                    :authors="(b.authors || []).map(a => a.name)"
+                    class="rounded"
+                  >
+                    <template #overlay v-if="userSettings.bookList?.showReadTag">
+                      <el-tag v-if="b.is_read_mark" type="success" effect="dark" size="small">
+                        已读
+                      </el-tag>
+                      <el-tag v-else-if="b.is_reading" type="warning" effect="dark" size="small">
+                        正在阅读
+                      </el-tag>
+                    </template>
                   </CoverImage>
                   <!-- 编辑模式：悬浮删除按钮 -->
-                  <div v-if="isEditing" class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  <div
+                    v-if="isEditing"
+                    class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                  >
                     <el-button type="danger" @click.prevent="confirmRemove(b)" circle>
                       <span class="material-symbols-outlined">delete</span>
                     </el-button>
                   </div>
                 </div>
-                <div class="font-semibold mt-2">{{ b.title || ('#' + b.id) }}</div>
+                <div class="font-semibold mt-2">{{ b.title || '#' + b.id }}</div>
               </router-link>
               <div class="text-gray-600 text-sm flex flex-wrap gap-1">
-                <template v-for="(a, idx) in (b.authors || [])" :key="a.id">
+                <template v-for="(a, idx) in b.authors || []" :key="a.id">
                   <div class="cursor-pointer text-primary" @click="filterByAuthor(a.id)">
                     {{ a.name }}
                   </div>
-                  <span v-if="idx < (((b?.authors ?? []).length) - 1)"> / </span>
+                  <span v-if="idx < (b?.authors ?? []).length - 1">/</span>
                 </template>
                 <div class="text-gray-500" v-if="(b.authors || []).length === 0">暂无作者</div>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <el-rate v-model="b.rating" :max="5" allow-half disabled show-score score-template="{value}" />
+                <el-rate
+                  v-model="b.rating"
+                  :max="5"
+                  allow-half
+                  disabled
+                  show-score
+                  score-template="{value}"
+                />
                 <template v-if="userSettings.bookList?.showMarkReadButton && isLoggedIn">
                   <el-tooltip :content="b.is_read_mark ? '取消已读' : '标为已读'" placement="top">
-                    <el-button size="small" :type="b.is_read_mark ? 'success' : 'default'" @click="toggleRead(b)" circle>
+                    <el-button
+                      size="small"
+                      :type="b.is_read_mark ? 'success' : 'default'"
+                      @click="toggleRead(b)"
+                      circle
+                    >
                       <span class="material-symbols-outlined">done_all</span>
                     </el-button>
                   </el-tooltip>
@@ -164,21 +219,31 @@
             </div>
           </div>
         </div>
-        <div v-else-if="isEditing"
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          <div class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 border-2 border-dashed border-gray-200"
-               @click="openAddDialog">
+        <div
+          v-else-if="isEditing"
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+        >
+          <div
+            class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 border-2 border-dashed border-gray-200"
+            @click="openAddDialog"
+          >
             <div class="flex flex-col items-center text-gray-500">
               <span class="material-symbols-outlined text-3xl mb-1">add</span>
               <div>添加书籍</div>
             </div>
           </div>
         </div>
-  <el-empty description="暂无书籍" v-else />
+        <el-empty description="暂无书籍" v-else />
 
         <div v-if="meta" class="mt-3 flex justify-center">
-          <el-pagination background layout="prev, pager, next, jumper" :total="meta.total" :page-size="meta.per_page"
-            :current-page="meta.current_page" @current-change="searchPage" />
+          <el-pagination
+            background
+            layout="prev, pager, next, jumper"
+            :total="meta.total"
+            :page-size="meta.per_page"
+            :current-page="meta.current_page"
+            @current-change="searchPage"
+          />
         </div>
       </template>
     </div>
@@ -187,14 +252,23 @@
   <!-- 添加书籍 -->
   <el-dialog v-model="addVisible" title="添加书籍到当前书架" width="720px">
     <div class="flex items-center gap-2 mb-3">
-      <el-input v-model="addQ" placeholder="搜索书名/作者" class="w-[300px]" @keyup.enter="searchAdd" />
+      <el-input
+        v-model="addQ"
+        placeholder="搜索书名/作者"
+        class="w-[300px]"
+        @keyup.enter="searchAdd"
+      />
       <el-button type="primary" :loading="addLoading" @click="searchAdd">搜索</el-button>
     </div>
-    <el-empty v-if="!addLoading && addList.length===0" description="输入关键字搜索书籍" />
+    <el-empty v-if="!addLoading && addList.length === 0" description="输入关键字搜索书籍" />
     <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
       <div v-for="b in addList" :key="b.id" class="bg-white rounded-lg shadow-sm p-2">
-        <router-link :to="`/books/${b.id}`" class="block font-semibold truncate mb-1">{{ b.title }}</router-link>
-        <div class="text-xs text-gray-500 truncate mb-2">{{ (b.authors||[]).map(a=>a.name).join(' / ') || '无作者' }}</div>
+        <router-link :to="`/books/${b.id}`" class="block font-semibold truncate mb-1">
+          {{ b.title }}
+        </router-link>
+        <div class="text-xs text-gray-500 truncate mb-2">
+          {{ (b.authors || []).map(a => a.name).join(' / ') || '无作者' }}
+        </div>
         <el-button size="small" type="primary" @click="addToShelf(b)">添加</el-button>
       </div>
     </div>
@@ -214,7 +288,12 @@ import { useAuthStore } from '@/stores/auth'
 import { shelvesApi } from '@/api/shelves'
 
 const data = ref<Book[]>([])
-const meta = ref<{ current_page: number; last_page: number; per_page: number; total: number } | null>(null)
+const meta = ref<{
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+} | null>(null)
 const loading = ref(true)
 const shelfLoading = ref(true)
 const router = useRouter()
@@ -252,32 +331,50 @@ const isLoggedIn = loggedIn
 const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
 const { state: userSettings } = useSettingsStore()
 
-function back() { router.back() }
+function back() {
+  router.back()
+}
 
 // 编辑模式切换与表单
 const isEditing = ref(false)
 const form = ref<{ name: string; description?: string; is_public?: boolean }>({ name: '' })
-function toggleEdit(){
+function toggleEdit() {
   if (!canManage.value) return
   isEditing.value = !isEditing.value
-  if (isEditing.value && shelf.value){
-    form.value = { name: shelf.value.name, description: shelf.value.description || '', is_public: shelf.value.is_public }
+  if (isEditing.value && shelf.value) {
+    form.value = {
+      name: shelf.value.name,
+      description: shelf.value.description || '',
+      is_public: shelf.value.is_public,
+    }
   }
 }
-async function saveShelf(){
+async function saveShelf() {
   if (!shelf.value) return
   try {
-    await shelvesApi.updateRaw(shelf.value.id, { name: form.value.name.trim(), description: form.value.description || '', is_public: form.value.is_public })
+    await shelvesApi.updateRaw(shelf.value.id, {
+      name: form.value.name.trim(),
+      description: form.value.description || '',
+      is_public: form.value.is_public,
+    })
     await fetchShelfInfo()
     ElMessage.success('已保存')
-  } catch(e:any){ ElMessage.error(e?.message || '保存失败') }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败')
+  }
 }
 
-async function deleteShelf(){
+async function deleteShelf() {
   if (!shelf.value) return
   try {
-    await ElMessageBox.confirm('确认删除该书架？该操作不可恢复','删除确认',{ type:'warning', confirmButtonText:'删除', cancelButtonText:'取消' })
-  } catch { return }
+    await ElMessageBox.confirm('确认删除该书架？该操作不可恢复', '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
   try {
     await shelvesApi.remove(shelf.value.id)
     ElMessage.success('已删除')
@@ -286,7 +383,9 @@ async function deleteShelf(){
     } else {
       router.push({ name: 'user-shelves' })
     }
-  } catch(e:any){ ElMessage.error(e?.message || '删除失败') }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '删除失败')
+  }
 }
 
 function filterByAuthor(id: number) {
@@ -294,7 +393,7 @@ function filterByAuthor(id: number) {
   searchPage(1)
 }
 
-async function fetchShelfInfo(){
+async function fetchShelfInfo() {
   shelfLoading.value = true
   try {
     const s = await shelvesApi.show(shelfId.value)
@@ -344,10 +443,26 @@ async function fetchBooks(page = 1) {
   }
 }
 
-function searchPage(page: number) { fetchBooks(page) }
-function toggleOrder(){ order.value = order.value === 'desc' ? 'asc' : 'desc'; searchPage(1) }
+function searchPage(page: number) {
+  fetchBooks(page)
+}
+function toggleOrder() {
+  order.value = order.value === 'desc' ? 'asc' : 'desc'
+  searchPage(1)
+}
 function resetFilters() {
-  Object.assign(filters.value, { q: '', authorId: null, tagIds: [], readState: null, ratingRange: [0, 5] as [number, number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
+  Object.assign(filters.value, {
+    q: '',
+    authorId: null,
+    tagIds: [],
+    readState: null,
+    ratingRange: [0, 5] as [number, number],
+    publisher: null,
+    publishedRange: null,
+    language: null,
+    series_value: null,
+    isbn: null,
+  })
   // 保持 shelfId 固定
   filters.value.shelfId = shelfId.value
   sort.value = 'created'
@@ -367,17 +482,22 @@ async function toggleRead(b: Book) {
 }
 
 // 路由变化时，更新 shelfId 并重新加载
-watch(() => route.params.id, () => {
-  filters.value.shelfId = shelfId.value
-  fetchShelfInfo()
-  if (!shelfError.value) fetchBooks(1)
-})
+watch(
+  () => route.params.id,
+  () => {
+    filters.value.shelfId = shelfId.value
+    fetchShelfInfo()
+    if (!shelfError.value) fetchBooks(1)
+  },
+)
 
 onMounted(() => {
   filters.value.shelfId = shelfId.value
   fetchShelfInfo()
   // 仅在可见（未报错）时加载书籍
-  setTimeout(() => { if (!shelfError.value) fetchBooks(1) }, 0)
+  setTimeout(() => {
+    if (!shelfError.value) fetchBooks(1)
+  }, 0)
 })
 
 // 添加书籍
@@ -385,59 +505,81 @@ const addVisible = ref(false)
 const addQ = ref('')
 const addLoading = ref(false)
 const addList = ref<Book[]>([])
-function openAddDialog(){ addVisible.value = true; addQ.value=''; addList.value=[] }
-async function searchAdd(){
-  addLoading.value = true
-  try { const r = await booksApi.list({ q: addQ.value || undefined, per_page: 12 }); addList.value = r.data }
-  catch{ addList.value = [] }
-  finally { addLoading.value = false }
+function openAddDialog() {
+  addVisible.value = true
+  addQ.value = ''
+  addList.value = []
 }
-async function addToShelf(b: Book){
+async function searchAdd() {
+  addLoading.value = true
+  try {
+    const r = await booksApi.list({ q: addQ.value || undefined, per_page: 12 })
+    addList.value = r.data
+  } catch {
+    addList.value = []
+  } finally {
+    addLoading.value = false
+  }
+}
+async function addToShelf(b: Book) {
   if (!shelf.value) return
   try {
     // 取该书当前的书架列表
-  const full = await booksApi.get(b.id)
-    const allIds = (full.shelves || []).map((s:any)=>s.id)
+    const full = await booksApi.get(b.id)
+    const allIds = (full.shelves || []).map((s: any) => s.id)
     // 根据权限构造要提交的 shelf_ids
     let submitIds: number[] = []
     if (isRole('admin')) {
       submitIds = Array.from(new Set([...allIds, shelf.value.id]))
     } else {
-      const myIds = (full.shelves || []).filter((s:any)=> (s.user_id ?? 0) === (authState.user?.id ?? -1)).map((s:any)=>s.id)
+      const myIds = (full.shelves || [])
+        .filter((s: any) => (s.user_id ?? 0) === (authState.user?.id ?? -1))
+        .map((s: any) => s.id)
       submitIds = Array.from(new Set([...myIds, shelf.value.id]))
     }
-  await booksApi.setShelves(b.id, submitIds)
+    await booksApi.setShelves(b.id, submitIds)
     ElMessage.success('已添加')
-  } catch(e:any){ ElMessage.error(e?.message || '添加失败') }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '添加失败')
+  }
 }
 
 // 从书架移除
-async function removeFromShelf(b: Book){
+async function removeFromShelf(b: Book) {
   if (!shelf.value) return
   try {
-  const full = await booksApi.get(b.id)
-    const allIds = (full.shelves || []).map((s:any)=>s.id)
+    const full = await booksApi.get(b.id)
+    const allIds = (full.shelves || []).map((s: any) => s.id)
     let submitIds: number[] = []
     if (isRole('admin')) {
-  submitIds = allIds.filter((id: number) => id !== shelf.value!.id)
+      submitIds = allIds.filter((id: number) => id !== shelf.value!.id)
     } else {
-      const myIds = (full.shelves || []).filter((s:any)=> (s.user_id ?? 0) === (authState.user?.id ?? -1)).map((s:any)=>s.id)
-  submitIds = myIds.filter((id: number) => id !== shelf.value!.id)
+      const myIds = (full.shelves || [])
+        .filter((s: any) => (s.user_id ?? 0) === (authState.user?.id ?? -1))
+        .map((s: any) => s.id)
+      submitIds = myIds.filter((id: number) => id !== shelf.value!.id)
     }
     await booksApi.setShelves(b.id, submitIds)
     // 本页列表移除该书
     data.value = data.value.filter(x => x.id !== b.id)
     ElMessage.success('已移出')
-  } catch(e:any){ ElMessage.error(e?.message || '操作失败') }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '操作失败')
+  }
 }
 
-async function confirmRemove(b: Book){
+async function confirmRemove(b: Book) {
   try {
-    await ElMessageBox.confirm('确认将该图书从此书架移除？','移除确认',{ type:'warning', confirmButtonText:'移除', cancelButtonText:'取消' })
-  } catch { return }
+    await ElMessageBox.confirm('确认将该图书从此书架移除？', '移除确认', {
+      type: 'warning',
+      confirmButtonText: '移除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
   await removeFromShelf(b)
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

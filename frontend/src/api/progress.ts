@@ -12,11 +12,15 @@ export interface ProgressPayload {
 
 export const progressApi = {
   get: (bookId: number, fileId?: number | null) => {
-    const path = fileId ? `/api/v1/books/${bookId}/${fileId}/progress` : `/api/v1/books/${bookId}/progress`
-    return http.get<any>(path);
+    const path = fileId
+      ? `/api/v1/books/${bookId}/${fileId}/progress`
+      : `/api/v1/books/${bookId}/progress`
+    return http.get<any>(path)
   },
   save: (bookId: number, payload: ProgressPayload, fileId?: number | null) => {
-    const path = fileId ? `/api/v1/books/${bookId}/${fileId}/progress` : `/api/v1/books/${bookId}/progress`
-    return http.post<any>(path, payload);
+    const path = fileId
+      ? `/api/v1/books/${bookId}/${fileId}/progress`
+      : `/api/v1/books/${bookId}/progress`
+    return http.post<any>(path, payload)
   },
 }

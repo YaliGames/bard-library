@@ -29,7 +29,10 @@ export function buildSentenceOffsets(sents: string[]): Array<{ start: number; en
 }
 
 // 在全文中找到子串所有出现位置，考虑 \r\n/\r -> \n 和零宽字符过滤
-export function findAllOccurrences(text: string, sub: string): Array<{ start: number; end: number }> {
+export function findAllOccurrences(
+  text: string,
+  sub: string,
+): Array<{ start: number; end: number }> {
   const normalizeWithMap = (t: string): { norm: string; map: number[] } => {
     const out: string[] = []
     const map: number[] = [0]
@@ -90,12 +93,15 @@ export function clampRanges<T extends RangeLike>(ranges: Array<T>, maxLen: numbe
     .filter((r: any) => r.end > r.start) as Array<T>
 }
 
-export function mergeRanges<T extends RangeLike & { bookmarkId?: number; color?: string | null }>(ranges: Array<T>): Array<T> {
+export function mergeRanges<T extends RangeLike & { bookmarkId?: number; color?: string | null }>(
+  ranges: Array<T>,
+): Array<T> {
   if (ranges.length === 0) return []
   const arr = [...ranges].sort((a, b) => a.start - b.start)
   const res: Array<T> = []
   let cur: T = { ...(arr[0] as any) }
-  const sameMeta = (a: T, b: T) => (a.bookmarkId ?? null) === (b.bookmarkId ?? null) && (a.color ?? null) === (b.color ?? null)
+  const sameMeta = (a: T, b: T) =>
+    (a.bookmarkId ?? null) === (b.bookmarkId ?? null) && (a.color ?? null) === (b.color ?? null)
   for (let i = 1; i < arr.length; i++) {
     const r = arr[i]
     if (r.start <= cur.end && sameMeta(cur, r)) {

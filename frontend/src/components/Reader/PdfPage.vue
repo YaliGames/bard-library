@@ -3,7 +3,7 @@
   <div class="relative w-auto flex-shrink-0" ref="root">
     <canvas ref="canvas" class="block mx-auto" :data-page="pageNumber"></canvas>
     <!-- text layer for native selection -->
-    <div ref="textLayer" class="absolute left-0 top-0" style="color: transparent;"></div>
+    <div ref="textLayer" class="absolute left-0 top-0" style="color: transparent"></div>
     <!-- overlay slot: parent can render annotations into this slot -->
     <div ref="overlay" class="absolute left-0 top-0 w-full h-full">
       <slot></slot>
@@ -17,7 +17,7 @@ import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 const props = defineProps({
   pdfDoc: { type: Object, required: true },
   pageNumber: { type: Number, required: true },
-  scale: { type: Number, default: 1 }
+  scale: { type: Number, default: 1 },
 })
 
 const emit = defineEmits(['rendered', 'selection', 'error'])
@@ -32,14 +32,21 @@ let currentPage: any = null
 
 async function renderPage() {
   // accept either raw pdfDoc or a ref-like wrapper
-  const doc = (props.pdfDoc && typeof (props.pdfDoc.getPage) === 'function') ? props.pdfDoc : (props.pdfDoc && (props.pdfDoc.value) && typeof (props.pdfDoc.value.getPage) === 'function') ? props.pdfDoc.value : null
+  const doc =
+    props.pdfDoc && typeof props.pdfDoc.getPage === 'function'
+      ? props.pdfDoc
+      : props.pdfDoc && props.pdfDoc.value && typeof props.pdfDoc.value.getPage === 'function'
+        ? props.pdfDoc.value
+        : null
   if (!doc) return
   const c = canvas.value
   if (!c) return
 
   try {
     if (currentRenderTask && typeof currentRenderTask.cancel === 'function') {
-      try { currentRenderTask.cancel() } catch (e) { }
+      try {
+        currentRenderTask.cancel()
+      } catch {}
       currentRenderTask = null
     }
 
@@ -71,15 +78,21 @@ async function renderPage() {
     // try to locate an overlay host provided by parent in the slot (class 'pdf-overlay')
     let overlayChild: HTMLDivElement | null = null
     try {
-      if (overlay && overlay.value && typeof (overlay.value.querySelector) === 'function') {
+      if (overlay && overlay.value && typeof overlay.value.querySelector === 'function') {
         overlayChild = overlay.value.querySelector('.pdf-overlay') as HTMLDivElement | null
       }
-    } catch (e) { }
+    } catch {}
 
     // emit rendered with helpful element references so parent can reliably map canvas/overlay
-    emit('rendered', { page: props.pageNumber, el: root.value || null, canvasEl: canvas.value || null, overlayEl: overlayChild || overlay.value || null })
+    emit('rendered', {
+      page: props.pageNumber,
+      el: root.value || null,
+      canvasEl: canvas.value || null,
+      overlayEl: overlayChild || overlay.value || null,
+    })
   } catch (e: any) {
-    const isCancelled = e && (e.name === 'RenderingCancelledException' || /cancelled/i.test(String(e.message || '')))
+    const isCancelled =
+      e && (e.name === 'RenderingCancelledException' || /cancelled/i.test(String(e.message || '')))
     if (!isCancelled) {
       emit('error', e)
       console.error('PdfPage render error', e)
@@ -108,13 +121,13 @@ async function renderTextLayer(pdfPage: any, viewport: any) {
       span.style.whiteSpace = 'pre'
       // position using pdfjs transform utilities for better accuracy
       try {
-        const tx = (pdfPage?.pdfjsLib?.Util?.transform || (window as any)?.pdfjsLib?.Util?.transform)
+        const tx = pdfPage?.pdfjsLib?.Util?.transform || (window as any)?.pdfjsLib?.Util?.transform
         const t = tx ? tx(viewport.transform, item.transform) : item.transform
-        const x = (t && t[4]) || (item.transform?.[4] || 0)
-        const y = (t && t[5]) || (item.transform?.[5] || 0)
+        const x = (t && t[4]) || item.transform?.[4] || 0
+        const y = (t && t[5]) || item.transform?.[5] || 0
         span.style.left = `${x * (viewport.scale || 1)}px`
         span.style.top = `${(y - (item.height || 12)) * (viewport.scale || 1)}px`
-      } catch (e) {
+      } catch {
         span.style.left = `${(item.transform?.[4] || 0) * (viewport.scale || 1)}px`
         span.style.top = `${((item.transform?.[5] || 0) - (item.height || 12)) * (viewport.scale || 1)}px`
       }
@@ -145,7 +158,9 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  try { if (canvas.value) canvas.value.removeEventListener('dragstart', onCanvasDragStart) } catch { }
+  try {
+    if (canvas.value) canvas.value.removeEventListener('dragstart', onCanvasDragStart)
+  } catch {}
 })
 
 function syncOverlay() {
@@ -224,12 +239,17 @@ function handleSelection() {
       const w = (g.right - g.left) / crect.width
       const h = (g.bottom - g.top) / crect.height
       if (w <= 0 || h <= 0) continue
-      rects.push({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)), w: Math.min(1, w), h: Math.min(1, h) })
+      rects.push({
+        x: Math.max(0, Math.min(1, x)),
+        y: Math.max(0, Math.min(1, y)),
+        w: Math.min(1, w),
+        h: Math.min(1, h),
+      })
     }
     if (rects.length) {
       emit('selection', { page: props.pageNumber, rects })
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
@@ -244,20 +264,31 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (currentRenderTask && typeof currentRenderTask.cancel === 'function') {
-    try { currentRenderTask.cancel() } catch (e) { }
+    try {
+      currentRenderTask.cancel()
+    } catch {}
   }
   window.removeEventListener('mouseup', onMouseUpListener)
 })
 
-watch(() => props.pageNumber, () => {
-  renderPage()
-})
+watch(
+  () => props.pageNumber,
+  () => {
+    renderPage()
+  },
+)
 
-watch(() => props.scale, () => {
-  renderPage()
-})
+watch(
+  () => props.scale,
+  () => {
+    renderPage()
+  },
+)
 
-watch(() => props.pdfDoc, (v) => {
-  if (v) renderPage()
-})
+watch(
+  () => props.pdfDoc,
+  v => {
+    if (v) renderPage()
+  },
+)
 </script>

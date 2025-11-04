@@ -81,7 +81,12 @@
         <div class="flex flex-col md:flex-row gap-6 md:gap-8 bg-white shadow-sm rounded-lg p-6">
           <!-- 左侧封面（移动端居中） -->
           <div class="w-full md:w-48 mb-4 md:mb-0 relative">
-            <CoverImage :file-id="book.cover_file_id || null" :title="book.title" :authors="(book.authors || []).map(a => a.name)" class="rounded" />
+            <CoverImage
+              :file-id="book.cover_file_id || null"
+              :title="book.title"
+              :authors="(book.authors || []).map(a => a.name)"
+              class="rounded"
+            />
             <div class="absolute top-2 right-2 flex gap-1" v-if="settings.bookDetail?.showReadTag">
               <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
               <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>
@@ -91,25 +96,33 @@
           <!-- 右侧详情 -->
           <div class="w-full md:w-3/4 md:pl-8 flex flex-col justify-between">
             <div>
-              <h1 class="text-3xl font-bold mb-1">{{ book.title || ('#' + book.id) }}</h1>
+              <h1 class="text-3xl font-bold mb-1">{{ book.title || '#' + book.id }}</h1>
               <div class="text-sky-600 hover:underline text-base" v-if="book.authors?.length">
                 <span v-for="(a, idx) in book.authors" :key="a.id">
                   <a href="#" @click.prevent="goBooksByAuthor(a.id)">{{ a.name }}</a>
-                  <span v-if="idx < (book.authors.length - 1)"> / </span>
+                  <span v-if="idx < book.authors.length - 1">/</span>
                 </span>
               </div>
             </div>
 
             <div class="flex items-center text-gray-600 mt-3 flex-wrap">
               <el-rate :model-value="book.rating || 0" disabled text-color="#facc15" class="mr-2" />
-              <span class="text-sm mr-4 text-green-600">{{ (book.rating || 0).toFixed(1) }} / 5.0</span>
+              <span class="text-sm mr-4 text-green-600">
+                {{ (book.rating || 0).toFixed(1) }} / 5.0
+              </span>
               <!-- <span class="text-sm mr-4">{{ (book as any).comment_count || 0 }} comments</span> -->
               <span class="material-symbols-outlined mr-1">book</span>
               <span class="text-sm mr-4">平装</span>
             </div>
             <div v-if="book.tags?.length" class="mt-3 flex flex-wrap gap-2">
-              <el-button v-for="t in book.tags" :key="t.id" type="primary" plain class="px-2 py-1 rounded-full text-xs"
-                @click="goBooksByTag(t.id)">
+              <el-button
+                v-for="t in book.tags"
+                :key="t.id"
+                type="primary"
+                plain
+                class="px-2 py-1 rounded-full text-xs"
+                @click="goBooksByTag(t.id)"
+              >
                 {{ t.name }}
               </el-button>
             </div>
@@ -135,13 +148,21 @@
                 <div>{{ book.isbn13 || '' }}</div>
 
                 <div>丛书：</div>
-                <div>{{ book.series?.name ? book.series.name : '' }} {{ book.series_index ? '第' + book.series_index +
-                  '卷' :
-                  '' }}</div>
+                <div>
+                  {{ book.series?.name ? book.series.name : '' }}
+                  {{ book.series_index ? '第' + book.series_index + '卷' : '' }}
+                </div>
 
                 <div>文件：</div>
-                <div>{{ files.length > 0 ? (files[0].format || '').toUpperCase() + ', ' + (files[0].size ?
-                  humanSize(files[0].size) : '') : '' }}</div>
+                <div>
+                  {{
+                    files.length > 0
+                      ? (files[0].format || '').toUpperCase() +
+                        ', ' +
+                        (files[0].size ? humanSize(files[0].size) : '')
+                      : ''
+                  }}
+                </div>
               </div>
             </div>
             <BookActions
@@ -170,10 +191,15 @@
         <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2">
             <h2 class="text-lg font-medium mb-2">简介</h2>
-            <div class="bg-white rounded-lg shadow-sm p-4 min-h-[80px] whitespace-pre-wrap" v-if="book.description">
+            <div
+              class="bg-white rounded-lg shadow-sm p-4 min-h-[80px] whitespace-pre-wrap"
+              v-if="book.description"
+            >
               {{ book.description }}
             </div>
-            <div v-else class="bg-white rounded-lg shadow-sm p-4 min-h-[80px] text-gray-500">暂无简介</div>
+            <div v-else class="bg-white rounded-lg shadow-sm p-4 min-h-[80px] text-gray-500">
+              暂无简介
+            </div>
           </div>
 
           <div>
@@ -188,9 +214,12 @@
               </div>
               <div v-else-if="chapters.length === 0" class="text-gray-500">暂无章节</div>
               <div v-else class="max-h-[360px] overflow-auto space-y-1">
-                <div v-for="c in chapters" :key="c.index"
+                <div
+                  v-for="c in chapters"
+                  :key="c.index"
                   class="px-2 py-1 rounded-md cursor-pointer transition flex items-center gap-2 hover:bg-gray-200"
-                  @click="openChapterFromDetail(c.index)">
+                  @click="openChapterFromDetail(c.index)"
+                >
                   <span class="text-xs text-gray-500">#{{ c.index }}</span>
                   <span class="truncate">{{ c.title || '(无标题)' }}</span>
                 </div>
@@ -242,7 +271,10 @@ function humanSize(n: number) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let i = 0
   let v = n
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++ }
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
   return `${v.toFixed(1)} ${units[i]}`
 }
 
@@ -250,10 +282,7 @@ function humanSize(n: number) {
 
 onMounted(async () => {
   try {
-    const [b, fs] = await Promise.all([
-      booksApi.get(id),
-      booksApi.files(id)
-    ])
+    const [b, fs] = await Promise.all([booksApi.get(id), booksApi.files(id)])
     book.value = b
     files.value = fs
     // 加载阅读进度，若指向 TXT 文件则提供“继续阅读”
@@ -262,18 +291,25 @@ onMounted(async () => {
       const fileId = Number(p?.file_id || 0)
       if (fileId && fs.some(f => f.id === fileId && (f.format || '').toLowerCase() === 'txt')) {
         let chapterIndex: number | undefined
-        try { chapterIndex = JSON.parse(p.location || '{}')?.chapterIndex } catch { }
+        try {
+          chapterIndex = JSON.parse(p.location || '{}')?.chapterIndex
+        } catch {}
         continueTarget.value = { fileId, chapterIndex }
       }
-    } catch (e: any) { ElMessage.error(e?.message || '读取阅读进度失败') }
+    } catch (e: any) {
+      ElMessage.error(e?.message || '读取阅读进度失败')
+    }
     // 加载章节（若存在 txt 文件）
     const firstTxt = fs.find(f => (f.format || '').toLowerCase() === 'txt')
     if (firstTxt) {
       chaptersLoading.value = true
       try {
         chapters.value = await txtApi.listChapters(firstTxt.id)
-      } catch (e: any) { ElMessage.error(e?.message || '加载章节失败') }
-      finally { chaptersLoading.value = false }
+      } catch (e: any) {
+        ElMessage.error(e?.message || '加载章节失败')
+      } finally {
+        chaptersLoading.value = false
+      }
     }
   } catch (e: any) {
     err.value = e?.message || '加载失败'
@@ -293,7 +329,9 @@ async function readFile(f: FileRec) {
     router.push({ name: 'reader-pdf', params: { id: String(f.id) } })
   } else {
     // 未知格式：直接下载（签名或直链）
-    try { window.location.href = await getDownloadUrl(f.id) } catch { }
+    try {
+      window.location.href = await getDownloadUrl(f.id)
+    } catch {}
   }
 }
 
@@ -304,7 +342,9 @@ function onRead(payload: { type: string; file: FileRec }) {
 
 async function onDownload(fileId: number) {
   if (!fileId) return
-  try { window.location.href = await getDownloadUrl(fileId) } catch {}
+  try {
+    window.location.href = await getDownloadUrl(fileId)
+  } catch {}
 }
 
 function onSend() {
@@ -312,7 +352,7 @@ function onSend() {
 }
 
 // 传递bookId和chapterIndex，当前不需要使用该方法，仅留作备用
-function continueRead() {
+function _continueRead() {
   if (!continueTarget.value) return
   const f = continueTarget.value
   const q: any = { bookId: String(id) }
@@ -325,7 +365,7 @@ async function toggleRead() {
   const target = !isReadMark.value
   try {
     await booksApi.markRead(book.value.id, target)
-      ; (book.value as any).is_read_mark = target ? 1 : 0
+    ;(book.value as any).is_read_mark = target ? 1 : 0
     ElMessage.success(target ? '已标记为已读' : '已取消已读')
   } catch (e: any) {
     ElMessage.error(e?.message || '操作失败')
@@ -339,7 +379,11 @@ function openChapterFromDetail(index: number) {
     ElMessage.warning('未找到可阅读的 TXT 文件')
     return
   }
-  router.push({ name: 'reader-txt', params: { id: String(firstTxt.id) }, query: { chapterIndex: String(index) } })
+  router.push({
+    name: 'reader-txt',
+    params: { id: String(firstTxt.id) },
+    query: { chapterIndex: String(index) },
+  })
 }
 
 function goBooksByAuthor(authorId: number) {

@@ -16,7 +16,7 @@
     "ignoreDeprecations": "6.0",
     "paths": {
       "@/": ["./src/"],
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*", "env.d.ts"],

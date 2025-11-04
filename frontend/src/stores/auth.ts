@@ -15,9 +15,15 @@ function parseRoles(raw: string | null): string[] {
   return raw ? [String(raw)] : []
 }
 
-export function getToken(): string | null { return localStorage.getItem(TOKEN_KEY) }
-export function getUserRole(): string | null { return localStorage.getItem(ROLE_KEY) }
-export function isLoggedIn(): boolean { return !!getToken() }
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+export function getUserRole(): string | null {
+  return localStorage.getItem(ROLE_KEY)
+}
+export function isLoggedIn(): boolean {
+  return !!getToken()
+}
 
 // Module-level reactive refs so non-setup code can update auth state immediately
 export const tokenRef = ref<string | null>(getToken())
@@ -38,7 +44,9 @@ export function isRole(role: string): boolean {
 
 export function useAuthStore() {
   // basic store
-  function setUser(u: User | null) { state.user = u }
+  function setUser(u: User | null) {
+    state.user = u
+  }
 
   const onStorage = (e: StorageEvent) => {
     if (e.key === TOKEN_KEY) tokenRef.value = getToken()
@@ -65,8 +73,8 @@ export function useAuthStore() {
     logoutLocal,
     isLoggedIn: () => !!tokenRef.value,
     isRole: (role: string) => roles.value.includes(role),
-    hasAnyRole: (list: string[]) => list.some((r) => roles.value.includes(r)),
-    hasAllRoles: (list: string[]) => list.every((r) => roles.value.includes(r)),
+    hasAnyRole: (list: string[]) => list.some(r => roles.value.includes(r)),
+    hasAllRoles: (list: string[]) => list.every(r => roles.value.includes(r)),
   }
 }
 

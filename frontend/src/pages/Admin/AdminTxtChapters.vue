@@ -4,7 +4,8 @@
       <h2 class="text-xl font-semibold">TXT 章节管理</h2>
       <div class="flex items-center">
         <el-button @click="back">
-          <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span> 返回
+          <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span>
+          返回
         </el-button>
       </div>
     </div>
@@ -14,10 +15,12 @@
         <div class="font-medium">选择 TXT 文件</div>
       </template>
       <div class="flex gap-2 items-center">
-        <el-input v-model="fileIdInput" placeholder="输入 TXT 文件ID" style="width:220px" />
+        <el-input v-model="fileIdInput" placeholder="输入 TXT 文件ID" style="width: 220px" />
         <el-button type="primary" @click="load">加载目录</el-button>
       </div>
-      <div class="text-xs text-gray-500 mt-2">也可从图书编辑页的文件列表点击“编辑章节”跳转携带 fileId。</div>
+      <div class="text-xs text-gray-500 mt-2">
+        也可从图书编辑页的文件列表点击“编辑章节”跳转携带 fileId。
+      </div>
     </el-card>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -35,10 +38,8 @@
           <el-table-column label="操作" width="220" align="center">
             <template #default="{ row }">
               <el-button class="mr-3" size="small" @click="promptRename(row)">重命名</el-button>
-              <el-dropdown @command="(cmd:string)=>onDeleteMerge(row, cmd as any)">
-                <el-button size="small" type="danger" plain>
-                  删除并合并
-                </el-button>
+              <el-dropdown @command="(cmd: string) => onDeleteMerge(row, cmd as any)">
+                <el-button size="small" type="danger" plain>删除并合并</el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="prev">合并到上一个</el-dropdown-item>
@@ -57,7 +58,12 @@
         <div class="flex flex-col gap-3">
           <div>
             <div class="text-sm text-gray-600 mb-1">内置规则</div>
-            <el-select v-model="selectedPresetId" placeholder="选择一个内置规则（可选）" filterable clearable>
+            <el-select
+              v-model="selectedPresetId"
+              placeholder="选择一个内置规则（可选）"
+              filterable
+              clearable
+            >
               <el-option :key="''" :label="'（不使用内置规则）'" :value="''" />
               <el-option v-for="p in allPresets" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
@@ -70,7 +76,9 @@
             <el-button @click="preview" :loading="chaptersLoading">预览</el-button>
             <el-button type="primary" @click="save" :loading="saving">保存</el-button>
           </div>
-          <div class="text-xs text-gray-500">提示：若同时选择内置与填写自定义，则优先使用自定义。</div>
+          <div class="text-xs text-gray-500">
+            提示：若同时选择内置与填写自定义，则优先使用自定义。
+          </div>
         </div>
       </el-card>
     </div>
@@ -94,12 +102,17 @@ const saving = ref(false)
 const selectedPresetId = ref<string>('')
 const allPresets = computed(() => builtinRegexPresets)
 
-function back() { router.back() }
+function back() {
+  router.back()
+}
 
 async function load() {
   const idStr = fileIdInput.value.trim()
   const idNum = Number(idStr)
-  if (!Number.isFinite(idNum)) { ElMessage.error('请输入有效的文件ID'); return }
+  if (!Number.isFinite(idNum)) {
+    ElMessage.error('请输入有效的文件ID')
+    return
+  }
   fileId.value = idNum
   await fetchChapters()
 }
@@ -107,30 +120,47 @@ async function load() {
 async function fetchChapters() {
   if (!fileId.value) return
   chaptersLoading.value = true
-  try { chapters.value = await txtApi.listChapters(fileId.value) } catch (e: any) { ElMessage.error(e?.message || '加载失败') }
-  finally { chaptersLoading.value = false }
+  try {
+    chapters.value = await txtApi.listChapters(fileId.value)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '加载失败')
+  } finally {
+    chaptersLoading.value = false
+  }
 }
 
 async function preview() {
   if (!fileId.value) return
   chaptersLoading.value = true
   try {
-    const pat = pattern.value.trim() || allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern || undefined
+    const pat =
+      pattern.value.trim() ||
+      allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern ||
+      undefined
     chapters.value = await txtApi.listChapters(fileId.value, { pattern: pat, dry: true })
+  } catch (e: any) {
+    ElMessage.error(e?.message || '预览失败')
+  } finally {
+    chaptersLoading.value = false
   }
-  catch (e: any) { ElMessage.error(e?.message || '预览失败') }
-  finally { chaptersLoading.value = false }
 }
 
 async function save() {
   if (!fileId.value) return
   saving.value = true
   try {
-    const pat = pattern.value || allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern || undefined
-    await txtApi.saveChapters(fileId.value, { pattern: pat, replace: true }); ElMessage.success('已保存'); await fetchChapters()
+    const pat =
+      pattern.value ||
+      allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern ||
+      undefined
+    await txtApi.saveChapters(fileId.value, { pattern: pat, replace: true })
+    ElMessage.success('已保存')
+    await fetchChapters()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败')
+  } finally {
+    saving.value = false
   }
-  catch (e: any) { ElMessage.error(e?.message || '保存失败') }
-  finally { saving.value = false }
 }
 
 // 重命名
@@ -153,7 +183,7 @@ async function promptRename(row: Chapter) {
 }
 
 // 删除并合并
-async function onDeleteMerge(row: Chapter, direction: 'prev'|'next') {
+async function onDeleteMerge(row: Chapter, direction: 'prev' | 'next') {
   if (!fileId.value) return
   // 边界保护：第一章不能合并到 prev，最后一章不能合并到 next
   const isFirst = row.index === 0
@@ -163,18 +193,24 @@ async function onDeleteMerge(row: Chapter, direction: 'prev'|'next') {
     return
   }
   try {
-    await ElMessageBox.confirm(`将删除“${row.title || '（无题）'}”，并与${direction==='prev'?'上一个':'下一个'}章节合并。确认？`, '删除确认', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      dangerouslyUseHTMLString: false,
-    })
-  } catch { return }
+    await ElMessageBox.confirm(
+      `将删除“${row.title || '（无题）'}”，并与${direction === 'prev' ? '上一个' : '下一个'}章节合并。确认？`,
+      '删除确认',
+      {
+        type: 'warning',
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        dangerouslyUseHTMLString: false,
+      },
+    )
+  } catch {
+    return
+  }
   try {
     await txtApi.deleteChapterWithMerge(fileId.value, row.index, direction)
     ElMessage.success('已删除并合并')
     await fetchChapters()
-  } catch (e:any) {
+  } catch (e: any) {
     ElMessage.error(e?.message || '操作失败')
   }
 }
@@ -182,6 +218,15 @@ async function onDeleteMerge(row: Chapter, direction: 'prev'|'next') {
 // 支持从 params.id 或 query.fileId 进入
 const fidParam = Number(route.params.id || 0)
 const fidQuery = Number(route.query.fileId || 0)
-const initId = Number.isFinite(fidParam) && fidParam > 0 ? fidParam : (Number.isFinite(fidQuery) && fidQuery > 0 ? fidQuery : 0)
-if (initId > 0) { fileIdInput.value = String(initId); fileId.value = initId; fetchChapters() }
+const initId =
+  Number.isFinite(fidParam) && fidParam > 0
+    ? fidParam
+    : Number.isFinite(fidQuery) && fidQuery > 0
+      ? fidQuery
+      : 0
+if (initId > 0) {
+  fileIdInput.value = String(initId)
+  fileId.value = initId
+  fetchChapters()
+}
 </script>

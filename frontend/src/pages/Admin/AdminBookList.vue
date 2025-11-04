@@ -4,17 +4,30 @@
       <h2 class="text-xl font-semibold">图书管理</h2>
       <div class="flex items-center">
         <el-button type="primary" plain @click="goQuickUpload">
-          <span class="material-symbols-outlined mr-1 text-lg">upload</span> 快速上传
+          <span class="material-symbols-outlined mr-1 text-lg">upload</span>
+          快速上传
         </el-button>
         <el-button type="primary" @click="goCreateNew">
-          <span class="material-symbols-outlined mr-1 text-lg">add</span> 新建
+          <span class="material-symbols-outlined mr-1 text-lg">add</span>
+          新建
         </el-button>
       </div>
     </div>
 
-    <BookFilters v-model="filters" :showShelves="false" :showTags="true" :showAuthor="true" :showReadState="false"
-      :showRating="true" :enableExpand="true" :defaultExpanded="false" searchPlaceholder="搜索标题…" @search="go(1)"
-      @reset="reset" class="mb-4" />
+    <BookFilters
+      v-model="filters"
+      :showShelves="false"
+      :showTags="true"
+      :showAuthor="true"
+      :showReadState="false"
+      :showRating="true"
+      :enableExpand="true"
+      :defaultExpanded="false"
+      searchPlaceholder="搜索标题…"
+      @search="go(1)"
+      @reset="reset"
+      class="mb-4"
+    />
 
     <div class="bg-white rounded-lg shadow-sm p-4">
       <el-empty description="暂无数据" v-if="!loading && (!rows || rows.length === 0)" />
@@ -24,10 +37,15 @@
             <template #default="{ row }">
               <div class="flex items-center gap-3">
                 <div class="w-16">
-                  <CoverImage :file-id="row.cover_file_id || null" :title="row.title" :authors="(row.authors || []).map((a: any) => a.name)" fontSize="12px" />
+                  <CoverImage
+                    :file-id="row.cover_file_id || null"
+                    :title="row.title"
+                    :authors="(row.authors || []).map((a: any) => a.name)"
+                    fontSize="12px"
+                  />
                 </div>
                 <div class="min-w-0">
-                  <div class="font-medium truncate">{{ row.title || ('#' + row.id) }}</div>
+                  <div class="font-medium truncate">{{ row.title || '#' + row.id }}</div>
                   <div class="text-xs text-gray-500 truncate" v-if="row.authors?.length">
                     {{ row.authors.map((a: any) => a.name).join(' / ') }}
                   </div>
@@ -38,7 +56,9 @@
           <el-table-column label="简介" min-width="260">
             <template #default="{ row }">
               <div class="text-sm text-gray-700" :title="row.description || '暂无简介'">
-                <div v-if="row.description" class="desc-clamp font-medium">{{ truncate(row.description, MAX_DESC_CHARS) }}</div>
+                <div v-if="row.description" class="desc-clamp font-medium">
+                  {{ truncate(row.description, MAX_DESC_CHARS) }}
+                </div>
                 <div v-else class="text-gray-500">暂无简介</div>
               </div>
             </template>
@@ -46,7 +66,9 @@
 
           <el-table-column label="标签" width="160" align="center">
             <template #default="{ row }">
-              <div class="text-sm text-gray-600" v-if="row.tags?.length">{{ row.tags.map((t: any) => t.name).join(', ') }}</div>
+              <div class="text-sm text-gray-600" v-if="row.tags?.length">
+                {{ row.tags.map((t: any) => t.name).join(', ') }}
+              </div>
               <div v-else class="text-gray-400">-</div>
             </template>
           </el-table-column>
@@ -82,14 +104,18 @@
         </el-table>
 
         <div class="mt-3 flex justify-center" v-if="meta">
-          <el-pagination background layout="prev, pager, next, jumper" :total="meta.total"
-            :page-size="meta.per_page" :current-page="meta.current_page" @current-change="go" />
-
+          <el-pagination
+            background
+            layout="prev, pager, next, jumper"
+            :total="meta.total"
+            :page-size="meta.per_page"
+            :current-page="meta.current_page"
+            @current-change="go"
+          />
         </div>
       </template>
     </div>
   </section>
-
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
@@ -152,13 +178,33 @@ async function fetchList(page = 1) {
     loading.value = false
   }
 }
-function go(p: number) { fetchList(p) }
-function reset() { Object.assign(filters.value, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0, 5] as [number, number] }); go(1) }
-function edit(id: number) { router.push({ name: 'admin-book-edit', params: { id } }) }
+function go(p: number) {
+  fetchList(p)
+}
+function reset() {
+  Object.assign(filters.value, {
+    q: '',
+    authorId: null,
+    tagIds: [],
+    shelfId: null,
+    readState: null,
+    ratingRange: [0, 5] as [number, number],
+  })
+  go(1)
+}
+function edit(id: number) {
+  router.push({ name: 'admin-book-edit', params: { id } })
+}
 async function del(id: number) {
   try {
-    await ElMessageBox.confirm('确认删除该图书？此操作不可撤销', '删除确认', { type: 'warning', confirmButtonText: '继续', cancelButtonText: '取消' })
-  } catch { return }
+    await ElMessageBox.confirm('确认删除该图书？此操作不可撤销', '删除确认', {
+      type: 'warning',
+      confirmButtonText: '继续',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
   // 询问是否连同封面与附件一起删除
   let withFiles = false
   try {
@@ -169,7 +215,7 @@ async function del(id: number) {
       distinguishCancelAndClose: true,
     })
     withFiles = true
-  } catch (e) {
+  } catch {
     // 点击“否，仅删除记录”或关闭，则按仅删除记录处理
     withFiles = false
   }
@@ -177,10 +223,16 @@ async function del(id: number) {
     await booksApi.remove(id, { withFiles })
     ElMessage.success(withFiles ? '已删除（含封面与附件）' : '已删除记录')
     await fetchList(meta.value?.current_page || 1)
-  } catch (e: any) { ElMessage.error(e?.message || '删除失败') }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '删除失败')
+  }
 }
-function goCreateNew() { router.push({ name: 'admin-book-edit', params: { id: 'new' } }) }
-function goQuickUpload() { router.push({ name: 'admin-upload' }) }
+function goCreateNew() {
+  router.push({ name: 'admin-book-edit', params: { id: 'new' } })
+}
+function goQuickUpload() {
+  router.push({ name: 'admin-upload' })
+}
 
 onMounted(() => fetchList(1))
 </script>

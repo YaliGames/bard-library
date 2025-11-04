@@ -3,14 +3,29 @@
     <div class="container mx-auto px-4 py-4 max-w-7xl">
       <h2 class="text-xl font-semibold mb-4">书库</h2>
 
-      <BookFilters v-model="filters" :showShelves="true" :showTags="true" :showAuthor="true" :showReadState="true"
-        :showRating="true" :enableExpand="true" :defaultExpanded="userSettings.preferences?.expandFilterMenu" @search="searchPage(1)" @reset="resetFilters"
-        class="mb-4" />
+      <BookFilters
+        v-model="filters"
+        :showShelves="true"
+        :showTags="true"
+        :showAuthor="true"
+        :showReadState="true"
+        :showRating="true"
+        :enableExpand="true"
+        :defaultExpanded="userSettings.preferences?.expandFilterMenu"
+        @search="searchPage(1)"
+        @reset="resetFilters"
+        class="mb-4"
+      />
 
       <!-- 排序控件 -->
       <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
         <div class="flex flex-row items-center">
-          <el-select v-model="sort" placeholder="选择排序" @change="() => searchPage(1)" class="min-w-[150px]">
+          <el-select
+            v-model="sort"
+            placeholder="选择排序"
+            @change="() => searchPage(1)"
+            class="min-w-[150px]"
+          >
             <el-option label="创建时间" value="created" />
             <el-option label="修改时间" value="modified" />
             <el-option label="评分" value="rating" />
@@ -30,7 +45,10 @@
         </el-button>
       </div>
 
-      <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div
+        v-if="loading"
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      >
         <div v-for="i in skeletonCount" :key="i" class="bg-white rounded-lg shadow-sm p-4">
           <el-skeleton animated :loading="true">
             <template #template>
@@ -55,34 +73,56 @@
       </div>
       <template v-else>
         <!-- 网格视图 -->
-        <div v-if="data.length > 0"
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div
+          v-if="data.length > 0"
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+        >
           <div class="bg-white rounded-lg shadow-sm p-4" v-for="b in data" :key="b.id">
             <div class="flex flex-col gap-1.5">
               <router-link :to="`/books/${b.id}`">
-                <CoverImage :file-id="b.cover_file_id || null" :title="b.title" :authors="(b.authors || []).map(a => a.name)" class="rounded">
+                <CoverImage
+                  :file-id="b.cover_file_id || null"
+                  :title="b.title"
+                  :authors="(b.authors || []).map(a => a.name)"
+                  class="rounded"
+                >
                   <template #overlay v-if="userSettings.bookList?.showReadTag">
-                    <el-tag v-if="b.is_read_mark" type="success" effect="dark" size="small">已读</el-tag>
-                    <el-tag v-else-if="b.is_reading" type="warning" effect="dark" size="small">正在阅读</el-tag>
+                    <el-tag v-if="b.is_read_mark" type="success" effect="dark" size="small">
+                      已读
+                    </el-tag>
+                    <el-tag v-else-if="b.is_reading" type="warning" effect="dark" size="small">
+                      正在阅读
+                    </el-tag>
                   </template>
                 </CoverImage>
-                <div class="font-semibold mt-2">{{ b.title || ('#' + b.id) }}</div>
+                <div class="font-semibold mt-2">{{ b.title || '#' + b.id }}</div>
               </router-link>
               <div class="text-gray-600 text-sm flex flex-wrap gap-1">
-                <template v-for="(a, idx) in (b.authors || [])" :key="a.id">
+                <template v-for="(a, idx) in b.authors || []" :key="a.id">
                   <div class="cursor-pointer text-primary" @click="filterByAuthor(a.id)">
                     {{ a.name }}
                   </div>
-                  <span v-if="idx < (((b?.authors ?? []).length) - 1)"> / </span>
+                  <span v-if="idx < (b?.authors ?? []).length - 1">/</span>
                 </template>
                 <div class="text-gray-500" v-if="(b.authors || []).length === 0">暂无作者</div>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <el-rate v-model="b.rating" :max="5" allow-half disabled show-score score-template="{value}" />
+                <el-rate
+                  v-model="b.rating"
+                  :max="5"
+                  allow-half
+                  disabled
+                  show-score
+                  score-template="{value}"
+                />
                 <template v-if="userSettings.bookList?.showMarkReadButton && isLoggedIn">
                   <el-tooltip :content="b.is_read_mark ? '取消已读' : '标为已读'" placement="top">
-                    <el-button size="small" :type="b.is_read_mark ? 'success' : 'default'" @click="toggleRead(b)"
-                      circle>
+                    <el-button
+                      size="small"
+                      :type="b.is_read_mark ? 'success' : 'default'"
+                      @click="toggleRead(b)"
+                      circle
+                    >
                       <span class="material-symbols-outlined">done_all</span>
                     </el-button>
                   </el-tooltip>
@@ -94,8 +134,14 @@
         <el-empty description="暂无书籍" v-else />
 
         <div v-if="meta" class="mt-3 flex justify-center">
-          <el-pagination background layout="prev, pager, next, jumper" :total="meta.total" :page-size="meta.per_page"
-            :current-page="meta.current_page" @current-change="searchPage" />
+          <el-pagination
+            background
+            layout="prev, pager, next, jumper"
+            :total="meta.total"
+            :page-size="meta.per_page"
+            :current-page="meta.current_page"
+            @current-change="searchPage"
+          />
         </div>
       </template>
     </div>
@@ -113,7 +159,12 @@ import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 
 const data = ref<Book[]>([])
-const meta = ref<{ current_page: number; last_page: number; per_page: number; total: number } | null>(null)
+const meta = ref<{
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+} | null>(null)
 const loading = ref(true)
 // 统一的筛选模型
 const filters = ref({
@@ -179,22 +230,27 @@ async function fetchBooks(page = 1) {
   }
 }
 
-function searchPage(page: number) { fetchBooks(page) }
-function toggleSort(field: 'created' | 'modified' | 'rating') {
-  if (sort.value === field) {
-    order.value = order.value === 'desc' ? 'asc' : 'desc'
-  } else {
-    sort.value = field
-    order.value = 'desc'
-  }
-  searchPage(1)
+function searchPage(page: number) {
+  fetchBooks(page)
 }
-function toggleOrder(){
+function toggleOrder() {
   order.value = order.value === 'desc' ? 'asc' : 'desc'
   searchPage(1)
 }
 function resetFilters() {
-  Object.assign(filters.value, { q: '', authorId: null, tagIds: [], shelfId: null, readState: null, ratingRange: [0, 5] as [number, number], publisher: null, publishedRange: null, language: null, series_value: null, isbn: null })
+  Object.assign(filters.value, {
+    q: '',
+    authorId: null,
+    tagIds: [],
+    shelfId: null,
+    readState: null,
+    ratingRange: [0, 5] as [number, number],
+    publisher: null,
+    publishedRange: null,
+    language: null,
+    series_value: null,
+    isbn: null,
+  })
   sort.value = 'created'
   order.value = 'desc'
   searchPage(1)
@@ -206,8 +262,8 @@ async function toggleRead(b: Book) {
   const target = !(b as any).is_read_mark || (b as any).is_read_mark === 0 ? true : false
   try {
     await booksApi.markRead(b.id, target)
-      // 乐观更新 & 回刷列表
-      ; (b as any).is_read_mark = target ? 1 : 0
+    // 乐观更新 & 回刷列表
+    ;(b as any).is_read_mark = target ? 1 : 0
     ElMessage.success(target ? '已标记为已读' : '已取消已读')
   } catch (e: any) {
     ElMessage.error(e?.message || '操作失败')

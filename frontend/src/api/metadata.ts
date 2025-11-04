@@ -1,8 +1,8 @@
 import { http } from './http'
 import { ensureResourceQuery, ensureResourceQuerySync } from '@/utils/signedUrls'
-import type { MetaRecord } from "@/types/metadata";
+import type { MetaRecord } from '@/types/metadata'
 
-const BASE = "/api/v1/metadata";
+const BASE = '/api/v1/metadata'
 
 export const metadataApi = {
   async listProviders(): Promise<{ id: string; name: string; description?: string }[]> {

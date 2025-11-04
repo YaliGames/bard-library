@@ -1,7 +1,8 @@
 <template>
   <section class="flex flex-col h-screen">
     <div
-      class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[var(--el-bg-color-overlay)]">
+      class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[var(--el-bg-color-overlay)]"
+    >
       <div class="flex items-center gap-2">
         <router-link to="/books">
           <el-button>
@@ -40,17 +41,26 @@
         <div class="inline-flex items-center rounded overflow-hidden mr-2">
           <el-button-group>
             <el-tooltip content="单页模式">
-              <el-button @click="setViewMode('single')" :type="viewMode === 'single' ? 'primary' : 'default'">
+              <el-button
+                @click="setViewMode('single')"
+                :type="viewMode === 'single' ? 'primary' : 'default'"
+              >
                 <span class="material-symbols-outlined">crop_landscape</span>
               </el-button>
             </el-tooltip>
             <el-tooltip content="双页模式">
-              <el-button @click="setViewMode('two')" :type="viewMode === 'two' ? 'primary' : 'default'">
+              <el-button
+                @click="setViewMode('two')"
+                :type="viewMode === 'two' ? 'primary' : 'default'"
+              >
                 <span class="material-symbols-outlined">view_column_2</span>
               </el-button>
             </el-tooltip>
             <el-tooltip content="连续模式">
-              <el-button @click="setViewMode('continuous')" :type="viewMode === 'continuous' ? 'primary' : 'default'">
+              <el-button
+                @click="setViewMode('continuous')"
+                :type="viewMode === 'continuous' ? 'primary' : 'default'"
+              >
                 <span class="material-symbols-outlined">view_stream</span>
               </el-button>
             </el-tooltip>
@@ -81,7 +91,10 @@
               </el-button>
             </el-tooltip>
             <el-tooltip content="文本划线">
-              <el-button @click="tool = 'text_under'" :type="tool === 'text_under' ? 'primary' : 'default'">
+              <el-button
+                @click="tool = 'text_under'"
+                :type="tool === 'text_under' ? 'primary' : 'default'"
+              >
                 <span class="material-symbols-outlined">border_color</span>
               </el-button>
             </el-tooltip>
@@ -96,35 +109,59 @@
       </div>
     </div>
 
-    <div ref="scrollRef" class="flex-1 min-h-0 bg-gray-50 dark:bg-[#111] overflow-auto flex items-start justify-center"
-      @scroll="onContainerScroll">
+    <div
+      ref="scrollRef"
+      class="flex-1 min-h-0 bg-gray-50 dark:bg-[#111] overflow-auto flex items-start justify-center"
+      @scroll="onContainerScroll"
+    >
       <div v-if="loading" class="text-gray-500">正在加载 PDF…</div>
       <div v-else-if="error" class="text-red-500">加载失败：{{ error }}</div>
-      <div v-else-if="!useIframeFallback" ref="containerRef" class="relative" style="max-width: 100%;"
-        @mousedown="onMouseDown" @mousemove="onMouseMove">
+      <div
+        v-else-if="!useIframeFallback"
+        ref="containerRef"
+        class="relative"
+        style="max-width: 100%"
+        @mousedown="onMouseDown"
+        @mousemove="onMouseMove"
+      >
         <!-- single page mode -->
         <template v-if="viewMode === 'single'">
-          <PdfPage :pdfDoc="pdfDocRef" :pageNumber="page" :scale="scale" @rendered="onPdfPageRendered"
-            @selection="onPdfPageSelection">
+          <PdfPage
+            :pdfDoc="pdfDocRef"
+            :pageNumber="page"
+            :scale="scale"
+            @rendered="onPdfPageRendered"
+            @selection="onPdfPageSelection"
+          >
             <div ref="overlayRef" class="pdf-overlay absolute top-0 left-0 w-full h-full">
               <div :key="annotationRenderKey" ref="annotationsHostRef">
                 <template v-for="ann in pageAnnotations" :key="ann.id">
                   <template v-if="ann.rects && ann.rects.length">
                     <template v-for="(r, ri) in ann.rects" :key="ri">
-                      <div class="absolute" :style="annotationBoxStyle(ann, r)" :data-annotation-id="ann.id"
-                        @click.stop="selectAnnotation(ann)"></div>
+                      <div
+                        class="absolute"
+                        :style="annotationBoxStyle(ann, r)"
+                        :data-annotation-id="ann.id"
+                        @click.stop="selectAnnotation(ann)"
+                      ></div>
                     </template>
                   </template>
                   <template v-else>
-                    <div class="absolute" :style="annotationBoxStyle(ann, ann.rect)" :data-annotation-id="ann.id"
-                      @click.stop="selectAnnotation(ann)"></div>
+                    <div
+                      class="absolute"
+                      :style="annotationBoxStyle(ann, ann.rect)"
+                      :data-annotation-id="ann.id"
+                      @click.stop="selectAnnotation(ann)"
+                    ></div>
                   </template>
                 </template>
               </div>
               <!-- drawing preview (left) -->
-              <div v-if="drawing" :style="getDrawingStyle('left')"
-                class="absolute bg-yellow-200 opacity-60 pointer-events-none">
-              </div>
+              <div
+                v-if="drawing"
+                :style="getDrawingStyle('left')"
+                class="absolute bg-yellow-200 opacity-60 pointer-events-none"
+              ></div>
             </div>
           </PdfPage>
         </template>
@@ -132,52 +169,85 @@
         <!-- two-page side-by-side mode -->
         <template v-else-if="viewMode === 'two'">
           <div class="flex gap-4 items-start justify-center">
-            <PdfPage :pdfDoc="pdfDocRef" :pageNumber="page" :scale="scale" @rendered="onPdfPageRendered"
-              @selection="onPdfPageSelection">
+            <PdfPage
+              :pdfDoc="pdfDocRef"
+              :pageNumber="page"
+              :scale="scale"
+              @rendered="onPdfPageRendered"
+              @selection="onPdfPageSelection"
+            >
               <div ref="overlayRef" class="pdf-overlay absolute top-0 left-0 w-full h-full">
                 <div :key="annotationRenderKey" ref="annotationsHostRef">
                   <template v-for="ann in pageAnnotations" :key="ann.id">
                     <template v-if="ann.rects && ann.rects.length">
                       <template v-for="(r, ri) in ann.rects" :key="ri">
-                        <div class="absolute" :style="annotationBoxStyle(ann, r)" :data-annotation-id="ann.id"
-                          @click.stop="selectAnnotation(ann)"></div>
+                        <div
+                          class="absolute"
+                          :style="annotationBoxStyle(ann, r)"
+                          :data-annotation-id="ann.id"
+                          @click.stop="selectAnnotation(ann)"
+                        ></div>
                       </template>
                     </template>
                     <template v-else>
-                      <div class="absolute" :style="annotationBoxStyle(ann, ann.rect)" :data-annotation-id="ann.id"
-                        @click.stop="selectAnnotation(ann)"></div>
+                      <div
+                        class="absolute"
+                        :style="annotationBoxStyle(ann, ann.rect)"
+                        :data-annotation-id="ann.id"
+                        @click.stop="selectAnnotation(ann)"
+                      ></div>
                     </template>
                   </template>
                 </div>
-                <div v-if="drawing" :style="getDrawingStyle('left')"
-                  class="absolute bg-yellow-200 opacity-60 pointer-events-none">
-                </div>
+                <div
+                  v-if="drawing"
+                  :style="getDrawingStyle('left')"
+                  class="absolute bg-yellow-200 opacity-60 pointer-events-none"
+                ></div>
               </div>
             </PdfPage>
 
             <template v-if="page < totalPages">
-              <PdfPage :pdfDoc="pdfDocRef" :pageNumber="rightPage" :scale="scale" @rendered="onPdfPageRendered"
-                @selection="onPdfPageSelection">
+              <PdfPage
+                :pdfDoc="pdfDocRef"
+                :pageNumber="rightPage"
+                :scale="scale"
+                @rendered="onPdfPageRendered"
+                @selection="onPdfPageSelection"
+              >
                 <div ref="overlayRightRef" class="pdf-overlay absolute top-0 left-0 w-full h-full">
                   <!-- render annotations for right page only -->
                   <div :key="annotationRenderKey + '-r'" ref="annotationsHostRefRight">
-                    <template v-for="ann in annotations.filter(a => a.page === rightPage)" :key="ann.id">
+                    <template
+                      v-for="ann in annotations.filter(a => a.page === rightPage)"
+                      :key="ann.id"
+                    >
                       <template v-if="ann.rects && ann.rects.length">
                         <template v-for="(r, ri) in ann.rects" :key="ri">
-                          <div class="absolute" :style="annotationBoxStyle(ann, r)" :data-annotation-id="ann.id"
-                            @click.stop="selectAnnotation(ann)"></div>
+                          <div
+                            class="absolute"
+                            :style="annotationBoxStyle(ann, r)"
+                            :data-annotation-id="ann.id"
+                            @click.stop="selectAnnotation(ann)"
+                          ></div>
                         </template>
                       </template>
                       <template v-else>
-                        <div class="absolute" :style="annotationBoxStyle(ann, ann.rect)" :data-annotation-id="ann.id"
-                          @click.stop="selectAnnotation(ann)"></div>
+                        <div
+                          class="absolute"
+                          :style="annotationBoxStyle(ann, ann.rect)"
+                          :data-annotation-id="ann.id"
+                          @click.stop="selectAnnotation(ann)"
+                        ></div>
                       </template>
                     </template>
                   </div>
                   <!-- drawing preview for right page -->
-                  <div v-if="drawing" :style="getDrawingStyle('right')"
-                    class="absolute bg-yellow-200 opacity-60 pointer-events-none">
-                  </div>
+                  <div
+                    v-if="drawing"
+                    :style="getDrawingStyle('right')"
+                    class="absolute bg-yellow-200 opacity-60 pointer-events-none"
+                  ></div>
                 </div>
               </PdfPage>
             </template>
@@ -188,27 +258,43 @@
         <template v-else>
           <div class="flex flex-col items-center gap-4">
             <template v-for="p in totalPages" :key="p">
-              <PdfPage :pdfDoc="pdfDocRef" :pageNumber="p" :scale="scale" @rendered="onPdfPageRendered"
-                @selection="onPdfPageSelection">
+              <PdfPage
+                :pdfDoc="pdfDocRef"
+                :pageNumber="p"
+                :scale="scale"
+                @rendered="onPdfPageRendered"
+                @selection="onPdfPageSelection"
+              >
                 <div class="pdf-overlay absolute top-0 left-0 w-full h-full">
                   <!-- render annotations for page p in continuous mode -->
                   <div :key="annotationRenderKey + '-c-' + p">
                     <template v-for="ann in annotations.filter(a => a.page === p)" :key="ann.id">
                       <template v-if="ann.rects && ann.rects.length">
                         <template v-for="(r, ri) in ann.rects" :key="ri">
-                          <div class="absolute" :style="annotationBoxStyle(ann, r)" :data-annotation-id="ann.id"
-                            @click.stop="selectAnnotation(ann)"></div>
+                          <div
+                            class="absolute"
+                            :style="annotationBoxStyle(ann, r)"
+                            :data-annotation-id="ann.id"
+                            @click.stop="selectAnnotation(ann)"
+                          ></div>
                         </template>
                       </template>
                       <template v-else>
-                        <div class="absolute" :style="annotationBoxStyle(ann, ann.rect)" :data-annotation-id="ann.id"
-                          @click.stop="selectAnnotation(ann)"></div>
+                        <div
+                          class="absolute"
+                          :style="annotationBoxStyle(ann, ann.rect)"
+                          :data-annotation-id="ann.id"
+                          @click.stop="selectAnnotation(ann)"
+                        ></div>
                       </template>
                     </template>
                   </div>
                   <!-- drawing preview for continuous mode (only on the page being drawn on) -->
-                  <div v-if="drawing && isDrawingOnPage(p)" :style="getContinuousDrawingStyle(p)"
-                    class="absolute bg-yellow-200 opacity-60 pointer-events-none"></div>
+                  <div
+                    v-if="drawing && isDrawingOnPage(p)"
+                    :style="getContinuousDrawingStyle(p)"
+                    class="absolute bg-yellow-200 opacity-60 pointer-events-none"
+                  ></div>
                 </div>
               </PdfPage>
             </template>
@@ -216,13 +302,25 @@
         </template>
       </div>
       <div v-else class="w-full h-full">
-        <iframe :src="fallbackBlobUrl || ''" class="w-full h-full border-0" title="PDF 备用预览"></iframe>
+        <iframe
+          :src="fallbackBlobUrl || ''"
+          class="w-full h-full border-0"
+          title="PDF 备用预览"
+        ></iframe>
       </div>
     </div>
     <!-- 高亮菜单（脱离调试面板，直接渲染） -->
-    <HighlightMenu v-if="!loading && !error" :show="!!selectedAnnotation" :x="highlightMenuPos.x"
-      :y="highlightMenuPos.y" :note="selectedAnnotation?.note" :current-color="selectedAnnotation?.color"
-      @pick-color="onPickColorFromMenu" @add-note="onAddNoteFromMenu" @delete="deleteSelected" />
+    <HighlightMenu
+      v-if="!loading && !error"
+      :show="!!selectedAnnotation"
+      :x="highlightMenuPos.x"
+      :y="highlightMenuPos.y"
+      :note="selectedAnnotation?.note"
+      :current-color="selectedAnnotation?.color"
+      @pick-color="onPickColorFromMenu"
+      @add-note="onAddNoteFromMenu"
+      @delete="deleteSelected"
+    />
   </section>
 </template>
 
@@ -276,29 +374,46 @@ function setViewMode(mode: 'single' | 'two' | 'continuous') {
   }
 }
 // handler called when PdfPage emits a rendered event
-function onPdfPageRendered(payload: { page: number, el: HTMLElement | null, canvasEl?: HTMLCanvasElement | null, overlayEl?: HTMLDivElement | null }) {
+function onPdfPageRendered(payload: {
+  page: number
+  el: HTMLElement | null
+  canvasEl?: HTMLCanvasElement | null
+  overlayEl?: HTMLDivElement | null
+}) {
   const pg = payload?.page
   const el = payload?.el || null
   let canvas: HTMLCanvasElement | null = (payload as any)?.canvasEl || null
   let overlayEl: HTMLDivElement | null = (payload as any)?.overlayEl || null
   if (!canvas && el) {
-    try { canvas = (el as HTMLElement).querySelector('canvas') as HTMLCanvasElement | null } catch { canvas = null }
+    try {
+      canvas = (el as HTMLElement).querySelector('canvas') as HTMLCanvasElement | null
+    } catch {
+      canvas = null
+    }
   }
   if (!overlayEl && el) {
-    try { overlayEl = (el as HTMLElement).querySelector('.pdf-overlay') as HTMLDivElement | null } catch { overlayEl = null }
+    try {
+      overlayEl = (el as HTMLElement).querySelector('.pdf-overlay') as HTMLDivElement | null
+    } catch {
+      overlayEl = null
+    }
   }
 
   if (canvas) {
     if (pg === page.value) canvasRef.value = canvas
     else if (pg === page.value + 1) canvasRightRef.value = canvas
     // record canvas for continuous mode
-    try { if (typeof pg === 'number') canvasByPage.set(pg, canvas) } catch { }
+    try {
+      if (typeof pg === 'number') canvasByPage.set(pg, canvas)
+    } catch {}
   }
   if (overlayEl) {
     if (pg === page.value) overlayRef.value = overlayEl
     else if (pg === page.value + 1) overlayRightRef.value = overlayEl
     // record overlay for continuous mode
-    try { if (typeof pg === 'number') overlayByPage.set(pg, overlayEl) } catch { }
+    try {
+      if (typeof pg === 'number') overlayByPage.set(pg, overlayEl)
+    } catch {}
   }
 
   nextTick(() => {
@@ -312,7 +427,7 @@ function onPdfPageRendered(payload: { page: number, el: HTMLElement | null, canv
 }
 
 // handler called when PdfPage emits selection rects
-function onPdfPageSelection(payload: { page: number, rects: Array<any> }) {
+function onPdfPageSelection(payload: { page: number; rects: Array<any> }) {
   // child emitted selection — mark to avoid duplicate parent-level handling
   sawChildSelection = true
   if (tool.value !== 'text') return
@@ -321,15 +436,25 @@ function onPdfPageSelection(payload: { page: number, rects: Array<any> }) {
   const ann = {
     id: Date.now() + Math.floor(Math.random() * 10000),
     page: payload.page,
-    rects: payload.rects.map((r: any) => ({ x: Math.max(0, Math.min(1, r.x)), y: Math.max(0, Math.min(1, r.y)), w: Math.min(1, r.w), h: Math.min(1, r.h) })),
+    rects: payload.rects.map((r: any) => ({
+      x: Math.max(0, Math.min(1, r.x)),
+      y: Math.max(0, Math.min(1, r.y)),
+      w: Math.min(1, r.w),
+      h: Math.min(1, r.h),
+    })),
     color: currentColor.value,
-    opacity: 0.6
+    opacity: 0.6,
   }
   annotations.value.push(ann)
   saveAnnotations(annotations.value)
   // for text tool, we created an annotation from selection — clear native selection and restore overlay pointer so menu can be clicked
-  try { const sel = window.getSelection(); if (sel) sel.removeAllRanges() } catch { }
-  try { setOverlayPointer('auto') } catch { }
+  try {
+    const sel = window.getSelection()
+    if (sel) sel.removeAllRanges()
+  } catch {}
+  try {
+    setOverlayPointer('auto')
+  } catch {}
 }
 
 function annotationBoxStyle(ann: any, rect: any) {
@@ -338,7 +463,7 @@ function annotationBoxStyle(ann: any, rect: any) {
   if (viewMode.value === 'continuous' && ann && typeof ann.page === 'number') {
     canvas = canvasByPage.get(ann.page) || null
   } else if (viewMode.value === 'two' && ann && typeof ann.page === 'number') {
-    canvas = (ann.page === page.value + 1) ? (canvasRightRef.value || canvasRef.value) : canvasRef.value
+    canvas = ann.page === page.value + 1 ? canvasRightRef.value || canvasRef.value : canvasRef.value
   } else {
     canvas = canvasRef.value
   }
@@ -349,7 +474,21 @@ function annotationBoxStyle(ann: any, rect: any) {
   const top = rect.y * ch
   const w = rect.w * cw
   const h = rect.h * ch
-  return ({ left: left + 'px', top: top + 'px', width: w + 'px', height: h + 'px', background: ann.color || 'rgba(250,216,120,0.5)', border: '1px solid rgba(0,0,0,0.06)', zIndex: 2, pointerEvents: (tool.value === 'select' || (selectedAnnotation.value && selectedAnnotation.value.id === ann.id)) ? 'auto' : 'none', opacity: ann.opacity ?? 0.6 } as any)
+  return {
+    left: left + 'px',
+    top: top + 'px',
+    width: w + 'px',
+    height: h + 'px',
+    background: ann.color || 'rgba(250,216,120,0.5)',
+    border: '1px solid rgba(0,0,0,0.06)',
+    zIndex: 2,
+    pointerEvents:
+      tool.value === 'select' ||
+      (selectedAnnotation.value && selectedAnnotation.value.id === ann.id)
+        ? 'auto'
+        : 'none',
+    opacity: ann.opacity ?? 0.6,
+  } as any
 }
 const containerRef = ref<HTMLDivElement | null>(null)
 // The real scroll container is the full-height wrapper; use this for scrollTop/scroll events
@@ -369,8 +508,8 @@ let currentRenderTask: any = null
 const tool = ref<'select' | 'rect' | 'circle' | 'text' | 'text_under'>('select')
 const currentColor = ref<string>('#FAD878')
 const drawing = ref(false)
-const drawStart = ref<{ x: number, y: number } | null>(null)
-const drawCurr = ref<{ x: number, y: number } | null>(null)
+const drawStart = ref<{ x: number; y: number } | null>(null)
+const drawCurr = ref<{ x: number; y: number } | null>(null)
 const selectedAnnotation = ref<any | null>(null)
 // highlight menu position (viewport coords)
 const highlightMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -383,7 +522,9 @@ let scrollLockTimer: any = null
 function beginProgrammaticScroll(targetPage: number, duration = 700) {
   scrollingToPage.value = targetPage
   if (scrollLockTimer) clearTimeout(scrollLockTimer)
-  scrollLockTimer = setTimeout(() => { scrollingToPage.value = null }, duration)
+  scrollLockTimer = setTimeout(() => {
+    scrollingToPage.value = null
+  }, duration)
 }
 
 // reactive annotations list (so UI updates immediately)
@@ -398,10 +539,6 @@ const viewMode = ref<'single' | 'two' | 'continuous'>('single')
 // two-page helpers
 // rightPage is the sequential next page number; rendering of right page is gated by page < totalPages
 const rightPage = computed(() => page.value + 1)
-const canvasLeftWidth = computed(() => canvasRef.value ? canvasRef.value.clientWidth : 0)
-const canvasLeftHeight = computed(() => canvasRef.value ? canvasRef.value.clientHeight : 0)
-const canvasRightWidth = computed(() => canvasRightRef.value ? canvasRightRef.value.clientWidth : 0)
-const canvasRightHeight = computed(() => canvasRightRef.value ? canvasRightRef.value.clientHeight : 0)
 
 function zoomIn() {
   scale.value = Math.min(3, +(Math.round((scale.value + 0.25) * 100) / 100).toFixed(2))
@@ -421,7 +558,7 @@ async function forceRerenderAnnotations(retries = 3, delay = 40) {
     // force re-render of annotations container (safe, doesn't remove textLayer)
     annotationRenderKey.value++
     // small pause so layout stabilizes
-    await new Promise((r) => setTimeout(r, delay))
+    await new Promise(r => setTimeout(r, delay))
   }
 }
 
@@ -433,12 +570,15 @@ function selectAnnotation(ann: any) {
   if (viewMode.value === 'continuous' && ann && typeof ann.page === 'number') {
     canvas = canvasByPage.get(ann.page) || canvasRef.value
   } else if (viewMode.value === 'two' && ann && typeof ann.page === 'number') {
-    canvas = (ann.page === page.value + 1) ? (canvasRightRef.value || canvasRef.value) : canvasRef.value
+    canvas = ann.page === page.value + 1 ? canvasRightRef.value || canvasRef.value : canvasRef.value
   }
   if (!canvas) return
   const crect = canvas.getBoundingClientRect()
   // support annotations that contain multiple rects (ann.rects) or a single rect (ann.rect)
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity
   if (ann.rects && Array.isArray(ann.rects) && ann.rects.length) {
     for (const r of ann.rects) {
       minX = Math.min(minX, r.x)
@@ -448,10 +588,16 @@ function selectAnnotation(ann: any) {
     }
   } else if (ann.rect) {
     const r = ann.rect
-    minX = r.x; minY = r.y; maxX = r.x + (r.w || 0); maxY = r.y + (r.h || 0)
+    minX = r.x
+    minY = r.y
+    maxX = r.x + (r.w || 0)
+    maxY = r.y + (r.h || 0)
   } else {
     // fallback: use whole canvas
-    minX = 0; minY = 0; maxX = 1; maxY = 0
+    minX = 0
+    minY = 0
+    maxX = 1
+    maxY = 0
   }
   if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) return
   const left = crect.left + minX * crect.width
@@ -497,18 +643,22 @@ function setOverlayPointer(value: 'auto' | 'none') {
       const overlays = root.querySelectorAll('.pdf-overlay')
       overlays.forEach(el => ((el as HTMLElement).style.pointerEvents = value))
     }
-  } catch { }
+  } catch {}
 }
 
 // prevent default dragstart when drawing or generally on the PDF container
 function preventDragStart(e: DragEvent) {
-  try { e.preventDefault() } catch { }
+  try {
+    e.preventDefault()
+  } catch {}
 }
 
 function preventSelectStart(e: Event) {
   // if we are drawing, prevent native selection/drag of selection
   if (drawing.value) {
-    try { (e as Event).preventDefault() } catch { }
+    try {
+      ;(e as Event).preventDefault()
+    } catch {}
   }
 }
 
@@ -569,7 +719,10 @@ function onMouseDown(e: MouseEvent) {
     if (target) {
       let el: HTMLElement | null = target
       while (el && el !== containerRef.value) {
-        if (el.dataset && el.dataset['annotationId']) { isOnAnnotation = true; break }
+        if (el.dataset && el.dataset['annotationId']) {
+          isOnAnnotation = true
+          break
+        }
         el = el.parentElement
       }
     }
@@ -578,7 +731,9 @@ function onMouseDown(e: MouseEvent) {
   }
   if (tool.value !== 'rect') return
   // prevent browser from starting a drag image/selection drag which causes forbidden cursor
-  try { e.preventDefault() } catch { }
+  try {
+    e.preventDefault()
+  } catch {}
   drawing.value = true
   // locate the canvas under the pointer (supports multi-page/multi-canvas)
   const target = e.target as HTMLElement | null
@@ -588,34 +743,47 @@ function onMouseDown(e: MouseEvent) {
     if (target && typeof target.closest === 'function') {
       clickedCanvas = target.closest('canvas') as HTMLCanvasElement | null
     }
-  } catch { clickedCanvas = null }
+  } catch {
+    clickedCanvas = null
+  }
   // if clicked on overlay, walk up to find nearest ancestor that contains a canvas
   if (!clickedCanvas && target) {
     let el: HTMLElement | null = target
-    const stopAt = (scrollRef.value || containerRef.value)
+    const stopAt = scrollRef.value || containerRef.value
     while (el && el !== stopAt) {
       try {
-        const canv = el.querySelector ? (el.querySelector('canvas') as HTMLCanvasElement | null) : null
-        if (canv) { clickedCanvas = canv; break }
-      } catch { }
+        const canv = el.querySelector
+          ? (el.querySelector('canvas') as HTMLCanvasElement | null)
+          : null
+        if (canv) {
+          clickedCanvas = canv
+          break
+        }
+      } catch {}
       el = el.parentElement
     }
   }
   // fallback: hit-test against all canvases in container using client coordinates
-  const searchRoot = (scrollRef.value || containerRef.value)
+  const searchRoot = scrollRef.value || containerRef.value
   if (!clickedCanvas && searchRoot) {
     try {
       const canvases = Array.from(searchRoot.querySelectorAll('canvas')) as HTMLCanvasElement[]
       for (const c of canvases) {
         const r = c.getBoundingClientRect()
-        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        if (
+          e.clientX >= r.left &&
+          e.clientX <= r.right &&
+          e.clientY >= r.top &&
+          e.clientY <= r.bottom
+        ) {
           clickedCanvas = c
           break
         }
       }
-    } catch { }
+    } catch {}
   }
-  if (!clickedCanvas && searchRoot) clickedCanvas = searchRoot.querySelector('canvas') as HTMLCanvasElement | null
+  if (!clickedCanvas && searchRoot)
+    clickedCanvas = searchRoot.querySelector('canvas') as HTMLCanvasElement | null
   drawCanvas.value = clickedCanvas
   // determine which side this canvas belongs to by dataset or equality with known refs
   try {
@@ -624,10 +792,12 @@ function onMouseDown(e: MouseEvent) {
       else if (clickedCanvas === canvasRightRef.value) drawCanvasSide.value = 'right'
       else if (clickedCanvas.dataset && clickedCanvas.dataset['page']) {
         const pnum = Number(clickedCanvas.dataset['page'])
-        drawCanvasSide.value = (pnum === rightPage.value) ? 'right' : 'left'
+        drawCanvasSide.value = pnum === rightPage.value ? 'right' : 'left'
       } else drawCanvasSide.value = null
     } else drawCanvasSide.value = null
-  } catch { drawCanvasSide.value = null }
+  } catch {
+    drawCanvasSide.value = null
+  }
   drawStart.value = toNormalized(e)
   drawCurr.value = drawStart.value
 }
@@ -645,7 +815,11 @@ function onWindowMouseUp(e: MouseEvent) {
       // stop drawing and finalize
       drawing.value = false
       const end = drawCurr.value || drawStart.value
-      if (!drawStart.value || !end) { drawStart.value = null; drawCurr.value = null; return }
+      if (!drawStart.value || !end) {
+        drawStart.value = null
+        drawCurr.value = null
+        return
+      }
       const sx = drawStart.value.x
       const sy = drawStart.value.y
       const ex = end.x
@@ -663,24 +837,35 @@ function onWindowMouseUp(e: MouseEvent) {
           let annPage = page.value
           try {
             const usedCanvas = drawCanvas.value || canvas
-            if (usedCanvas && usedCanvas.dataset && usedCanvas.dataset['page']) annPage = Number(usedCanvas.dataset['page']) || page.value
-          } catch { }
-          const ann = { id: Date.now(), page: annPage, rect: { x: nx, y: ny, w: nw, h: nh }, color: currentColor.value }
+            if (usedCanvas && usedCanvas.dataset && usedCanvas.dataset['page'])
+              annPage = Number(usedCanvas.dataset['page']) || page.value
+          } catch {}
+          const ann = {
+            id: Date.now(),
+            page: annPage,
+            rect: { x: nx, y: ny, w: nw, h: nh },
+            color: currentColor.value,
+          }
           annotations.value.push(ann)
           saveAnnotations(annotations.value)
         }
       }
     } finally {
-      drawStart.value = null; drawCurr.value = null
+      drawStart.value = null
+      drawCurr.value = null
       // clear the temporary interaction canvas reference
       drawCanvas.value = null
     }
   }
   // restore overlay pointer events after any interaction (delay slightly to avoid stomping native selection)
-  try { setTimeout(() => setOverlayPointer('auto'), 100) } catch { }
+  try {
+    setTimeout(() => setOverlayPointer('auto'), 100)
+  } catch {}
   if (tool.value === 'text') {
     // only run parent-level selection handling if child PdfPage did not emit a selection
-    setTimeout(() => { if (!sawChildSelection) handleTextSelection() }, 10)
+    setTimeout(() => {
+      if (!sawChildSelection) handleTextSelection()
+    }, 10)
   }
   // reset flag for next interaction cycle
   sawChildSelection = false
@@ -689,21 +874,31 @@ function onWindowMouseUp(e: MouseEvent) {
 function getDrawingStyle(side: 'left' | 'right') {
   if (!drawing.value || !drawStart.value || !drawCurr.value) return {}
   if (drawCanvasSide.value && drawCanvasSide.value !== side) return {}
-  const canvas = side === 'left' ? canvasRef.value : (canvasRightRef.value || null)
+  const canvas = side === 'left' ? canvasRef.value : canvasRightRef.value || null
   if (!canvas) return {}
   const crect = canvas.getBoundingClientRect()
   const x = Math.min(drawStart.value.x, drawCurr.value.x) * crect.width
   const y = Math.min(drawStart.value.y, drawCurr.value.y) * crect.height
   const w = Math.abs(drawCurr.value.x - drawStart.value.x) * crect.width
   const h = Math.abs(drawCurr.value.y - drawStart.value.y) * crect.height
-  return { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', background: currentColor.value, opacity: 0.45 }
+  return {
+    left: x + 'px',
+    top: y + 'px',
+    width: w + 'px',
+    height: h + 'px',
+    background: currentColor.value,
+    opacity: 0.45,
+  }
 }
 
 // Helpers for continuous mode drawing preview
 function isDrawingOnPage(p: number) {
   if (!drawing.value || !drawCanvas.value) return false
   try {
-    const dp = drawCanvas.value.dataset && drawCanvas.value.dataset['page'] ? Number(drawCanvas.value.dataset['page']) : NaN
+    const dp =
+      drawCanvas.value.dataset && drawCanvas.value.dataset['page']
+        ? Number(drawCanvas.value.dataset['page'])
+        : NaN
     return isFinite(dp) && dp === p
   } catch {
     return false
@@ -721,17 +916,29 @@ function getContinuousDrawingStyle(p: number) {
   const y = Math.min(drawStart.value.y, drawCurr.value.y) * crect.height
   const w = Math.abs(drawCurr.value.x - drawStart.value.x) * crect.width
   const h = Math.abs(drawCurr.value.y - drawStart.value.y) * crect.height
-  return { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', background: currentColor.value, opacity: 0.45 }
+  return {
+    left: x + 'px',
+    top: y + 'px',
+    width: w + 'px',
+    height: h + 'px',
+    background: currentColor.value,
+    opacity: 0.45,
+  }
 }
 
 // load pdf.js dynamically
 let pdfjsLib: any = null
-async function resolvePreviewUrl(id: number) { return await getPreviewUrl(id) }
+async function resolvePreviewUrl(id: number) {
+  return await getPreviewUrl(id)
+}
 
 async function initPdf() {
   loading.value = true
   error.value = null
-  if (!fileId.value) { loading.value = false; return }
+  if (!fileId.value) {
+    loading.value = false
+    return
+  }
   try {
     pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js')
     // Try to set workerSrc using Vite '?url' import so worker file is served correctly in dev/prod
@@ -743,7 +950,9 @@ async function initPdf() {
       }
     } catch (e) {
       // fallback: attempt to set a common path
-      try { pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js' } catch { }
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.js'
+      } catch {}
     }
     // Fetch arrayBuffer first via signed or direct URL
     const resp = await fetch(await resolvePreviewUrl(fileId.value), { credentials: 'include' })
@@ -784,7 +993,10 @@ async function renderPage() {
       // try reloading via URL (let pdf.js handle range/worker) before blob fallback
       triedUrlFallback = true
       try {
-        const loadingTask2 = pdfjsLib.getDocument({ url: await resolvePreviewUrl(fileId.value), withCredentials: true })
+        const loadingTask2 = pdfjsLib.getDocument({
+          url: await resolvePreviewUrl(fileId.value),
+          withCredentials: true,
+        })
         pdfDoc = await loadingTask2.promise
         totalPages.value = pdfDoc.numPages
         await renderPage()
@@ -837,22 +1049,36 @@ function nextPage() {
 
 async function download() {
   if (!fileId.value) return
-  try { window.location.href = await getDownloadUrl(fileId.value) } catch { }
+  try {
+    window.location.href = await getDownloadUrl(fileId.value)
+  } catch {}
 }
 
 // Simple localStorage-backed annotations for demo: keyed by fileId
-function annotationsKey() { return `pdf:annotations:${fileId.value}` }
-function loadAnnotations(): any[] {
-  try { return JSON.parse(localStorage.getItem(annotationsKey()) || '[]') } catch { return [] }
+function annotationsKey() {
+  return `pdf:annotations:${fileId.value}`
 }
-function saveAnnotations(list: any[]) { localStorage.setItem(annotationsKey(), JSON.stringify(list)) }
+function loadAnnotations(): any[] {
+  try {
+    return JSON.parse(localStorage.getItem(annotationsKey()) || '[]')
+  } catch {
+    return []
+  }
+}
+function saveAnnotations(list: any[]) {
+  localStorage.setItem(annotationsKey(), JSON.stringify(list))
+}
 
 // removed legacy renderTextLayer: text selection handled in PdfPage.vue
 
 // ensure overlay size matches canvas and force a reflow so annotations position correctly
 function syncOverlayToCanvas() {
   // helper to sync a single canvas/overlay pair and optionally the container
-  const syncSingle = (c: HTMLCanvasElement | null, o: HTMLDivElement | null, applyToContainer = false) => {
+  const syncSingle = (
+    c: HTMLCanvasElement | null,
+    o: HTMLDivElement | null,
+    applyToContainer = false,
+  ) => {
     if (!c || !o) return
     o.style.width = c.style.width
     o.style.height = c.style.height
@@ -881,32 +1107,45 @@ function handleTextSelection() {
   const sel = window.getSelection()
   if (!sel || sel.isCollapsed) return
   let range: Range
-  try { range = sel.getRangeAt(0) } catch { return }
+  try {
+    range = sel.getRangeAt(0)
+  } catch {
+    return
+  }
   const clientRects = Array.from(range.getClientRects())
   if (!clientRects.length) return
   // find the canvas associated with this selection by walking up the DOM
   let node: Node | null = sel.anchorNode
-  let el: HTMLElement | null = (node as HTMLElement) || (node && (node as any).parentElement) || null
+  let el: HTMLElement | null =
+    (node as HTMLElement) || (node && (node as any).parentElement) || null
   let selCanvas: HTMLCanvasElement | null = null
   try {
-    const stopAt = (scrollRef.value || containerRef.value)
+    const stopAt = scrollRef.value || containerRef.value
     while (el && el !== stopAt) {
       const c = el.querySelector ? (el.querySelector('canvas') as HTMLCanvasElement | null) : null
-      if (c) { selCanvas = c; break }
+      if (c) {
+        selCanvas = c
+        break
+      }
       el = el.parentElement
     }
-  } catch { }
+  } catch {}
   // fallback: choose canvas by which overlay contains the selection anchor/focus
   if (!selCanvas) {
-    const anchorInRight = overlayRightRef.value && sel.anchorNode ? overlayRightRef.value.contains(sel.anchorNode) : false
-    const focusInRight = overlayRightRef.value && sel.focusNode ? overlayRightRef.value.contains(sel.focusNode) : false
+    const anchorInRight =
+      overlayRightRef.value && sel.anchorNode
+        ? overlayRightRef.value.contains(sel.anchorNode)
+        : false
+    const focusInRight =
+      overlayRightRef.value && sel.focusNode ? overlayRightRef.value.contains(sel.focusNode) : false
     if (anchorInRight || focusInRight) selCanvas = canvasRightRef.value || null
   }
   // final fallback to left canvas
   if (!selCanvas) selCanvas = canvasRef.value
   if (!selCanvas) return
   const crect = selCanvas.getBoundingClientRect()
-  const annPage = (selCanvas.dataset && selCanvas.dataset['page']) ? Number(selCanvas.dataset['page']) : page.value
+  const annPage =
+    selCanvas.dataset && selCanvas.dataset['page'] ? Number(selCanvas.dataset['page']) : page.value
   // convert rects relative to this canvas
   const rects: any[] = []
   const minPx = 2
@@ -923,18 +1162,31 @@ function handleTextSelection() {
     const ry = (top - crect.top) / crect.height
     const rw = iw / crect.width
     const rh = ih / crect.height
-    rects.push({ x: Math.max(0, Math.min(1, rx)), y: Math.max(0, Math.min(1, ry)), w: Math.min(1, rw), h: Math.min(1, rh) })
+    rects.push({
+      x: Math.max(0, Math.min(1, rx)),
+      y: Math.max(0, Math.min(1, ry)),
+      w: Math.min(1, rw),
+      h: Math.min(1, rh),
+    })
   }
   if (!rects.length) return
-  const ann = { id: Date.now() + Math.floor(Math.random() * 10000), page: annPage, rects, color: currentColor.value, opacity: 0.6 }
+  const ann = {
+    id: Date.now() + Math.floor(Math.random() * 10000),
+    page: annPage,
+    rects,
+    color: currentColor.value,
+    opacity: 0.6,
+  }
   annotations.value.push(ann)
   saveAnnotations(annotations.value)
-  try { sel.removeAllRanges() } catch { }
+  try {
+    sel.removeAllRanges()
+  } catch {}
 }
 
 // Scroll the container so that the given page's canvas is aligned near the top
 function scrollToPage(p: number, retries = 0) {
-  const sc = (scrollRef.value || containerRef.value)
+  const sc = scrollRef.value || containerRef.value
   if (!sc) return
   const canvas = canvasByPage.get(p) || null
   if (!canvas) {
@@ -957,7 +1209,7 @@ function scrollToPage(p: number, retries = 0) {
 
 let scrollRaf = 0
 function onContainerScroll() {
-  const sc = (scrollRef.value || containerRef.value)
+  const sc = scrollRef.value || containerRef.value
   if (viewMode.value !== 'continuous' || !sc) return
   if (scrollRaf) return
   scrollRaf = requestAnimationFrame(() => {
@@ -973,13 +1225,16 @@ function onContainerScroll() {
       // page whose top is closest to containerTop
       const dist = Math.abs(r.top - containerTop)
       if (r.top <= containerTop) {
-        if (dist < bestTopDist) { bestTopDist = dist; bestTopPage = p }
+        if (dist < bestTopDist) {
+          bestTopDist = dist
+          bestTopPage = p
+        }
       }
       if (firstBelow == null && r.top > containerTop) {
         firstBelow = p
       }
     })
-    const newPage = (bestTopPage ?? firstBelow ?? page.value)
+    const newPage = bestTopPage ?? firstBelow ?? page.value
     // if we are performing a programmatic scroll, don't override the page until we reach the target
     if (scrollingToPage.value != null) {
       if (newPage === scrollingToPage.value) {
@@ -987,7 +1242,10 @@ function onContainerScroll() {
         saveProgressDebounced()
         // reached target; release lock sooner
         scrollingToPage.value = null
-        if (scrollLockTimer) { clearTimeout(scrollLockTimer); scrollLockTimer = null }
+        if (scrollLockTimer) {
+          clearTimeout(scrollLockTimer)
+          scrollLockTimer = null
+        }
       }
       return
     }
@@ -999,9 +1257,15 @@ function onContainerScroll() {
 }
 
 // reading progress (localStorage demo key)
-function progressKey() { return `pdf:progress:${fileId.value}` }
+function progressKey() {
+  return `pdf:progress:${fileId.value}`
+}
 function loadProgress() {
-  try { return JSON.parse(localStorage.getItem(progressKey()) || '{}') } catch { return {} }
+  try {
+    return JSON.parse(localStorage.getItem(progressKey()) || '{}')
+  } catch {
+    return {}
+  }
 }
 function saveProgress() {
   localStorage.setItem(progressKey(), JSON.stringify({ page: page.value, updated_at: Date.now() }))
@@ -1035,7 +1299,9 @@ onMounted(async () => {
   // click outside to hide menu
   document.addEventListener('mousedown', onDocMouseDown)
   // prevent dragstart on the container (and descendants) to avoid browser drag images
-  try { if (containerRef.value) containerRef.value.addEventListener('dragstart', preventDragStart) } catch { }
+  try {
+    if (containerRef.value) containerRef.value.addEventListener('dragstart', preventDragStart)
+  } catch {}
   // prevent selectstart while drawing
   document.addEventListener('selectstart', preventSelectStart)
 })
@@ -1047,21 +1313,28 @@ watch(page, () => {
 
 onUnmounted(() => {
   if (fallbackBlobUrl.value) {
-    try { URL.revokeObjectURL(fallbackBlobUrl.value) } catch { }
+    try {
+      URL.revokeObjectURL(fallbackBlobUrl.value)
+    } catch {}
   }
   window.removeEventListener('mouseup', onWindowMouseUp)
   document.removeEventListener('mousedown', onDocMouseDown)
-  try { if (containerRef.value) containerRef.value.removeEventListener('dragstart', preventDragStart) } catch { }
+  try {
+    if (containerRef.value) containerRef.value.removeEventListener('dragstart', preventDragStart)
+  } catch {}
   document.removeEventListener('selectstart', preventSelectStart)
   // cancel any in-flight render
-  try { if (currentRenderTask && typeof currentRenderTask.cancel === 'function') currentRenderTask.cancel() } catch { }
+  try {
+    if (currentRenderTask && typeof currentRenderTask.cancel === 'function')
+      currentRenderTask.cancel()
+  } catch {}
 })
 
 watch(scale, () => {
   // when scale changes, re-render and force overlay sync
   // In continuous mode, keep current scroll position; in other modes, scroll to top to avoid clipped top
   if (viewMode.value !== 'continuous') {
-    const sc = (scrollRef.value || containerRef.value)
+    const sc = scrollRef.value || containerRef.value
     if (sc) sc.scrollTop = 0
   }
   const current = page.value

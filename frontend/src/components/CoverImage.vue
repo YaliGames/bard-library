@@ -2,26 +2,35 @@
   <div :class="wrapperClass" :style="wrapperStyle">
     <img v-if="displaySrc" :src="displaySrc" :alt="alt" class="w-full h-full object-cover" />
     <template v-else>
-      <div v-if="renderPlaceholder" class="placeholder relative w-full h-full flex flex-col" :style="placeholderStyle">
-        <div class="image absolute right-0 bottom-[6%] left-[14%] top-1/2 bg-no-repeat bg-right-bottom bg-contain"></div>
+      <div
+        v-if="renderPlaceholder"
+        class="placeholder relative w-full h-full flex flex-col"
+        :style="placeholderStyle"
+      >
+        <div
+          class="image absolute right-0 bottom-[6%] left-[14%] top-1/2 bg-no-repeat bg-right-bottom bg-contain"
+        ></div>
         <div class="texture absolute inset-0 pointer-events-none"></div>
         <div class="flex-grow"></div>
         <div class="bg-white/25 px-[5%] py-[5%]">
           <div class="title" :style="titleStyle">{{ displayTitle }}</div>
         </div>
-        <div v-if="displayAuthor" class="author pl-[5%] pr-[2%] mt-[4%]" :style="authorStyle">{{ displayAuthor }}</div>
+        <div v-if="displayAuthor" class="author pl-[5%] pr-[2%] mt-[4%]" :style="authorStyle">
+          {{ displayAuthor }}
+        </div>
         <div class="flex-grow-[3.6]"></div>
       </div>
       <!-- 回退为原始图标样式（book_2） -->
       <div v-else class="w-full h-full flex items-center justify-center text-gray-300">
-        <span class="material-symbols-outlined" :style="{ fontSize: iconSizeComputed }">book_2</span>
+        <span class="material-symbols-outlined" :style="{ fontSize: iconSizeComputed }">
+          book_2
+        </span>
       </div>
     </template>
     <div class="absolute top-2 right-2 flex gap-1 flex-wrap justify-end">
       <slot name="overlay"></slot>
     </div>
   </div>
-  
 </template>
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
@@ -42,11 +51,15 @@ const props = defineProps<{
 
 // 默认 3:4（宽:高）
 const aspect = computed(() => props.aspect || '3/4')
-const wrapperClass = computed(() => [
-  'relative w-full overflow-hidden bg-gray-100 select-none',
-  props.rounded !== false ? 'rounded' : '',
-  props.class || '',
-].join(' ').trim())
+const wrapperClass = computed(() =>
+  [
+    'relative w-full overflow-hidden bg-gray-100 select-none',
+    props.rounded !== false ? 'rounded' : '',
+    props.class || '',
+  ]
+    .join(' ')
+    .trim(),
+)
 
 const wrapperStyle = computed(() => {
   const ratio = String(aspect.value).replace('/', ' / ')
@@ -67,7 +80,10 @@ function preload(url: string): Promise<void> {
 async function resolveCover() {
   const fid = props.fileId
   const my = ++ticket
-  if (!fid) { displaySrc.value = ''; return }
+  if (!fid) {
+    displaySrc.value = ''
+    return
+  }
   try {
     const url = await getPreviewUrl(Number(fid))
     await preload(url)
@@ -130,7 +146,9 @@ const placeholderStyle = computed(() => ({
   background: `linear-gradient(313deg, ${theme.value.start} 0%, ${theme.value.end} 100%)`,
 }))
 
-function px(n: number) { return `${n}px` }
+function px(n: number) {
+  return `${n}px`
+}
 function parsePx(s?: string | null): number | null {
   if (!s) return null
   const m = String(s).match(/^(\d+(?:\.\d+)?)px$/)
@@ -171,7 +189,9 @@ const authorStyle = computed(() => ({
 </script>
 
 <style scoped>
-.material-symbols-outlined { line-height: 1; }
+.material-symbols-outlined {
+  line-height: 1;
+}
 
 /* Placeholder layout inspired by Z-LIB */
 .placeholder {
@@ -192,7 +212,7 @@ const authorStyle = computed(() => ({
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  text-shadow: 1px 1px 0px #FFFFFF44;
+  text-shadow: 1px 1px 0px #ffffff44;
   font-weight: bold;
   word-break: keep-all;
 }
@@ -208,7 +228,7 @@ const authorStyle = computed(() => ({
   display: -webkit-box;
   -webkit-box-orient: vertical;
   max-height: 3.5em;
-  text-shadow: 1px 1px 0px #FFFFFF44;
+  text-shadow: 1px 1px 0px #ffffff44;
 }
 
 .placeholder .image {

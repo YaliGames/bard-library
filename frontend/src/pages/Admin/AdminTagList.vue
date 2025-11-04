@@ -19,7 +19,5 @@ const createItemRaw = (payload: any) => tagsApi.createRaw(payload)
 const updateItemRaw = (id: number, payload: any) => tagsApi.updateRaw(id, payload)
 const deleteItem = (id: number) => tagsApi.remove(id)
 
-const extraFields = [
-  { key: 'type', label: '类型', placeholder: '类型（可选）' },
-]
+const extraFields = [{ key: 'type', label: '类型', placeholder: '类型（可选）' }]
 </script>

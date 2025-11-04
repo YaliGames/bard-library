@@ -3,25 +3,34 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold">文件管理</h2>
       <div class="flex items-center gap-2">
-        <el-button @click="back"><span class="material-symbols-outlined mr-1 text-lg">arrow_back</span> 返回</el-button>
+        <el-button @click="back">
+          <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span>
+          返回
+        </el-button>
       </div>
     </div>
 
     <el-card shadow="never" class="mb-3">
       <div class="flex flex-wrap items-center gap-2">
-          <el-input v-model="q" placeholder="按路径/MIME/SHA 搜索" class="w-full md:w-[260px]" clearable @keyup.enter="reload" />
-          <el-select v-model="format" placeholder="格式" class="w-[140px]">
-            <el-option label="全部" value="" />
-            <el-option label="封面" value="cover" />
-            <el-option label="EPUB" value="epub" />
-            <el-option label="PDF" value="pdf" />
-            <el-option label="TXT" value="txt" />
-            <el-option label="其它" value="file" />
-          </el-select>
-          <el-checkbox v-model="unusedCovers">仅未被引用的封面</el-checkbox>
-          <el-checkbox v-model="missingPhysical">仅物理缺失</el-checkbox>
-          <el-button type="primary" @click="reload" :loading="loading">搜索</el-button>
-          <el-button @click="showCleanup=true">清理工具</el-button>
+        <el-input
+          v-model="q"
+          placeholder="按路径/MIME/SHA 搜索"
+          class="w-full md:w-[260px]"
+          clearable
+          @keyup.enter="reload"
+        />
+        <el-select v-model="format" placeholder="格式" class="w-[140px]">
+          <el-option label="全部" value="" />
+          <el-option label="封面" value="cover" />
+          <el-option label="EPUB" value="epub" />
+          <el-option label="PDF" value="pdf" />
+          <el-option label="TXT" value="txt" />
+          <el-option label="其它" value="file" />
+        </el-select>
+        <el-checkbox v-model="unusedCovers">仅未被引用的封面</el-checkbox>
+        <el-checkbox v-model="missingPhysical">仅物理缺失</el-checkbox>
+        <el-button type="primary" @click="reload" :loading="loading">搜索</el-button>
+        <el-button @click="showCleanup = true">清理工具</el-button>
       </div>
     </el-card>
 
@@ -29,12 +38,22 @@
 
     <el-card shadow="never">
       <template #header>
-        <div class="flex items-center justify-between"><span>文件列表</span><el-button text @click="reload">刷新</el-button></div>
+        <div class="flex items-center justify-between">
+          <span>文件列表</span>
+          <el-button text @click="reload">刷新</el-button>
+        </div>
       </template>
-      <el-empty v-if="!loading && items.length===0" description="暂无数据" />
+      <el-empty v-if="!loading && items.length === 0" description="暂无数据" />
       <div v-else class="overflow-x-auto">
-        <el-table :data="items" border stripe size="small" class="min-w-[980px]"
-          :default-sort="{ prop: 'id', order: 'descending' }" @sort-change="onSortChange">
+        <el-table
+          :data="items"
+          border
+          stripe
+          size="small"
+          class="min-w-[980px]"
+          :default-sort="{ prop: 'id', order: 'descending' }"
+          @sort-change="onSortChange"
+        >
           <el-table-column label="#" prop="id" width="80" sortable="custom" />
           <el-table-column label="文件名" prop="filename" min-width="180">
             <template #default="{ row }">
@@ -67,21 +86,31 @@
           <el-table-column label="路径" prop="path" min-width="240">
             <template #default="{ row }">
               <el-tooltip :content="row.path" placement="top-start" effect="dark">
-                <span class="text-gray-500 truncate inline-block max-w-[220px] align-middle">{{ row.path }}</span>
+                <span class="text-gray-500 truncate inline-block max-w-[220px] align-middle">
+                  {{ row.path }}
+                </span>
               </el-tooltip>
-              <el-button link type="primary" size="small" class="ml-1 align-middle" @click="copy(row.path)">复制</el-button>
+              <el-button
+                link
+                type="primary"
+                size="small"
+                class="ml-1 align-middle"
+                @click="copy(row.path)"
+              >
+                复制
+              </el-button>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="360" align="center">
             <template #default="{ row }">
               <el-button size="small" @click="preview(row.id)">预览</el-button>
               <el-button size="small" @click="download(row.id)">下载</el-button>
-              <el-popconfirm title="仅删除记录？" @confirm="remove(row.id,false)">
+              <el-popconfirm title="仅删除记录？" @confirm="remove(row.id, false)">
                 <template #reference>
                   <el-button size="small" type="warning">删除记录</el-button>
                 </template>
               </el-popconfirm>
-              <el-popconfirm title="删除记录并删除物理文件？" @confirm="remove(row.id,true)">
+              <el-popconfirm title="删除记录并删除物理文件？" @confirm="remove(row.id, true)">
                 <template #reference>
                   <el-button size="small" type="danger">删除记录及文件</el-button>
                 </template>
@@ -112,7 +141,7 @@ const missingPhysical = ref(false)
 
 // 排序
 const sortKey = ref<string>('id')
-const sortOrder = ref<'asc'|'desc'>('desc')
+const sortOrder = ref<'asc' | 'desc'>('desc')
 
 // 列表
 const items = ref<AdminFileItem[]>([])
@@ -120,43 +149,71 @@ const loading = ref(false)
 
 const showCleanup = ref(false)
 
-function back(){ router.back() }
-
-function formatSize(n: number){
-  if (!n || n<=0) return '0'
-  const units = ['B','KB','MB','GB','TB']
-  let i=0, v=n
-  while (v>=1024 && i<units.length-1){ v/=1024; i++ }
-  return `${v.toFixed( (i>=2)?2:0 )} ${units[i]}`
+function back() {
+  router.back()
 }
 
-async function reload(){
+function formatSize(n: number) {
+  if (!n || n <= 0) return '0'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let i = 0,
+    v = n
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
+  return `${v.toFixed(i >= 2 ? 2 : 0)} ${units[i]}`
+}
+
+async function reload() {
   loading.value = true
   try {
-    const data = await adminFilesApi.list({ q: q.value.trim() || undefined, format: format.value || undefined, unused_covers: unusedCovers.value || undefined, missing_physical: missingPhysical.value || undefined, sortKey: sortKey.value, sortOrder: sortOrder.value })
+    const data = await adminFilesApi.list({
+      q: q.value.trim() || undefined,
+      format: format.value || undefined,
+      unused_covers: unusedCovers.value || undefined,
+      missing_physical: missingPhysical.value || undefined,
+      sortKey: sortKey.value,
+      sortOrder: sortOrder.value,
+    })
     items.value = data.items
-  } catch(e:any){
+  } catch (e: any) {
     ElMessage.error(e?.message || '加载失败')
-  } finally { loading.value = false }
+  } finally {
+    loading.value = false
+  }
 }
 
-function onSortChange(e: { prop?: string; order?: 'ascending'|'descending'|null }){
+function onSortChange(e: { prop?: string; order?: 'ascending' | 'descending' | null }) {
   if (e.prop) sortKey.value = e.prop
   if (e.order === 'ascending') sortOrder.value = 'asc'
   else if (e.order === 'descending') sortOrder.value = 'desc'
   reload()
 }
 
-async function preview(id:number){ const u = await getPreviewUrl(id); window.open(u, '_blank') }
-async function download(id:number){ window.location.href = await getDownloadUrl(id) }
-
-async function remove(id:number, physical:boolean){
-  try { await adminFilesApi.remove(id, physical); ElMessage.success('已删除'); reload() }
-  catch(e:any){ ElMessage.error(e?.message || '删除失败') }
+async function preview(id: number) {
+  const u = await getPreviewUrl(id)
+  window.open(u, '_blank')
+}
+async function download(id: number) {
+  window.location.href = await getDownloadUrl(id)
 }
 
-function copy(text: string){
-  navigator.clipboard?.writeText(text).then(()=> ElMessage.success('已复制路径')).catch(()=> ElMessage.error('复制失败'))
+async function remove(id: number, physical: boolean) {
+  try {
+    await adminFilesApi.remove(id, physical)
+    ElMessage.success('已删除')
+    reload()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '删除失败')
+  }
+}
+
+function copy(text: string) {
+  navigator.clipboard
+    ?.writeText(text)
+    .then(() => ElMessage.success('已复制路径'))
+    .catch(() => ElMessage.error('复制失败'))
 }
 
 reload()

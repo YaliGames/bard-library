@@ -19,9 +19,15 @@ export const useAuth = () => {
 }
 
 // Backwards-compatible pure functions (useful for modules outside setup context)
-export function getToken(): string | null { return localStorage.getItem('token') }
-export function getUserRole(): string | null { return localStorage.getItem('userRole') }
-export function isLoggedIn(): boolean { return !!getToken() }
+export function getToken(): string | null {
+  return localStorage.getItem('token')
+}
+export function getUserRole(): string | null {
+  return localStorage.getItem('userRole')
+}
+export function isLoggedIn(): boolean {
+  return !!getToken()
+}
 export function isRole(role: string): boolean {
   const raw = getUserRole()
   if (!raw) return false

@@ -17,10 +17,17 @@
 
     <!-- 上传 + 移除 -->
     <div class="flex items-center gap-2">
-      <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="onFileChange">
+      <el-upload
+        :show-file-list="false"
+        :auto-upload="false"
+        accept="image/*"
+        :on-change="onFileChange"
+      >
         <el-button :loading="uploading" type="primary">上传封面</el-button>
       </el-upload>
-      <el-button v-if="modelValue" @click="removeCover" type="danger" plain :loading="removing">移除封面</el-button>
+      <el-button v-if="modelValue" @click="removeCover" type="danger" plain :loading="removing">
+        移除封面
+      </el-button>
     </div>
 
     <!-- 链接导入 -->
@@ -38,16 +45,19 @@ import CoverImage from './CoverImage.vue'
 import { ElMessage } from 'element-plus'
 import { coversApi } from '@/api/covers'
 
-const props = defineProps<{ 
-  modelValue: number | null | undefined; 
-  bookId?: number,
+const props = defineProps<{
+  modelValue: number | null | undefined
+  bookId?: number
   // forwarded to CoverImage
-  mode?: 'auto' | 'placeholder' | 'icon',
-  fontSize?: string,
-  title?: string,
+  mode?: 'auto' | 'placeholder' | 'icon'
+  fontSize?: string
+  title?: string
   authors?: string | string[]
 }>()
-const emit = defineEmits<{ (e: 'update:modelValue', v: number | null): void; (e:'changed', v:number|null): void }>()
+const emit = defineEmits<{
+  (e: 'update:modelValue', v: number | null): void
+  (e: 'changed', v: number | null): void
+}>()
 
 const uploading = ref(false)
 const linking = ref(false)
@@ -56,7 +66,10 @@ const url = ref('')
 
 async function onFileChange(file: any) {
   if (!file?.raw) return
-  if (!props.bookId) { ElMessage.error('请先保存图书后再上传封面'); return }
+  if (!props.bookId) {
+    ElMessage.error('请先保存图书后再上传封面')
+    return
+  }
   uploading.value = true
   try {
     const fd = new FormData()
@@ -65,14 +78,19 @@ async function onFileChange(file: any) {
     emit('update:modelValue', r.file_id)
     emit('changed', r.file_id)
     ElMessage.success('封面已更新')
-  } catch (e:any) {
+  } catch (e: any) {
     ElMessage.error(e?.message || '上传失败')
-  } finally { uploading.value = false }
+  } finally {
+    uploading.value = false
+  }
 }
 
 async function importFromUrl() {
   if (!url.value) return
-  if (!props.bookId) { ElMessage.error('请先保存图书后再操作'); return }
+  if (!props.bookId) {
+    ElMessage.error('请先保存图书后再操作')
+    return
+  }
   linking.value = true
   try {
     const r = await coversApi.fromUrl(props.bookId, { url: url.value })
@@ -80,9 +98,11 @@ async function importFromUrl() {
     emit('changed', r.file_id)
     ElMessage.success('封面已更新')
     url.value = ''
-  } catch (e:any) {
+  } catch (e: any) {
     ElMessage.error(e?.message || '导入失败')
-  } finally { linking.value = false }
+  } finally {
+    linking.value = false
+  }
 }
 
 async function removeCover() {
@@ -98,7 +118,7 @@ async function removeCover() {
     emit('update:modelValue', null)
     emit('changed', null)
     ElMessage.success('已移除封面')
-  } catch (e:any) {
+  } catch (e: any) {
     ElMessage.error(e?.message || '移除失败')
   } finally {
     removing.value = false

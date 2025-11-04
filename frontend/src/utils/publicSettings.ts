@@ -12,7 +12,8 @@ let inflight: Promise<PublicPermissions> | null = null
 export async function getPublicPermissions(): Promise<PublicPermissions> {
   if (cache) return cache
   if (!inflight) {
-    inflight = http.get<{ permissions: PublicPermissions }>("/api/v1/settings/public")
+    inflight = http
+      .get<{ permissions: PublicPermissions }>('/api/v1/settings/public')
       .then((res: any) => {
         cache = (res?.permissions as PublicPermissions) || {
           allow_guest_access: true,
@@ -29,9 +30,13 @@ export async function getPublicPermissions(): Promise<PublicPermissions> {
         }
         return cache
       })
-      .finally(() => { inflight = null }) as any
+      .finally(() => {
+        inflight = null
+      }) as any
   }
   return inflight!
 }
 
-export function _resetPublicPermissionsCache() { cache = null }
+export function _resetPublicPermissionsCache() {
+  cache = null
+}

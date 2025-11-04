@@ -1,26 +1,63 @@
 /* Minimal modern CSS Reset tailored for this project */
 /* 1. Use a more intuitive box-sizing model */
-*, *::before, *::after { box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 
 /* 2. Remove default margin */
-* { margin: 0; }
+* {
+  margin: 0;
+}
 
 /* 3. Typographic tweaks */
-html, body { height: 100%; }
-body { line-height: 1.5; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+html,
+body {
+  height: 100%;
+}
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
 
 /* 4. Remove default link styles (no purple visited, no hover underline) */
-a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
-a:visited { color: inherit; text-decoration: none; }
-a:hover { text-decoration: none; }
-a:active { text-decoration: none; }
+a {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+a:visited {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: none;
+}
+a:active {
+  text-decoration: none;
+}
 
 /* 5. Images and media */
-img, picture, video, canvas { display: block; max-width: 100%; }
+img,
+picture,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
 
 /* 6. Form elements: inherit font */
-input, button, textarea, select { font: inherit; }
-button { cursor: pointer; }
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
 
 /* 6b. Neutralize UA borders/appearance on form controls (disable 'outset/inset' etc.)
    - Low specificity via :where, so Tailwind/Element Plus classes override easily
@@ -28,31 +65,45 @@ button { cursor: pointer; }
 */
 :where(button, input, select, textarea, a) {
   -webkit-appearance: none; /* prevent iOS/Chrome UA styles */
-  -moz-appearance: none;    /* prevent Firefox UA styles */
+  -moz-appearance: none; /* prevent Firefox UA styles */
   appearance: none;
-  border-width: 0;          /* kill UA borders */
-  border-style: solid;      /* keep a sane baseline for utilities */
+  border-width: 0; /* kill UA borders */
+  border-style: solid; /* keep a sane baseline for utilities */
   background-color: transparent; /* avoid UA gray backgrounds */
-  box-shadow: none;         /* remove UA inner/outer shadows */
+  box-shadow: none; /* remove UA inner/outer shadows */
 }
 
 /* Keep native focus outline unless component defines its own */
 /* Avoid outline: none here to preserve accessibility */
 
 /* Firefox: remove inner focus padding/border on buttons */
-button::-moz-focus-inner { border: 0; padding: 0; }
+button::-moz-focus-inner {
+  border: 0;
+  padding: 0;
+}
 
 /* 7. Lists */
-ul[role='list'], ol[role='list'] { list-style: none; }
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+}
 
 /* 8. Root stacking context */
-#app { isolation: isolate; }
+#app {
+  isolation: isolate;
+}
 
 /* 9. Tables */
-table { border-collapse: collapse; border-spacing: 0; }
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
 
 /* 10. Text size adjust across devices */
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 
 /* 11. Scrollbar */
 ::-webkit-scrollbar {

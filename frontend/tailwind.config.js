@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    './index.html',
-    './src/**/*.{vue,js,ts,jsx,tsx}',
-  ],
+  content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -15,8 +12,8 @@ export default {
         info: 'var(--el-color-info)',
       },
       borderColor: {
-        DEFAULT: 'rgba(60,60,67,0.15)'
-      }
+        DEFAULT: 'rgba(60,60,67,0.15)',
+      },
     },
   },
   corePlugins: {

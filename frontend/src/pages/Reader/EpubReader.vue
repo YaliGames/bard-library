@@ -1,7 +1,9 @@
 <template>
   <section class="flex flex-col h-[100vh]">
     <!-- 顶部栏 -->
-    <div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[var(--el-bg-color-overlay)]">
+    <div
+      class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[var(--el-bg-color-overlay)]"
+    >
       <div class="flex items-center gap-2">
         <router-link to="/books">
           <el-button>
@@ -9,7 +11,9 @@
             返回书库
           </el-button>
         </router-link>
-        <h1 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">EPUB 在线阅读（占位）</h1>
+        <h1 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">
+          EPUB 在线阅读（占位）
+        </h1>
       </div>
       <div class="flex items-center gap-2">
         <el-button type="primary" @click="download">
@@ -43,6 +47,8 @@ const fileId = computed(() => Number(route.params.id))
 
 async function download() {
   if (!fileId.value) return
-  try { window.location.href = await getDownloadUrl(fileId.value) } catch {}
+  try {
+    window.location.href = await getDownloadUrl(fileId.value)
+  } catch {}
 }
 </script>

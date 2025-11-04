@@ -1,26 +1,26 @@
-import { http } from "./http";
+import { http } from './http'
 
 export interface UserSettings {
   bookList: {
-    showReadTag: boolean;
-    showMarkReadButton: boolean;
-  };
+    showReadTag: boolean
+    showMarkReadButton: boolean
+  }
   bookDetail: {
-    showReadTag: boolean;
-  };
+    showReadTag: boolean
+  }
   txtReader: {
-    autoScrollCategory: boolean;
-  };
+    autoScrollCategory: boolean
+  }
   preferences: {
-    expandFilterMenu: boolean;
-  };
+    expandFilterMenu: boolean
+  }
 }
 
 export const settingsApi = {
   get: () => {
-    return http.get<UserSettings>("/api/v1/me/settings");
+    return http.get<UserSettings>('/api/v1/me/settings')
   },
   update: (data: UserSettings) => {
-    return http.post<UserSettings>("/api/v1/me/settings", { data });
+    return http.post<UserSettings>('/api/v1/me/settings', { data })
   },
-};
+}

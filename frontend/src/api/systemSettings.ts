@@ -15,7 +15,8 @@ export interface SettingsResponse {
 
 export const systemSettingsApi = {
   get: () => http.get<SettingsResponse>('/api/v1/admin/settings'),
-  update: (data: Record<string, any>) => http.post<SettingsResponse>('/api/v1/admin/settings', { data }),
+  update: (data: Record<string, any>) =>
+    http.post<SettingsResponse>('/api/v1/admin/settings', { data }),
 }
 
 export type SystemSettings = SettingsResponse

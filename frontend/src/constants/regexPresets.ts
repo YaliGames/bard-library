@@ -9,38 +9,38 @@ export const builtinRegexPresets: RegexPreset[] = [
   {
     id: 'cn-chapter-0',
     name: '中文',
-    pattern: '^\\s*[第卷][0123456789一二三四五六七八九十零〇百千两]*[章回部节集卷].*'
+    pattern: '^\\s*[第卷][0123456789一二三四五六七八九十零〇百千两]*[章回部节集卷].*',
   },
   {
     id: 'cn-chapter-1',
     name: '中文·第N章/回/节',
-    pattern: '^\\s*第[0123456789一二三四五六七八九十零〇百千两]*[章回部节集卷].*'
+    pattern: '^\\s*第[0123456789一二三四五六七八九十零〇百千两]*[章回部节集卷].*',
   },
   {
     id: 'cn-chapter-2',
     name: '中文·第N章（更宽松）',
-    pattern: '^\\s*第[0123456789一二三四五六七八九十零〇百千两]+.*'
+    pattern: '^\\s*第[0123456789一二三四五六七八九十零〇百千两]+.*',
   },
   {
     id: 'cn-volume',
     name: '中文·卷/篇',
-    pattern: '^\\s*(卷|篇)[0123456789一二三四五六七八九十零〇百千两]*.*'
+    pattern: '^\\s*(卷|篇)[0123456789一二三四五六七八九十零〇百千两]*.*',
   },
   {
     id: 'en-chapter-1',
     name: 'English·Chapter N',
-    pattern: '^\\s*Chapter\\s*\\d+.*'
+    pattern: '^\\s*Chapter\\s*\\d+.*',
   },
   {
     id: 'en-chapter-2',
     name: 'English·CHAPTER N',
-    pattern: '^\\s*CHAPTER\\s*\\d+.*'
+    pattern: '^\\s*CHAPTER\\s*\\d+.*',
   },
   {
     id: 'number-dot',
     name: '数字序号·1. 标题',
-    pattern: '^\\s*\\d+\\..*'
-  }
+    pattern: '^\\s*\\d+\\..*',
+  },
 ]
 
 export const MY_PRESETS_STORAGE_KEY = 'txt_regex_presets'

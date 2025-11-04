@@ -7,10 +7,24 @@
 
     <div class="hidden md:flex items-center gap-4 ml-4">
       <template v-for="item in menuItems" :key="item.id">
-        <router-link v-if="!item.external" :to="item.path || '/'" class="nav-link"
-          v-show="!item.adminOnly || isAdmin">{{ item.label }}</router-link>
-        <a v-else :href="item.path" class="nav-link" target="_blank" rel="noopener"
-          v-show="!item.adminOnly || isAdmin">{{ item.label }}</a>
+        <router-link
+          v-if="!item.external"
+          :to="item.path || '/'"
+          class="nav-link"
+          v-show="!item.adminOnly || isAdmin"
+        >
+          {{ item.label }}
+        </router-link>
+        <a
+          v-else
+          :href="item.path"
+          class="nav-link"
+          target="_blank"
+          rel="noopener"
+          v-show="!item.adminOnly || isAdmin"
+        >
+          {{ item.label }}
+        </a>
       </template>
     </div>
 
@@ -18,21 +32,27 @@
 
     <button
       class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40"
-      aria-label="打开菜单" @click="mobileOpen = true">
+      aria-label="打开菜单"
+      @click="mobileOpen = true"
+    >
       <span class="material-symbols-outlined text-2xl">menu</span>
     </button>
 
     <template v-if="!user && !loadingUser" class="hidden md:block">
-      <router-link to="/login"
-        class="hidden md:inline-block px-3 py-1 rounded bg-white/10 hover:bg-white/20">登录</router-link>
+      <router-link
+        to="/login"
+        class="hidden md:inline-block px-3 py-1 rounded bg-white/10 hover:bg-white/20"
+      >
+        登录
+      </router-link>
     </template>
 
     <div v-else-if="loadingUser" class="hidden md:block">
       <el-skeleton animated>
         <template #template>
           <div class="flex items-center gap-2">
-            <el-skeleton-item variant="circle" style="width:28px;height:28px" />
-            <el-skeleton-item variant="text" style="width:100px;height:16px" />
+            <el-skeleton-item variant="circle" style="width: 28px; height: 28px" />
+            <el-skeleton-item variant="text" style="width: 100px; height: 16px" />
           </div>
         </template>
       </el-skeleton>
@@ -50,7 +70,8 @@
               <el-dropdown-item
                 :divided="!!item.divided"
                 v-show="!item.adminOnly || isAdmin"
-                @click="handleUserMenuItem(item)">
+                @click="handleUserMenuItem(item)"
+              >
                 {{ item.label }}
               </el-dropdown-item>
             </template>
@@ -68,17 +89,28 @@
           <img src="/src/images/logo.svg" alt="Logo" class="h-7 w-7" />
           <span class="font-semibold">Bard Library</span>
         </div>
-        <button class="inline-flex items-center justify-center w-10 h-10 rounded hover:bg-gray-100" aria-label="关闭菜单"
-          @click="mobileOpen = false">
+        <button
+          class="inline-flex items-center justify-center w-10 h-10 rounded hover:bg-gray-100"
+          aria-label="关闭菜单"
+          @click="mobileOpen = false"
+        >
           <span class="material-symbols-outlined text-2xl">close</span>
         </button>
       </div>
 
       <div class="flex flex-col gap-2 py-2">
         <template v-for="item in menuItems" :key="item.id">
-          <button v-if="!item.external" class="drawer-link" @click="go(item.path || '/')"
-            v-show="!item.adminOnly || isAdmin">{{ item.label }}</button>
-          <a v-else class="drawer-link" :href="item.path" target="_blank" rel="noopener">{{ item.label }}</a>
+          <button
+            v-if="!item.external"
+            class="drawer-link"
+            @click="go(item.path || '/')"
+            v-show="!item.adminOnly || isAdmin"
+          >
+            {{ item.label }}
+          </button>
+          <a v-else class="drawer-link" :href="item.path" target="_blank" rel="noopener">
+            {{ item.label }}
+          </a>
         </template>
       </div>
 
@@ -91,13 +123,13 @@
         <el-skeleton animated>
           <template #template>
             <div class="flex items-center gap-2">
-              <el-skeleton-item variant="circle" style="width:28px;height:28px" />
-              <el-skeleton-item variant="text" style="width:100px;height:16px" />
+              <el-skeleton-item variant="circle" style="width: 28px; height: 28px" />
+              <el-skeleton-item variant="text" style="width: 100px; height: 16px" />
             </div>
           </template>
         </el-skeleton>
       </div>
-        <div v-else class="flex flex-col gap-2">
+      <div v-else class="flex flex-col gap-2">
         <div class="flex items-center gap-2 text-gray-600 mb-1">
           <el-avatar :size="28">{{ avatarLetter }}</el-avatar>
           <span class="text-sm">{{ user?.name || user?.email }}</span>
@@ -107,14 +139,16 @@
             v-if="item.action === 'logout'"
             class="drawer-link text-red-600"
             @click="logoutAndGo"
-            v-show="!item.adminOnly || isAdmin">
+            v-show="!item.adminOnly || isAdmin"
+          >
             {{ item.label }}
           </button>
           <button
             v-else
             class="drawer-link"
             @click="item.path ? go(item.path) : null"
-            v-show="!item.adminOnly || isAdmin">
+            v-show="!item.adminOnly || isAdmin"
+          >
             {{ item.label }}
           </button>
         </template>
@@ -139,7 +173,9 @@ const mobileOpen = ref(false)
 
 const { isRole } = useAuthStore()
 const isAdmin = computed(() => isRole('admin'))
-const avatarLetter = computed(() => (user.value?.name?.[0] || user.value?.email?.[0] || 'U').toUpperCase())
+const avatarLetter = computed(() =>
+  (user.value?.name?.[0] || user.value?.email?.[0] || 'U').toUpperCase(),
+)
 
 const menuItems = computed(() => {
   return (navMenu || []).filter((i: any) => {
@@ -157,14 +193,19 @@ const userMenuItems = computed(() => {
 
 async function fetchUser() {
   const token = localStorage.getItem('token')
-  if (!token) { setUser(null); return }
+  if (!token) {
+    setUser(null)
+    return
+  }
   loadingUser.value = true
   try {
     const me = await authApi.me()
     setUser(me)
   } catch {
     setUser(null)
-  } finally { loadingUser.value = false }
+  } finally {
+    loadingUser.value = false
+  }
 }
 
 onMounted(fetchUser)
@@ -195,7 +236,10 @@ function handleUserMenuItem(item: any) {
 watchEffect(async () => {
   const token = localStorage.getItem('token') || ''
   if (token && user.value) {
-    try { const remote = await settingsApi.get(); setAllSettings(remote) } catch { }
+    try {
+      const remote = await settingsApi.get()
+      setAllSettings(remote)
+    } catch {}
   }
 })
 
@@ -205,7 +249,9 @@ function go(path: string) {
 }
 
 async function logoutAndGo() {
-  try { await authApi.logout() } catch { }
+  try {
+    await authApi.logout()
+  } catch {}
   setUser(null)
   mobileOpen.value = false
   router.push({ name: 'login' })

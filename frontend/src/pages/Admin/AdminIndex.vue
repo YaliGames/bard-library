@@ -41,25 +41,91 @@
       </div>
     </div>
   </section>
-  </template>
+</template>
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
 
-interface AdminCard { key: string; title: string; desc: string; icon: string; to: RouteLocationRaw }
+interface AdminCard {
+  key: string
+  title: string
+  desc: string
+  icon: string
+  to: RouteLocationRaw
+}
 
 const quickActions: AdminCard[] = [
-  { key: 'quick-upload', title: '快速上传图书', desc: '上传文件并直接导入为新的图书', icon: 'upload', to: { name: 'admin-upload' } },
-  { key: 'create-book', title: '新建图书', desc: '从空白开始新建图书', icon: 'note_add', to: { name: 'admin-book-edit', params: { id: 'new' } } },
+  {
+    key: 'quick-upload',
+    title: '快速上传图书',
+    desc: '上传文件并直接导入为新的图书',
+    icon: 'upload',
+    to: { name: 'admin-upload' },
+  },
+  {
+    key: 'create-book',
+    title: '新建图书',
+    desc: '从空白开始新建图书',
+    icon: 'note_add',
+    to: { name: 'admin-book-edit', params: { id: 'new' } },
+  },
 ]
 
 const allPages: AdminCard[] = [
-  { key: 'books-all', title: '图书管理', desc: '新增、编辑、删除图书，支持筛选查看', icon: 'menu_book', to: { name: 'admin-book-list' } },
-  { key: 'files-all', title: '文件管理', desc: '浏览数据库中保存的文件列表，支持文件清理', icon: 'folder_open', to: { name: 'admin-file-manager' } },
-  { key: 'authors', title: '作者管理', desc: '维护作者列表', icon: 'person_edit', to: { name: 'admin-author-list' } },
-  { key: 'tags', title: '标签管理', desc: '维护标签列表', icon: 'sell', to: { name: 'admin-tag-list' } },
-  { key: 'shelves', title: '书架管理', desc: '按书架对图书进行归类', icon: 'newsstand', to: { name: 'admin-shelf-list' } },
-  { key: 'series', title: '丛书管理', desc: '为系列图书建模与排序', icon: 'collections_bookmark', to: { name: 'admin-series-list' } },
-  { key: 'txt', title: 'TXT 章节管理', desc: '解析 TXT 并调整章节结构', icon: 'subject', to: { name: 'admin-txt-chapters' } },
-  { key: 'sys', title: '系统设置', desc: '系统级参数配置，仅管理员可用', icon: 'settings', to: { name: 'system-settings' } },
+  {
+    key: 'books-all',
+    title: '图书管理',
+    desc: '新增、编辑、删除图书，支持筛选查看',
+    icon: 'menu_book',
+    to: { name: 'admin-book-list' },
+  },
+  {
+    key: 'files-all',
+    title: '文件管理',
+    desc: '浏览数据库中保存的文件列表，支持文件清理',
+    icon: 'folder_open',
+    to: { name: 'admin-file-manager' },
+  },
+  {
+    key: 'authors',
+    title: '作者管理',
+    desc: '维护作者列表',
+    icon: 'person_edit',
+    to: { name: 'admin-author-list' },
+  },
+  {
+    key: 'tags',
+    title: '标签管理',
+    desc: '维护标签列表',
+    icon: 'sell',
+    to: { name: 'admin-tag-list' },
+  },
+  {
+    key: 'shelves',
+    title: '书架管理',
+    desc: '按书架对图书进行归类',
+    icon: 'newsstand',
+    to: { name: 'admin-shelf-list' },
+  },
+  {
+    key: 'series',
+    title: '丛书管理',
+    desc: '为系列图书建模与排序',
+    icon: 'collections_bookmark',
+    to: { name: 'admin-series-list' },
+  },
+  {
+    key: 'txt',
+    title: 'TXT 章节管理',
+    desc: '解析 TXT 并调整章节结构',
+    icon: 'subject',
+    to: { name: 'admin-txt-chapters' },
+  },
+  {
+    key: 'sys',
+    title: '系统设置',
+    desc: '系统级参数配置，仅管理员可用',
+    icon: 'settings',
+    to: { name: 'system-settings' },
+  },
 ]
 </script>

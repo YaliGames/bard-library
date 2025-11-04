@@ -17,10 +17,17 @@ export interface AdminFileItem {
 }
 
 export const adminFilesApi = {
-  list: (params?: { q?: string; format?: string; unused_covers?: boolean; missing_physical?: boolean; sortKey?: string; sortOrder?: 'asc'|'desc' }) => {
+  list: (params?: {
+    q?: string
+    format?: string
+    unused_covers?: boolean
+    missing_physical?: boolean
+    sortKey?: string
+    sortOrder?: 'asc' | 'desc'
+  }) => {
     const u = new URL('/api/v1/admin/files', window.location.origin)
     if (params) {
-      for (const [k,v] of Object.entries(params)) {
+      for (const [k, v] of Object.entries(params)) {
         if (v !== undefined && v !== null && String(v) !== '') u.searchParams.set(k, String(v))
       }
     }
@@ -31,7 +38,15 @@ export const adminFilesApi = {
     if (physical) u.searchParams.set('physical', 'true')
     return http.delete<void>(u.toString())
   },
-  cleanup: (body: { kind?: 'covers'|'all'|'orphans'; kinds?: Array<'covers'|'dangling'|'missing'|'orphans'>; dry?: boolean; removePhysical?: boolean }) => {
-    return http.post<{ dry: boolean; summary: any; removed?: any }>(`/api/v1/admin/files/cleanup`, body)
-  }
+  cleanup: (body: {
+    kind?: 'covers' | 'all' | 'orphans'
+    kinds?: Array<'covers' | 'dangling' | 'missing' | 'orphans'>
+    dry?: boolean
+    removePhysical?: boolean
+  }) => {
+    return http.post<{ dry: boolean; summary: any; removed?: any }>(
+      `/api/v1/admin/files/cleanup`,
+      body,
+    )
+  },
 }

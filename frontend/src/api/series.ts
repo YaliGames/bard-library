@@ -8,12 +8,12 @@ export const seriesApi = {
     return http.get<Series[]>(u.toString())
   },
   create: (name: string) => {
-    return http.post<Series>('/api/v1/series', { name });
+    return http.post<Series>('/api/v1/series', { name })
   },
   update: (id: number, name: string) => {
-    return http.patch<Series>(`/api/v1/series/${id}`, { name });
+    return http.patch<Series>(`/api/v1/series/${id}`, { name })
   },
   remove: (id: number) => {
-    return http.delete<void>(`/api/v1/series/${id}`);
+    return http.delete<void>(`/api/v1/series/${id}`)
   },
 }
