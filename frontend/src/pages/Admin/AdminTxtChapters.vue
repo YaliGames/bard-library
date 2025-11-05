@@ -10,16 +10,39 @@
       </div>
     </div>
 
-    <el-card shadow="never" class="mb-4">
+    <el-card v-if="!hasRouteFileId" shadow="never" class="mb-4">
       <template #header>
         <div class="font-medium">选择 TXT 文件</div>
       </template>
-      <div class="flex gap-2 items-center">
-        <el-input v-model="fileIdInput" placeholder="输入 TXT 文件ID" style="width: 220px" />
-        <el-button type="primary" @click="load">加载目录</el-button>
+      <div class="flex gap-2 items-start">
+        <el-select
+          v-model="selectedFileId"
+          filterable
+          remote
+          reserve-keyword
+          placeholder="输入关键字搜索 TXT 文件"
+          :remote-method="searchFiles"
+          :loading="filesLoading"
+          clearable
+          style="flex: 1; max-width: 500px"
+          @change="onFileSelected"
+        >
+          <el-option
+            v-for="file in txtFiles"
+            :key="file.id"
+            :label="`[${file.id}] ${file.book?.title || '未关联图书'} - ${file.filename}`"
+            :value="file.id"
+          >
+            <div class="flex items-center justify-between h-full">
+              <span class="text-sm">{{ file.book?.title || '未关联图书' }}</span>
+              <span class="text-xs text-gray-400 ml-2">{{ file.filename }}</span>
+            </div>
+          </el-option>
+        </el-select>
+        <el-button type="primary" :disabled="!selectedFileId" @click="load">加载目录</el-button>
       </div>
       <div class="text-xs text-gray-500 mt-2">
-        也可从图书编辑页的文件列表点击“编辑章节”跳转携带 fileId。
+        也可从图书编辑页的文件列表点击"编辑章节"直接跳转。
       </div>
     </el-card>
 
@@ -30,26 +53,41 @@
         </template>
         <div v-if="chaptersLoading" class="text-gray-500">加载中…</div>
         <el-empty v-else-if="chapters.length === 0" description="暂无目录，尝试右侧使用规则预览" />
-        <el-table v-else :data="chapters" border height="520">
-          <el-table-column label="#" prop="index" width="80" />
-          <el-table-column label="标题" prop="title" />
-          <el-table-column label="偏移" prop="offset" width="120" />
-          <el-table-column label="长度" prop="length" width="120" />
-          <el-table-column label="操作" width="220" align="center">
-            <template #default="{ row }">
-              <el-button class="mr-3" size="small" @click="promptRename(row)">重命名</el-button>
-              <el-dropdown @command="(cmd: string) => onDeleteMerge(row, cmd as any)">
-                <el-button size="small" type="danger" plain>删除并合并</el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="prev">合并到上一个</el-dropdown-item>
-                    <el-dropdown-item command="next">合并到下一个</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </template>
-          </el-table-column>
-        </el-table>
+        <div v-else>
+          <div
+            v-if="isPreviewMode"
+            class="mb-2 text-sm text-orange-600 flex items-center justify-between bg-orange-50 border border-orange-200 rounded px-3 py-2"
+          >
+            <div class="flex items-center">
+              <span class="material-symbols-outlined mr-1 text-base">visibility</span>
+              <span>预览模式：当前显示的是使用规则生成的预览结果，不会影响现有目录</span>
+            </div>
+            <el-button size="small" @click="exitPreviewMode">
+              <span class="material-symbols-outlined mr-1 text-sm">close</span>
+              退出预览
+            </el-button>
+          </div>
+          <el-table :data="chapters" border height="520">
+            <el-table-column label="#" prop="index" width="80" />
+            <el-table-column label="标题" prop="title" />
+            <el-table-column label="偏移" prop="offset" width="120" />
+            <el-table-column label="长度" prop="length" width="120" />
+            <el-table-column v-if="!isPreviewMode" label="操作" width="220" align="center">
+              <template #default="{ row }">
+                <el-button class="mr-3" size="small" @click="promptRename(row)">重命名</el-button>
+                <el-dropdown @command="(cmd: string) => onDeleteMerge(row, cmd as any)">
+                  <el-button size="small" type="danger" plain>删除并合并</el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="prev">合并到上一个</el-dropdown-item>
+                      <el-dropdown-item command="next">合并到下一个</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </el-card>
       <el-card shadow="never">
         <template #header>
@@ -88,38 +126,80 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { txtApi, type Chapter } from '@/api/txt'
+import { adminFilesApi, type AdminFileItem } from '@/api/adminFiles'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { builtinRegexPresets } from '@/constants/regexPresets'
 
 const router = useRouter()
 const route = useRoute()
-const fileIdInput = ref<string>('')
 const fileId = ref<number | undefined>(undefined)
+const selectedFileId = ref<number | undefined>(undefined)
+const txtFiles = ref<AdminFileItem[]>([])
+const filesLoading = ref(false)
 const chapters = ref<Chapter[]>([])
 const chaptersLoading = ref(false)
 const pattern = ref('')
 const saving = ref(false)
 const selectedPresetId = ref<string>('')
 const allPresets = computed(() => builtinRegexPresets)
+const isPreviewMode = ref(false) // 标记是否为预览模式
+
+// 检查是否有路由参数(从其他页面跳转过来)
+const hasRouteFileId = computed(() => {
+  const fidParam = Number(route.params.id || 0)
+  const fidQuery = Number(route.query.fileId || 0)
+  return (Number.isFinite(fidParam) && fidParam > 0) || (Number.isFinite(fidQuery) && fidQuery > 0)
+})
 
 function back() {
   router.back()
 }
 
-async function load() {
-  const idStr = fileIdInput.value.trim()
-  const idNum = Number(idStr)
-  if (!Number.isFinite(idNum)) {
-    ElMessage.error('请输入有效的文件ID')
+// 退出预览模式
+function exitPreviewMode() {
+  isPreviewMode.value = false
+  fetchChapters()
+}
+
+// 搜索 TXT 文件
+async function searchFiles(query: string) {
+  if (!query) {
+    txtFiles.value = []
     return
   }
-  fileId.value = idNum
+  filesLoading.value = true
+  try {
+    const res = await adminFilesApi.list({ q: query, format: 'txt' })
+    txtFiles.value = res.items
+  } catch (e: any) {
+    ElMessage.error(e?.message || '搜索失败')
+    txtFiles.value = []
+  } finally {
+    filesLoading.value = false
+  }
+}
+
+// 文件选择变化
+function onFileSelected(id: number | undefined) {
+  if (id) {
+    fileId.value = id
+  }
+}
+
+async function load() {
+  if (!selectedFileId.value) {
+    ElMessage.error('请先选择一个 TXT 文件')
+    return
+  }
+  fileId.value = selectedFileId.value
+  isPreviewMode.value = false
   await fetchChapters()
 }
 
 async function fetchChapters() {
   if (!fileId.value) return
   chaptersLoading.value = true
+  isPreviewMode.value = false // 加载实际目录时退出预览模式
   try {
     chapters.value = await txtApi.listChapters(fileId.value)
   } catch (e: any) {
@@ -130,8 +210,12 @@ async function fetchChapters() {
 }
 
 async function preview() {
-  if (!fileId.value) return
+  if (!fileId.value) {
+    ElMessage.error('请先选择一个 TXT 文件')
+    return
+  }
   chaptersLoading.value = true
+  isPreviewMode.value = true // 进入预览模式
   try {
     const pat =
       pattern.value.trim() ||
@@ -155,6 +239,7 @@ async function save() {
       undefined
     await txtApi.saveChapters(fileId.value, { pattern: pat, replace: true })
     ElMessage.success('已保存')
+    isPreviewMode.value = false // 退出预览模式
     await fetchChapters()
   } catch (e: any) {
     ElMessage.error(e?.message || '保存失败')
@@ -225,7 +310,7 @@ const initId =
       ? fidQuery
       : 0
 if (initId > 0) {
-  fileIdInput.value = String(initId)
+  selectedFileId.value = initId
   fileId.value = initId
   fetchChapters()
 }
