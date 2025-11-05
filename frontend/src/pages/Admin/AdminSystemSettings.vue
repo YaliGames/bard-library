@@ -109,7 +109,12 @@
                 </div>
               </div>
             </div>
-            <el-button type="danger" :disabled="loading || saving" :loading="saving" @click="confirmReset">
+            <el-button
+              type="danger"
+              :disabled="loading || saving"
+              :loading="saving"
+              @click="confirmReset"
+            >
               重置所有设置为默认值
             </el-button>
           </div>
@@ -238,10 +243,10 @@ async function resetToDefaults() {
   try {
     const res = await systemSettingsApi.reset()
     // 更新 categories
-    Object.keys(categories).forEach((k) => delete categories[k])
+    Object.keys(categories).forEach(k => delete categories[k])
     Object.assign(categories, res.categories || {})
     // 更新 values
-    Object.keys(valuesReactive).forEach((k) => delete valuesReactive[k])
+    Object.keys(valuesReactive).forEach(k => delete valuesReactive[k])
     Object.assign(valuesReactive, res.values || {})
     // 重新初始化类型特定输入
     for (const catKey in categories) {
