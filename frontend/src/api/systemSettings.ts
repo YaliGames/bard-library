@@ -23,6 +23,7 @@ export const systemSettingsApi = {
   get: () => http.get<SettingsResponse>('/api/v1/admin/settings'),
   update: (data: Record<string, any>) =>
     http.post<SettingsResponse>('/api/v1/admin/settings', { data }),
+  reset: () => http.post<SettingsResponse>('/api/v1/admin/settings/reset', {}),
 }
 
 export type SystemSettings = SettingsResponse

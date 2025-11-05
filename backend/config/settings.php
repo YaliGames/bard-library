@@ -3,11 +3,23 @@
 return [
     // 分类结构：每个分类包含 label（显示名称）、icon（图标）、items（该分类下的设置项）
     'categories' => [
-        'ui' => [
-            'label' => 'UI设置',
+        'system' => [
+            'label' => '系统设置',
             'icon' => 'palette',
             'items' => [
-                'ui.book.placeholder_cover' => [
+                'system.system_name' => [ // 未生效
+                    'type' => 'string',
+                    'default' => 'Bard Library',
+                    'label' => '系统名称',
+                    'description' => '全局系统名称，显示在系统标题栏、主页等系统页面中，账号激活、找回密码等邮件均使用该名称',
+                ],
+            ],
+        ],
+        'ui' => [
+            'label' => '页面设置',
+            'icon' => 'palette',
+            'items' => [
+                'ui.book.placeholder_cover' => [ // 未生效
                     'type' => 'bool',
                     'default' => true,
                     'label' => '启用占位封面',
@@ -43,6 +55,24 @@ return [
             'label' => '图书设置',
             'icon' => 'book',
             'items' => [
+                'book.allow_txt_upload' => [  // 未生效
+                    'type' => 'bool',
+                    'default' => true,
+                    'label' => '允许上传TXT文件',
+                    'description' => '是否允许上传TXT格式的文件',
+                ],
+                'book.allow_epub_upload' => [ // 未生效
+                    'type' => 'bool',
+                    'default' => true,
+                    'label' => '允许上传EPUB文件',
+                    'description' => '是否允许上传EPUB格式的文件',
+                ],
+                'book.allow_pdf_upload' => [ // 未生效
+                    'type' => 'bool',
+                    'default' => true,
+                    'label' => '允许上传PDF文件',
+                    'description' => '是否允许上传PDF格式的文件',
+                ],
                 'book.upload_max_size' => [
                     'type' => 'size',
                     'default' => '100MB',

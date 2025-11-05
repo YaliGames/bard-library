@@ -96,11 +96,23 @@
           </template>
         </div>
 
-        <!-- 重置说明 -->
+        <!-- 重置为默认值说明 -->
         <div v-if="active === 'reset'">
-          <h2 class="text-xl font-semibold mb-4">重置</h2>
-          <p class="text-sm text-gray-600 mb-4">将当前未保存的改动丢弃，并从服务器重新加载设置。</p>
-          <el-button :disabled="loading" @click="reload">重置为服务器值</el-button>
+          <h2 class="text-xl font-semibold mb-4">重置为默认值</h2>
+          <div class="space-y-4">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div class="flex items-start">
+                <span class="material-symbols-outlined text-yellow-600 mr-2">warning</span>
+                <div class="text-sm text-yellow-800">
+                  <p class="font-semibold mb-1">警告</p>
+                  <p>此操作将所有系统设置恢复为默认值，包括已自定义的配置。此操作不可撤销。</p>
+                </div>
+              </div>
+            </div>
+            <el-button type="danger" :disabled="loading || saving" :loading="saving" @click="confirmReset">
+              重置所有设置为默认值
+            </el-button>
+          </div>
         </div>
       </div>
     </section>
@@ -109,7 +121,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { systemSettingsApi, type SettingDef, type CategoryDef } from '@/api/systemSettings'
 import { parseSizeToBytes, formatBytes } from '@/utils/systemSettings'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
@@ -199,6 +211,66 @@ async function load() {
 
 function reload() {
   load()
+}
+
+// 确认重置对话框
+async function confirmReset() {
+  try {
+    await ElMessageBox.confirm(
+      '此操作将所有系统设置恢复为默认值，包括已自定义的配置。此操作不可撤销，是否继续？',
+      '确认重置',
+      {
+        confirmButtonText: '确认重置',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+      },
+    )
+    await resetToDefaults()
+  } catch {
+    // 用户取消
+  }
+}
+
+// 重置所有设置为默认值
+async function resetToDefaults() {
+  saving.value = true
+  try {
+    const res = await systemSettingsApi.reset()
+    // 更新 categories
+    Object.keys(categories).forEach((k) => delete categories[k])
+    Object.assign(categories, res.categories || {})
+    // 更新 values
+    Object.keys(valuesReactive).forEach((k) => delete valuesReactive[k])
+    Object.assign(valuesReactive, res.values || {})
+    // 重新初始化类型特定输入
+    for (const catKey in categories) {
+      const cat = categories[catKey]
+      for (const k in cat.items) {
+        const def = cat.items[k]
+        if (def.type === 'size') {
+          const v = valuesReactive[k]
+          sizeInputs[k] = typeof v === 'number' ? formatBytes(v) : v || ''
+        } else if (def.type === 'json') {
+          const v = valuesReactive[k]
+          try {
+            jsonInputs[k] = JSON.stringify(v ?? null, null, 2)
+          } catch {
+            jsonInputs[k] = ''
+          }
+        }
+      }
+    }
+    ElMessage.success('所有设置已重置为默认值')
+    // 切换到第一个分类
+    if (Object.keys(categories).length > 0) {
+      active.value = Object.keys(categories)[0]
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '重置失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 async function save() {

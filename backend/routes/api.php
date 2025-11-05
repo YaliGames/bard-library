@@ -103,6 +103,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::get('/admin/settings', [\App\Http\Controllers\SystemSettingsController::class, 'get']);
         Route::post('/admin/settings', [\App\Http\Controllers\SystemSettingsController::class, 'update']);
+        Route::post('/admin/settings/reset', [\App\Http\Controllers\SystemSettingsController::class, 'reset']);
     });
 
     // 公开：权限相关的公开设置，供前端路由守卫使用

@@ -51,6 +51,35 @@ class SystemSettingsController extends Controller
         ]);
     }
 
+    // 重置所有设置为默认值
+    public function reset(Request $request)
+    {
+        $categories = SystemSetting::categories();
+        $payload = [];
+
+        // 遍历所有分类中的设置项，使用默认值
+        foreach ($categories as $category) {
+            if (!isset($category['items']) || !is_array($category['items'])) {
+                continue;
+            }
+            foreach ($category['items'] as $key => $def) {
+                $type = $def['type'] ?? 'string';
+                $default = $def['default'] ?? null;
+                $payload[$key] = ['type' => $type, 'value' => $default];
+            }
+        }
+
+        // 删除数据库中所有设置，然后重新创建默认值
+        SystemSetting::truncate();
+        $values = SystemSetting::updateAll($payload);
+        
+        return response()->json([
+            'values' => $values,
+            'categories' => $categories,
+            'message' => '所有设置已重置为默认值',
+        ]);
+    }
+
     // 公开：仅返回前端路由守卫所需的权限类配置
     public function public(Request $request)
     {
