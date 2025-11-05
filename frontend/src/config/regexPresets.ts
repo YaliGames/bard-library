@@ -8,22 +8,22 @@ export interface RegexPreset {
 export const builtinRegexPresets: RegexPreset[] = [
   {
     id: 'cn-chapter-0',
-    name: '中文',
+    name: '中文·第/卷 N 章/回/部/节/集/卷',
     pattern: '^\\s*[第卷][0123456789一二三四五六七八九十零〇百千两]*[章回部节集卷].*',
   },
   {
     id: 'cn-chapter-1',
-    name: '中文·第N章/回/节',
+    name: '中文·第 N 章/回/部/节/集/卷',
     pattern: '^\\s*第[0123456789一二三四五六七八九十零〇百千两]*[章回部节集卷].*',
   },
   {
     id: 'cn-chapter-2',
-    name: '中文·第N章（更宽松）',
+    name: '中文·第 N',
     pattern: '^\\s*第[0123456789一二三四五六七八九十零〇百千两]+.*',
   },
   {
     id: 'cn-volume',
-    name: '中文·卷/篇',
+    name: '中文·卷/篇 N',
     pattern: '^\\s*(卷|篇)[0123456789一二三四五六七八九十零〇百千两]*.*',
   },
   {
@@ -38,7 +38,7 @@ export const builtinRegexPresets: RegexPreset[] = [
   },
   {
     id: 'number-dot',
-    name: '数字序号·1. 标题',
+    name: '数字序号·N. 标题',
     pattern: '^\\s*\\d+\\..*',
   },
 ]

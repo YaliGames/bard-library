@@ -95,27 +95,34 @@
         </template>
         <div class="flex flex-col gap-3">
           <div>
-            <div class="text-sm text-gray-600 mb-1">内置规则</div>
-            <el-select
-              v-model="selectedPresetId"
-              placeholder="选择一个内置规则（可选）"
-              filterable
-              clearable
-            >
-              <el-option :key="''" :label="'（不使用内置规则）'" :value="''" />
+            <div class="text-sm text-gray-600 mb-1">规则类型</div>
+            <el-radio-group v-model="ruleType">
+              <el-radio value="builtin">内置规则</el-radio>
+              <el-radio value="custom">自定义规则</el-radio>
+            </el-radio-group>
+          </div>
+
+          <!-- 内置规则选择 -->
+          <div v-if="ruleType === 'builtin'">
+            <div class="text-sm text-gray-600 mb-1">选择内置规则</div>
+            <el-select v-model="selectedPresetId" placeholder="选择一个内置规则" filterable>
               <el-option v-for="p in allPresets" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
+            <div v-if="currentPresetPattern" class="mt-2 p-2 bg-gray-50 rounded text-xs">
+              <div class="text-gray-600 mb-1">正则表达式:</div>
+              <code class="text-blue-600 break-all">{{ currentPresetPattern }}</code>
+            </div>
           </div>
-          <div>
-            <div class="text-sm text-gray-600 mb-1">自定义正则</div>
-            <el-input v-model="pattern" placeholder="自定义正则（空用默认或使用上方内置）" />
+
+          <!-- 自定义规则输入 -->
+          <div v-else>
+            <div class="text-sm text-gray-600 mb-1">自定义正则表达式</div>
+            <el-input v-model="pattern" placeholder="输入正则表达式" type="textarea" :rows="3" />
           </div>
+
           <div class="flex gap-2">
             <el-button @click="preview" :loading="chaptersLoading">预览</el-button>
             <el-button type="primary" @click="save" :loading="saving">保存</el-button>
-          </div>
-          <div class="text-xs text-gray-500">
-            提示：若同时选择内置与填写自定义，则优先使用自定义。
           </div>
         </div>
       </el-card>
@@ -123,12 +130,12 @@
   </section>
 </template>
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { txtApi, type Chapter } from '@/api/txt'
 import { adminFilesApi, type AdminFileItem } from '@/api/adminFiles'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { builtinRegexPresets } from '@/constants/regexPresets'
+import { builtinRegexPresets } from '@/config/regexPresets'
 
 const router = useRouter()
 const route = useRoute()
@@ -140,9 +147,25 @@ const chapters = ref<Chapter[]>([])
 const chaptersLoading = ref(false)
 const pattern = ref('')
 const saving = ref(false)
+const ruleType = ref<'builtin' | 'custom'>('builtin') // 规则类型
 const selectedPresetId = ref<string>('')
 const allPresets = computed(() => builtinRegexPresets)
 const isPreviewMode = ref(false) // 标记是否为预览模式
+
+// 当前选中的内置规则的正则表达式
+const currentPresetPattern = computed(() => {
+  if (ruleType.value === 'builtin' && selectedPresetId.value) {
+    return allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern || ''
+  }
+  return ''
+})
+
+// 监听规则类型变化,切换到内置规则时默认选择第一个
+watch(ruleType, newType => {
+  if (newType === 'builtin' && !selectedPresetId.value && allPresets.value.length > 0) {
+    selectedPresetId.value = allPresets.value[0].id
+  }
+})
 
 // 检查是否有路由参数(从其他页面跳转过来)
 const hasRouteFileId = computed(() => {
@@ -214,13 +237,23 @@ async function preview() {
     ElMessage.error('请先选择一个 TXT 文件')
     return
   }
+
+  // 根据规则类型获取正则表达式
+  let pat: string | undefined
+  if (ruleType.value === 'builtin') {
+    pat = allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern
+  } else {
+    pat = pattern.value.trim() || undefined
+  }
+
+  if (!pat) {
+    ElMessage.warning('请选择内置规则或输入自定义正则表达式')
+    return
+  }
+
   chaptersLoading.value = true
   isPreviewMode.value = true // 进入预览模式
   try {
-    const pat =
-      pattern.value.trim() ||
-      allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern ||
-      undefined
     chapters.value = await txtApi.listChapters(fileId.value, { pattern: pat, dry: true })
   } catch (e: any) {
     ElMessage.error(e?.message || '预览失败')
@@ -231,12 +264,22 @@ async function preview() {
 
 async function save() {
   if (!fileId.value) return
+
+  // 根据规则类型获取正则表达式
+  let pat: string | undefined
+  if (ruleType.value === 'builtin') {
+    pat = allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern
+  } else {
+    pat = pattern.value.trim() || undefined
+  }
+
+  if (!pat) {
+    ElMessage.warning('请选择内置规则或输入自定义正则表达式')
+    return
+  }
+
   saving.value = true
   try {
-    const pat =
-      pattern.value ||
-      allPresets.value.find(p => p.id === selectedPresetId.value)?.pattern ||
-      undefined
     await txtApi.saveChapters(fileId.value, { pattern: pat, replace: true })
     ElMessage.success('已保存')
     isPreviewMode.value = false // 退出预览模式
@@ -298,6 +341,11 @@ async function onDeleteMerge(row: Chapter, direction: 'prev' | 'next') {
   } catch (e: any) {
     ElMessage.error(e?.message || '操作失败')
   }
+}
+
+// 初始化默认选中第一个内置规则
+if (allPresets.value.length > 0) {
+  selectedPresetId.value = allPresets.value[0].id
 }
 
 // 支持从 params.id 或 query.fileId 进入
