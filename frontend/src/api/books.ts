@@ -84,6 +84,7 @@ function normalizeBookListResponse(res: Book[] | BookListResponse): BookListResp
 function normalizeBookListParams(params?: BookListParams) {
   if (!params) return undefined
   const normalized: Record<string, any> = {}
+  const toCsv = (v: any) => (Array.isArray(v) ? v.join(',') : (v ?? ''))
   if (params.q) normalized.q = params.q
   if (params.page) normalized.page = params.page
   if (params.perPage) normalized.per_page = params.perPage
@@ -91,8 +92,8 @@ function normalizeBookListParams(params?: BookListParams) {
   if (params.sort) normalized.sort = params.sort
   if (params.order) normalized.order = params.order
   if (params.shelfId) normalized.shelf_id = params.shelfId
-  if (params.authorId) normalized.author_id = params.authorId
-  if (params.tagId) normalized.tag_id = params.tagId
+  if (params.authorId) normalized.author_id = toCsv(params.authorId)
+  if (params.tagId) normalized.tag_id = toCsv(params.tagId)
   if (params.unread) normalized.unread = 'true'
   if (params.reading) normalized.reading = 'true'
   if (params.read) normalized.read = 'true'
