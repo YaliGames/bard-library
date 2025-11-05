@@ -164,14 +164,12 @@ async function fetchList(page = 1) {
     const r = await booksApi.list({
       q: filters.value.q || undefined,
       page,
-      author_id: filters.value.authorId || undefined,
-      tag_id: filters.value.tagIds.length ? filters.value.tagIds : undefined,
-      min_rating: filters.value.ratingRange?.[0],
-      max_rating: filters.value.ratingRange?.[1],
+      authorId: filters.value.authorId || undefined,
+      tagId: filters.value.tagIds.length ? filters.value.tagIds[0] : undefined,
       // 管理页暂不提供 shelf/readState
     })
     rows.value = r.data
-    meta.value = r.meta
+    meta.value = r.meta || null
   } catch (e: any) {
     ElMessage.error(e?.message || '加载失败')
   } finally {

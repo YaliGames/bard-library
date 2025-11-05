@@ -3,9 +3,7 @@ import type { Series } from './types'
 
 export const seriesApi = {
   list: (q?: string) => {
-    const u = new URL('/api/v1/series', window.location.origin)
-    if (q) u.searchParams.set('q', q)
-    return http.get<Series[]>(u.toString())
+    return http.get<Series[]>('/api/v1/series', { params: q ? { q } : undefined })
   },
   create: (name: string) => {
     return http.post<Series>('/api/v1/series', { name })

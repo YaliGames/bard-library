@@ -11,10 +11,7 @@ export interface Chapter {
 
 export const txtApi = {
   listChapters: (fileId: number, params?: { pattern?: string; dry?: boolean }) => {
-    const u = new URL(`/api/v1/txt/${fileId}/chapters`, window.location.origin)
-    if (params?.pattern) u.searchParams.set('pattern', params.pattern)
-    if (params?.dry) u.searchParams.set('dry', 'true')
-    return http.get<Chapter[]>(u.toString())
+    return http.get<Chapter[]>(`/api/v1/txt/${fileId}/chapters`, { params })
   },
   saveChapters: (fileId: number, payload: { pattern?: string; replace?: boolean }) => {
     return http.post<Chapter[]>(`/api/v1/txt/${fileId}/chapters`, payload)
@@ -32,8 +29,6 @@ export const txtApi = {
     return http.patch(`/api/v1/txt/${fileId}/chapters/${index}`, { title })
   },
   deleteChapterWithMerge: (fileId: number, index: number, merge: 'prev' | 'next') => {
-    const u = new URL(`/api/v1/txt/${fileId}/chapters/${index}`, window.location.origin)
-    u.searchParams.set('merge', merge)
-    return http.delete(u.toString())
+    return http.delete(`/api/v1/txt/${fileId}/chapters/${index}`, { params: { merge } })
   },
 }

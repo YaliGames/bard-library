@@ -3,9 +3,7 @@ import type { Author } from './types'
 
 export const authorsApi = {
   list: (params?: { q?: string }) => {
-    const u = new URL('/api/v1/authors', window.location.origin)
-    if (params?.q) u.searchParams.set('q', params.q)
-    return http.get<Author[]>(u.toString())
+    return http.get<Author[]>('/api/v1/authors', { params })
   },
   create: (name: string) => {
     return http.post<Author>('/api/v1/authors', { name })

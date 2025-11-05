@@ -3,10 +3,7 @@ import type { Tag } from './types'
 
 export const tagsApi = {
   list: (params?: { q?: string; type?: string }) => {
-    const u = new URL('/api/v1/tags', window.location.origin)
-    if (params?.q) u.searchParams.set('q', params.q)
-    if (params?.type) u.searchParams.set('type', params.type)
-    return http.get<Tag[]>(u.toString())
+    return http.get<Tag[]>('/api/v1/tags', { params })
   },
   create: (name: string) => {
     return http.post<Tag>('/api/v1/tags', { name })

@@ -421,9 +421,9 @@ async function fetchBooks(page = 1) {
     const r = await booksApi.list({
       q: filters.value.q || undefined,
       page,
-      author_id: filters.value.authorId || undefined,
-      tag_id: tagParam,
-      shelf_id: shelfId.value || undefined,
+      authorId: filters.value.authorId || undefined,
+      tagId: tagParam,
+      shelfId: shelfId.value || undefined,
       read_state: filters.value.readState || undefined,
       min_rating: filters.value.ratingRange?.[0],
       max_rating: filters.value.ratingRange?.[1],
@@ -437,7 +437,7 @@ async function fetchBooks(page = 1) {
       order: order.value,
     })
     data.value = r.data
-    meta.value = r.meta
+    meta.value = r.meta || null
   } catch (e: any) {
     err.value = e?.message || '加载失败'
   } finally {
@@ -515,7 +515,7 @@ function openAddDialog() {
 async function searchAdd() {
   addLoading.value = true
   try {
-    const r = await booksApi.list({ q: addQ.value || undefined, per_page: 12 })
+    const r = await booksApi.list({ q: addQ.value || undefined, perPage: 12 })
     addList.value = r.data
   } catch {
     addList.value = []

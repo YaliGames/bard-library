@@ -206,9 +206,9 @@ async function fetchBooks(page = 1) {
     const r = await booksApi.list({
       q: filters.value.q || undefined,
       page,
-      author_id: filters.value.authorId || undefined,
-      tag_id: tagParam,
-      shelf_id: filters.value.shelfId || undefined,
+      authorId: filters.value.authorId || undefined,
+      tagId: tagParam,
+      shelfId: filters.value.shelfId || undefined,
       read_state: filters.value.readState || undefined,
       min_rating: filters.value.ratingRange?.[0],
       max_rating: filters.value.ratingRange?.[1],
@@ -222,7 +222,7 @@ async function fetchBooks(page = 1) {
       order: order.value,
     })
     data.value = r.data
-    meta.value = r.meta
+    meta.value = r.meta || null
   } catch (e: any) {
     err.value = e?.message || '加载失败'
   } finally {

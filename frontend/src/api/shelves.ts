@@ -40,15 +40,7 @@ export const shelvesApi = {
     owner?: 'me' | 'admin'
     visibility?: 'public' | 'private'
   }): Promise<PageResp<Shelf>> => {
-    const u = new URL('/api/v1/shelves', window.location.origin)
-    if (params?.page) u.searchParams.set('page', String(params.page))
-    if (params?.per_page) u.searchParams.set('per_page', String(params.per_page))
-    if (params?.q) u.searchParams.set('q', params.q)
-    if (typeof params?.book_limit === 'number')
-      u.searchParams.set('book_limit', String(params.book_limit))
-    if (params?.owner) u.searchParams.set('owner', params.owner)
-    if (params?.visibility) u.searchParams.set('visibility', params.visibility)
-    const raw = await http.get<any>(u.toString())
+    const raw = await http.get<any>('/api/v1/shelves', { params })
     return normalizePage<Shelf>(raw)
   },
   listAll: async (): Promise<Shelf[]> => {

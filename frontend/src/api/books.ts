@@ -1,96 +1,224 @@
-import { http, PageResp } from './http'
+import { http } from './http'
 import type { Book, FileRec } from './types'
 
-export const booksApi = {
-  list: async (params?: {
-    q?: string
-    page?: number
-    per_page?: number
-    author_id?: number[] | string | number
-    tag_id?: number[] | string | number
-    shelf_id?: number
-    read_state?: 'read' | 'unread' | 'reading'
-    min_rating?: number
-    max_rating?: number
-    publisher?: string
-    published_at?: string // deprecated: use published_from/published_to
-    published_from?: string
-    published_to?: string
-    language?: string
-    series_value?: string | number
-    isbn?: string
-    sort?: 'modified' | 'created' | 'rating' | 'id'
-    order?: 'asc' | 'desc'
-  }): Promise<PageResp<Book>> => {
-    const u = new URL('/api/v1/books', window.location.origin)
-    if (params?.q) u.searchParams.set('q', params.q)
-    if (params?.page) u.searchParams.set('page', String(params.page))
-    if (params?.per_page) u.searchParams.set('per_page', String(params.per_page))
-    const toCsv = (v: any) => (Array.isArray(v) ? v.join(',') : (v ?? ''))
-    if (params?.author_id) u.searchParams.set('author_id', toCsv(params.author_id))
-    if (params?.tag_id) u.searchParams.set('tag_id', toCsv(params.tag_id))
-    if (params?.shelf_id) u.searchParams.set('shelf_id', String(params.shelf_id))
-    if (params?.read_state) u.searchParams.set('read_state', params.read_state)
-    if (typeof params?.min_rating === 'number')
-      u.searchParams.set('min_rating', String(params.min_rating))
-    if (typeof params?.max_rating === 'number')
-      u.searchParams.set('max_rating', String(params.max_rating))
-    if (params?.publisher) u.searchParams.set('publisher', params.publisher)
-    if (params?.published_at) u.searchParams.set('published_at', params.published_at)
-    if (params?.published_from) u.searchParams.set('published_from', params.published_from)
-    if (params?.published_to) u.searchParams.set('published_to', params.published_to)
-    if (params?.language) u.searchParams.set('language', params.language)
-    if (params?.series_value !== undefined && params?.series_value !== null)
-      u.searchParams.set('series_value', String(params.series_value))
-    if (params?.isbn) u.searchParams.set('isbn', params.isbn)
-    if (params?.sort) u.searchParams.set('sort', params.sort)
-    if (params?.order) u.searchParams.set('order', params.order)
-    const raw = await http.get<any>(u.toString())
-    // 兼容 { data, meta } 或 Laravel 分页的平铺结构
-    if (raw && raw.data && raw.meta) {
-      return { data: raw.data as Book[], meta: raw.meta }
+// 常量定义
+const BASE = '/api/v1/books'
+
+// 类型定义
+export interface BookListParams {
+  q?: string
+  page?: number
+  perPage?: number
+  sortBy?: string
+  sort?: string
+  order?: 'asc' | 'desc'
+  shelfId?: number
+  authorId?: number
+  tagId?: number | number[]
+  unread?: boolean
+  reading?: boolean
+  read?: boolean
+  cover?: boolean
+  format?: string
+  epub?: boolean
+  pdf?: boolean
+  txt?: boolean
+  azw3?: boolean
+  seriesId?: number
+  // 高级筛选参数
+  read_state?: string
+  min_rating?: number
+  max_rating?: number
+  publisher?: string
+  published_from?: string
+  published_to?: string
+  language?: string
+  series_value?: string | number
+  isbn?: string
+}
+
+export interface BookListResponse {
+  data: Book[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+  meta?: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+}
+
+// 辅助函数
+function normalizeBookListResponse(res: Book[] | BookListResponse): BookListResponse {
+  if (Array.isArray(res)) {
+    const meta = {
+      current_page: 1,
+      last_page: 1,
+      per_page: res.length,
+      total: res.length,
     }
     return {
-      data: Array.isArray(raw?.data) ? raw.data : [],
-      meta: {
-        current_page: Number(raw?.current_page ?? 1),
-        last_page: Number(raw?.last_page ?? 1),
-        per_page: Number(raw?.per_page ?? (Array.isArray(raw?.data) ? raw.data.length : 0)),
-        total: Number(raw?.total ?? (Array.isArray(raw?.data) ? raw.data.length : 0)),
-      },
+      data: res,
+      current_page: 1,
+      last_page: 1,
+      per_page: res.length,
+      total: res.length,
+      meta,
     }
-  },
-  get: (id: number) => {
-    return http.get<Book>(`/api/v1/books/${id}`)
-  },
-  setShelves: (id: number, shelf_ids: number[]) => {
-    return http.post<Book>(`/api/v1/books/${id}/shelves`, { shelf_ids })
-  },
-  create: (payload: Partial<Book>) => {
-    return http.post<Book>('/api/v1/books', payload)
-  },
-  update: (id: number, payload: Partial<Book>) => {
-    return http.patch<Book>(`/api/v1/books/${id}`, payload)
-  },
-  remove: (id: number, opts?: { withFiles?: boolean }) => {
-    const u = new URL(`/api/v1/books/${id}`, window.location.origin)
-    if (opts?.withFiles) u.searchParams.set('with_files', 'true')
-    return http.delete<void>(u.toString())
-  },
-  files: (id: number, opts?: { include_cover?: boolean }) => {
-    const u = new URL(`/api/v1/books/${id}/files`, window.location.origin)
-    if (opts?.include_cover) u.searchParams.set('include_cover', 'true')
-    return http.get<FileRec[]>(u.toString())
-  },
-  setAuthors: (id: number, author_ids: number[]) => {
-    return http.post<Book>(`/api/v1/books/${id}/authors`, { author_ids })
-  },
-  setTags: (id: number, tag_ids: number[]) => {
-    return http.post<Book>(`/api/v1/books/${id}/tags`, { tag_ids })
-  },
-  markRead: (id: number, is_read: boolean) => {
-    return http.post<{ success: boolean }>(`/api/v1/books/${id}/mark-read`, {
-      is_read,
+  }
+  // 确保返回的对象包含 meta 属性
+  if (!res.meta) {
+    res.meta = {
+      current_page: res.current_page,
+      last_page: res.last_page,
+      per_page: res.per_page,
+      total: res.total,
+    }
+  }
+  return res
+}
+
+function normalizeBookListParams(params?: BookListParams) {
+  if (!params) return undefined
+  const normalized: Record<string, any> = {}
+  if (params.q) normalized.q = params.q
+  if (params.page) normalized.page = params.page
+  if (params.perPage) normalized.per_page = params.perPage
+  if (params.sortBy) normalized.sort_by = params.sortBy
+  if (params.sort) normalized.sort = params.sort
+  if (params.order) normalized.order = params.order
+  if (params.shelfId) normalized.shelf_id = params.shelfId
+  if (params.authorId) normalized.author_id = params.authorId
+  if (params.tagId) normalized.tag_id = params.tagId
+  if (params.unread) normalized.unread = 'true'
+  if (params.reading) normalized.reading = 'true'
+  if (params.read) normalized.read = 'true'
+  if (params.cover !== undefined) normalized.cover = params.cover ? 'true' : 'false'
+  if (params.format) normalized.format = params.format
+  if (params.epub) normalized.epub = 'true'
+  if (params.pdf) normalized.pdf = 'true'
+  if (params.txt) normalized.txt = 'true'
+  if (params.azw3) normalized.azw3 = 'true'
+  if (params.seriesId) normalized.series_id = params.seriesId
+  if (params.read_state) normalized.read_state = params.read_state
+  if (params.min_rating !== undefined) normalized.min_rating = params.min_rating
+  if (params.max_rating !== undefined) normalized.max_rating = params.max_rating
+  if (params.publisher) normalized.publisher = params.publisher
+  if (params.published_from) normalized.published_from = params.published_from
+  if (params.published_to) normalized.published_to = params.published_to
+  if (params.language) normalized.language = params.language
+  if (params.series_value !== undefined) normalized.series_value = params.series_value
+  if (params.isbn) normalized.isbn = params.isbn
+  return normalized
+}
+
+// API 对象
+export const booksApi = {
+  /**
+   * 获取书籍列表
+   * @param params - 查询参数
+   * @returns 分页的书籍列表
+   */
+  list: async (params?: BookListParams) => {
+    const res = await http.get<Book[] | BookListResponse>(BASE, {
+      params: normalizeBookListParams(params),
     })
+    return normalizeBookListResponse(res)
+  },
+
+  /**
+   * 获取单本书籍详情
+   * @param id - 书籍 ID
+   * @returns 书籍详情
+   */
+  get: (id: number) => {
+    return http.get<Book>(`${BASE}/${id}`)
+  },
+
+  /**
+   * 创建新书籍
+   * @param payload - 书籍数据
+   * @returns 创建的书籍
+   */
+  create: (payload: Partial<Book>) => {
+    return http.post<Book>(BASE, payload)
+  },
+
+  /**
+   * 更新书籍信息
+   * @param id - 书籍 ID
+   * @param payload - 要更新的字段
+   * @returns 更新后的书籍
+   */
+  update: (id: number, payload: Partial<Book>) => {
+    return http.patch<Book>(`${BASE}/${id}`, payload)
+  },
+
+  /**
+   * 删除书籍
+   * @param id - 书籍 ID
+   * @param opts - 删除选项
+   * @param opts.withFiles - 是否同时删除关联文件
+   */
+  remove: (id: number, opts?: { withFiles?: boolean }) => {
+    return http.delete<void>(`${BASE}/${id}`, {
+      params: opts?.withFiles ? { with_files: 'true' } : undefined,
+    })
+  },
+
+  /**
+   * 获取书籍文件列表
+   * @param id - 书籍 ID
+   * @param opts - 查询选项
+   * @param opts.include_cover - 是否包含封面文件
+   * @returns 文件列表
+   */
+  files: (id: number, opts?: { include_cover?: boolean }) => {
+    return http.get<FileRec[]>(`${BASE}/${id}/files`, {
+      params: opts?.include_cover ? { include_cover: 'true' } : undefined,
+    })
+  },
+
+  /**
+   * 设置书籍所属书架
+   * @param id - 书籍 ID
+   * @param shelf_ids - 书架 ID 列表
+   * @returns 更新后的书籍
+   */
+  setShelves: (id: number, shelf_ids: number[]) => {
+    return http.post<Book>(`${BASE}/${id}/shelves`, { shelf_ids })
+  },
+
+  /**
+   * 设置书籍作者
+   * @param id - 书籍 ID
+   * @param author_ids - 作者 ID 列表
+   * @returns 更新后的书籍
+   */
+  setAuthors: (id: number, author_ids: number[]) => {
+    return http.post<Book>(`${BASE}/${id}/authors`, { author_ids })
+  },
+
+  /**
+   * 设置书籍标签
+   * @param id - 书籍 ID
+   * @param tag_ids - 标签 ID 列表
+   * @returns 更新后的书籍
+   */
+  setTags: (id: number, tag_ids: number[]) => {
+    return http.post<Book>(`${BASE}/${id}/tags`, { tag_ids })
+  },
+
+  /**
+   * 标记书籍已读/未读状态
+   * @param id - 书籍 ID
+   * @param is_read - 是否已读
+   * @returns 操作结果
+   */
+  markRead: (id: number, is_read: boolean) => {
+    return http.post<{ success: boolean }>(`${BASE}/${id}/mark-read`, { is_read })
   },
 }
