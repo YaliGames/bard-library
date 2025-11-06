@@ -124,7 +124,9 @@ import { settingsApi, type UserSettings } from '@/api/settings'
 import { useSettingsStore, defaultSettings } from '@/stores/settings'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
 
-const { state, setAll } = useSettingsStore()
+const settingsStore = useSettingsStore()
+const userSettings = settingsStore.settings
+const setAll = settingsStore.setAll
 const local = reactive<UserSettings>(JSON.parse(JSON.stringify(defaultSettings)))
 const saving = ref(false)
 const loading = ref(true)
@@ -148,7 +150,7 @@ onMounted(async () => {
     // 忽略错误，沿用本地默认
   } finally {
     // 将 store 当前值拷贝到本地编辑副本
-    Object.assign(local, JSON.parse(JSON.stringify(state)))
+    Object.assign(local, JSON.parse(JSON.stringify(userSettings)))
     loading.value = false
   }
 })
@@ -156,7 +158,7 @@ onMounted(async () => {
 async function onSave() {
   saving.value = true
   try {
-    const merged = { ...state, ...local }
+    const merged = { ...userSettings, ...local }
     const remote = await settingsApi.update(merged)
     setAll(remote)
     ElMessage.success('已保存')

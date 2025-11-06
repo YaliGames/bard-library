@@ -1,7 +1,8 @@
+import { defineStore } from 'pinia'
 import { reactive, watch } from 'vue'
 import type { UserSettings } from '@/api/settings'
 
-const KEY = 'userSettings'
+const STORAGE_KEY = 'userSettings'
 
 export const defaultSettings: UserSettings = {
   bookList: {
@@ -19,28 +20,49 @@ export const defaultSettings: UserSettings = {
   },
 }
 
-const savedRaw = localStorage.getItem(KEY)
-const initial: UserSettings = savedRaw
-  ? { ...defaultSettings, ...JSON.parse(savedRaw) }
-  : defaultSettings
-
-const state = reactive<UserSettings>({ ...initial })
-
-export function useSettingsStore() {
-  function setAll(s: UserSettings) {
-    Object.assign(state, defaultSettings, s)
+function loadSettings(): UserSettings {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings
+  } catch (error) {
+    console.error('Failed to load settings:', error)
+    return defaultSettings
   }
-  function update(patch: Partial<UserSettings>) {
-    Object.assign(state, patch)
-  }
-  // 本地持久化
-  watch(
-    state,
-    v => {
-      localStorage.setItem(KEY, JSON.stringify(v))
-    },
-    { deep: true },
-  )
-
-  return { state, setAll, update }
 }
+
+export const useSettingsStore = defineStore('settings', () => {
+  const settings = reactive<UserSettings>(loadSettings())
+
+  let saveTimer: number | null = null
+  function debouncedSave() {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+      } catch (error) {
+        console.error('Failed to save settings:', error)
+      }
+    }, 500)
+  }
+
+  watch(settings, debouncedSave, { deep: true })
+
+  function update(patch: Partial<UserSettings>) {
+    Object.assign(settings, patch)
+  }
+
+  function reset() {
+    Object.assign(settings, defaultSettings)
+  }
+
+  function setAll(newSettings: UserSettings) {
+    Object.assign(settings, defaultSettings, newSettings)
+  }
+
+  return {
+    settings,
+    update,
+    reset,
+    setAll,
+  }
+})

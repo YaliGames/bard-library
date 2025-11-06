@@ -166,7 +166,8 @@ import { settingsApi } from '@/api/settings'
 import { navMenu, userMenu } from '@/config/navMenu'
 const router = useRouter()
 const authStore = useAuthStore()
-const { setAll: setAllSettings } = useSettingsStore()
+const settingsStore = useSettingsStore()
+const setAllSettings = settingsStore.setAll
 const user = computed(() => authStore.user)
 const loadingUser = ref(false)
 const mobileOpen = ref(false)

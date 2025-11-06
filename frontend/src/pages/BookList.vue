@@ -191,7 +191,8 @@ const isLoggedIn = computed(() => authStore.isLoggedIn)
 const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
 
 // 系统设置
-const { state: userSettings } = useSettingsStore()
+const settingsStore = useSettingsStore()
+const userSettings = settingsStore.settings
 
 function filterByAuthor(id: number) {
   filters.value.authorId = id

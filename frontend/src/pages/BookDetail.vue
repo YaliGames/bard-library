@@ -87,7 +87,7 @@
               :authors="(book.authors || []).map(a => a.name)"
               class="rounded"
             />
-            <div class="absolute top-2 right-2 flex gap-1" v-if="settings.bookDetail?.showReadTag">
+            <div class="absolute top-2 right-2 flex gap-1" v-if="userSettings.bookDetail?.showReadTag">
               <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
               <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>
             </div>
@@ -265,7 +265,8 @@ const chaptersLoading = ref(false)
 const isReadMark = computed(() => book.value?.is_read_mark || book.value?.is_read_mark === 1)
 const isReading = computed(() => book.value?.is_reading || book.value?.is_reading === 1)
 
-const { state: settings } = useSettingsStore()
+const settingsStore = useSettingsStore()
+const userSettings = settingsStore.settings
 
 function humanSize(n: number) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB']

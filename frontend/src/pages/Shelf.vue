@@ -330,7 +330,8 @@ const sort = ref<'modified' | 'created' | 'rating' | 'id'>('created')
 const order = ref<'asc' | 'desc'>('desc')
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
-const { state: userSettings } = useSettingsStore()
+const settingsStore = useSettingsStore()
+const userSettings = settingsStore.settings
 
 function back() {
   router.back()

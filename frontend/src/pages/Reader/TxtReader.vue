@@ -214,7 +214,8 @@ import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/
 
 const route = useRoute()
 const router = useRouter()
-const { state: userSettings } = useSettingsStore()
+const settingsStore = useSettingsStore()
+const userSettings = settingsStore.settings
 const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const isAdmin = computed(() => authStore.isAdmin)
