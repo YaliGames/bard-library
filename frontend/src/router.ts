@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { http } from '@/api/http'
+import { useSystemStore } from '@/stores/system'
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./pages/Home.vue') },
@@ -152,69 +152,35 @@ const router = createRouter({
   routes,
 })
 
-// 公共权限设置缓存（避免每次路由都拉取）
-let publicPerms: null | {
-  allow_guest_access: boolean
-  allow_user_registration: boolean
-  allow_recover_password: boolean
-} = null
-let loadingPerms: Promise<any> | null = null
-
-async function ensurePublicPerms() {
-  if (publicPerms) return publicPerms
-  if (!loadingPerms) {
-    loadingPerms = http
-      .get<{ permissions: typeof publicPerms }>('/api/v1/settings/public')
-      .then((res: any) => {
-        publicPerms = (res?.permissions as any) || {
-          allow_guest_access: true,
-          allow_user_registration: true,
-          allow_recover_password: true,
-        }
-        return publicPerms
-      })
-      .catch(() => {
-        publicPerms = {
-          allow_guest_access: true,
-          allow_user_registration: true,
-          allow_recover_password: true,
-        }
-        return publicPerms
-      })
-      .finally(() => {
-        loadingPerms = null
-      })
-  }
-  return loadingPerms
-}
-
 // 路由守卫
-router.beforeEach(async to => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+  const systemStore = useSystemStore()
   
-  // 确保拿到公开权限配置
-  await ensurePublicPerms()
-  const perms = publicPerms!
-
-  if (!authStore.isLoggedIn && perms && !perms.allow_guest_access) {
-    const name = String(to.name || '')
-    const allow = ['login', 'register', 'forgot', 'reset']
-    if (!allow.includes(name)) {
+  // ✅ 直接读取 store 状态（已在 App.vue 中初始化）
+  // 如果系统不允许游客访问，且用户未登录，则重定向到登录页
+  if (!systemStore.allowGuestAccess && !authStore.isLoggedIn) {
+    const publicRoutes = ['login', 'register', 'forgot', 'reset']
+    if (!publicRoutes.includes(String(to.name))) {
       return { name: 'login', query: { redirect: to.fullPath } }
     }
   }
 
+  // 管理员路由检查
   const isAdminRoute = to.path.startsWith('/admin')
+  
   // 未登录禁止访问 /admin
   if (isAdminRoute && !authStore.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
+  
   // 管理路由：要求 admin 角色
   if (isAdminRoute && authStore.isLoggedIn) {
     if (!authStore.isRole('admin')) {
       return { name: 'home' }
     }
   }
+  
   // 若已登录仍访问登录页，重定向到书库
   if (to.name === 'login' && authStore.isLoggedIn) {
     return { name: 'books' }
