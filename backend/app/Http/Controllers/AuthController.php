@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ResetPasswordMail;
+use App\Mail\VerifyEmailMail;
 
 class AuthController extends Controller
 {
@@ -49,8 +50,17 @@ class AuthController extends Controller
         $user->email = $data['email'];
         $user->password = Hash::make($data['password']);
         $user->save();
-        // 发送验证邮件
-        event(new Registered($user));
+        // 发送验证邮件 - 生成签名 URL
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
+        try {
+            Mail::to($user->email)->send(new VerifyEmailMail($verificationUrl, $user->name));
+        } catch (\Throwable $e) {
+            // 邮件发送失败不暴露细节
+        }
         return response()->json(['success' => true]);
     }
 
@@ -149,7 +159,17 @@ class AuthController extends Controller
         if (method_exists($user, 'hasVerifiedEmail') && $user->hasVerifiedEmail()) {
             return response()->json(['success' => true]);
         }
-        event(new Registered($user));
+        // 重新发送验证邮件 - 生成签名 URL
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
+        try {
+            Mail::to($user->email)->send(new VerifyEmailMail($verificationUrl, $user->name));
+        } catch (\Throwable $e) {
+            // 邮件发送失败不暴露细节
+        }
         return response()->json(['success' => true]);
     }
 

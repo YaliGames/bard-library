@@ -1,15 +1,29 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>重置密码</title>
-</head>
-<body>
-  <p>您好，{{ $username }}：</p>
-  <p>我们收到了您在 Bard Library 的密码重置请求。如果是您本人操作，请点击以下链接重置密码：</p>
-  <p><a href="{{ $resetLink }}" target="_blank" rel="noopener">{{ $resetLink }}</a></p>
-  <p>该链接在 24 小时内有效。如果这不是您的操作，请忽略此邮件。</p>
-  <p>— Bard Library 团队</p>
-</body>
-</html>
+@extends('emails.layout')
+
+@section('title', '重置您的密码')
+
+@section('content')
+  <p class="email-greeting">您好，{{ $username }}！</p>
+  
+  <div class="email-content">
+    <p>我们收到了您在 <strong>Bard Library</strong> 的密码重置请求。</p>
+    <p>如果是您本人操作，请点击下方按钮重置密码：</p>
+  </div>
+
+  <div style="text-align: center;">
+    <a href="{{ $resetLink }}" class="email-button" target="_blank" rel="noopener">
+      重置密码
+    </a>
+  </div>
+
+  <div class="email-link">
+    如果按钮无法点击，请复制以下链接到浏览器中打开：<br>
+    {{ $resetLink }}
+  </div>
+
+  <div class="email-note">
+    <strong>⏱️ 重要提示：</strong><br>
+    • 该链接在 <strong>24 小时</strong>内有效<br>
+    • 如果这不是您的操作，请忽略此邮件，您的密码将保持不变
+  </div>
+@endsection
