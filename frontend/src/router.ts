@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import { isLoggedIn, isRole } from '@/stores/auth'
+import { useAuthStore } from '@/stores/auth'
 import { http } from '@/api/http'
 
 const routes: RouteRecordRaw[] = [
@@ -190,12 +190,13 @@ async function ensurePublicPerms() {
 
 // 路由守卫
 router.beforeEach(async to => {
-  const token = isLoggedIn()
+  const authStore = useAuthStore()
+  
   // 确保拿到公开权限配置
   await ensurePublicPerms()
   const perms = publicPerms!
 
-  if (!token && perms && !perms.allow_guest_access) {
+  if (!authStore.isLoggedIn && perms && !perms.allow_guest_access) {
     const name = String(to.name || '')
     const allow = ['login', 'register', 'forgot', 'reset']
     if (!allow.includes(name)) {
@@ -205,17 +206,17 @@ router.beforeEach(async to => {
 
   const isAdminRoute = to.path.startsWith('/admin')
   // 未登录禁止访问 /admin
-  if (isAdminRoute && !token) {
+  if (isAdminRoute && !authStore.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   // 管理路由：要求 admin 角色
-  if (isAdminRoute && token) {
-    if (!isRole('admin')) {
+  if (isAdminRoute && authStore.isLoggedIn) {
+    if (!authStore.isRole('admin')) {
       return { name: 'home' }
     }
   }
   // 若已登录仍访问登录页，重定向到书库
-  if (to.name === 'login' && token) {
+  if (to.name === 'login' && authStore.isLoggedIn) {
     return { name: 'books' }
   }
 })

@@ -219,8 +219,8 @@ const emit = defineEmits<{
   (e: 'reset'): void
 }>()
 
-const { loggedIn } = useAuthStore()
-const isLoggedIn = loggedIn
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 
 const filters = reactive<FiltersModel>({
   q: '',

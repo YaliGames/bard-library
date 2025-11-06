@@ -60,7 +60,7 @@
                   <el-form-item label="描述">
                     <el-input v-model="form.description" type="textarea" maxlength="500" />
                   </el-form-item>
-                  <el-form-item v-if="isRole('admin')" label="公开">
+                  <el-form-item v-if="authStore.isRole('admin')" label="公开">
                     <el-switch v-model="form.is_public" />
                   </el-form-item>
                 </el-form>
@@ -303,11 +303,11 @@ const route = useRoute()
 const shelfId = computed(() => Number(route.params.id))
 const shelf = ref<(Shelf & { description?: string }) | null>(null)
 const shelfError = ref<string | null>(null)
-const { state: authState, isRole } = useAuthStore()
+const authStore = useAuthStore()
 const canManage = computed(() => {
   if (!shelf.value) return false
-  if (isRole('admin')) return true
-  return (shelf.value.user_id ?? 0) === (authState.user?.id ?? -1)
+  if (authStore.isRole('admin')) return true
+  return (shelf.value.user_id ?? 0) === (authStore.user?.id ?? -1)
 })
 
 // 统一的筛选模型（固定 shelfId）
@@ -328,8 +328,7 @@ const filters = ref({
 const err = ref('')
 const sort = ref<'modified' | 'created' | 'rating' | 'id'>('created')
 const order = ref<'asc' | 'desc'>('desc')
-const { loggedIn } = useAuthStore()
-const isLoggedIn = loggedIn
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
 const { state: userSettings } = useSettingsStore()
 
@@ -380,7 +379,7 @@ async function deleteShelf() {
   try {
     await shelvesApi.remove(shelf.value.id)
     ElMessage.success('已删除')
-    if (isRole('admin')) {
+    if (authStore.isRole('admin')) {
       router.push({ name: 'admin-shelf-list' })
     } else {
       router.push({ name: 'user-shelves' })
@@ -531,11 +530,11 @@ async function addToShelf(b: Book) {
     const allIds = (full.shelves || []).map((s: any) => s.id)
     // 根据权限构造要提交的 shelf_ids
     let submitIds: number[] = []
-    if (isRole('admin')) {
+    if (authStore.isRole('admin')) {
       submitIds = Array.from(new Set([...allIds, shelf.value.id]))
     } else {
       const myIds = (full.shelves || [])
-        .filter((s: any) => (s.user_id ?? 0) === (authState.user?.id ?? -1))
+        .filter((s: any) => (s.user_id ?? 0) === (authStore.user?.id ?? -1))
         .map((s: any) => s.id)
       submitIds = Array.from(new Set([...myIds, shelf.value.id]))
     }
@@ -553,11 +552,11 @@ async function removeFromShelf(b: Book) {
     const full = await booksApi.get(b.id)
     const allIds = (full.shelves || []).map((s: any) => s.id)
     let submitIds: number[] = []
-    if (isRole('admin')) {
+    if (authStore.isRole('admin')) {
       submitIds = allIds.filter((id: number) => id !== shelf.value!.id)
     } else {
       const myIds = (full.shelves || [])
-        .filter((s: any) => (s.user_id ?? 0) === (authState.user?.id ?? -1))
+        .filter((s: any) => (s.user_id ?? 0) === (authStore.user?.id ?? -1))
         .map((s: any) => s.id)
       submitIds = myIds.filter((id: number) => id !== shelf.value!.id)
     }

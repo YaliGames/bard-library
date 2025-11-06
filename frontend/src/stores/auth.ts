@@ -1,10 +1,11 @@
-import { reactive, ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
 import type { User } from '@/api/types'
 
-const state = reactive<{ user: User | null }>({ user: null })
-
-const TOKEN_KEY = 'token'
-const ROLE_KEY = 'userRole'
+const STORAGE_KEYS = {
+  TOKEN: 'token',
+  USER_ROLE: 'userRole',
+} as const
 
 function parseRoles(raw: string | null): string[] {
   if (!raw) return []
@@ -15,77 +16,88 @@ function parseRoles(raw: string | null): string[] {
   return raw ? [String(raw)] : []
 }
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-export function getUserRole(): string | null {
-  return localStorage.getItem(ROLE_KEY)
-}
-export function isLoggedIn(): boolean {
-  return !!getToken()
-}
+export const useAuthStore = defineStore('auth', () => {
+  // State
+  const token = ref<string | null>(localStorage.getItem(STORAGE_KEYS.TOKEN))
+  const user = ref<User | null>(null)
+  const role = ref<string | null>(localStorage.getItem(STORAGE_KEYS.USER_ROLE))
 
-// Module-level reactive refs so non-setup code can update auth state immediately
-export const tokenRef = ref<string | null>(getToken())
-export const roleRef = ref<string | null>(getUserRole())
+  // Getters (computed)
+  const isLoggedIn = computed(() => !!token.value)
+  const isAdmin = computed(() => role.value === 'admin')
+  const roles = computed(() => parseRoles(role.value))
 
-export function logoutLocal() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(ROLE_KEY)
-  tokenRef.value = null
-  roleRef.value = null
-  state.user = null
-}
-export function isRole(role: string): boolean {
-  const raw = getUserRole()
-  const list = parseRoles(raw)
-  return list.includes(role)
-}
-
-export function useAuthStore() {
-  // basic store
-  function setUser(u: User | null) {
-    state.user = u
+  // Actions
+  function setToken(val: string | null) {
+    token.value = val
+    if (val) {
+      localStorage.setItem(STORAGE_KEYS.TOKEN, val)
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.TOKEN)
+    }
   }
 
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === TOKEN_KEY) tokenRef.value = getToken()
-    if (e.key === ROLE_KEY) roleRef.value = getUserRole()
+  function setUserRole(val: string | null) {
+    role.value = val
+    if (val) {
+      localStorage.setItem(STORAGE_KEYS.USER_ROLE, val)
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.USER_ROLE)
+    }
   }
 
-  onMounted(() => window.addEventListener('storage', onStorage))
-  onBeforeUnmount(() => window.removeEventListener('storage', onStorage))
-  const loggedIn = computed(() => !!tokenRef.value)
-  const roles = computed(() => parseRoles(roleRef.value))
+  function setUser(val: User | null) {
+    user.value = val
+  }
+
+  function logout() {
+    token.value = null
+    user.value = null
+    role.value = null
+    localStorage.removeItem(STORAGE_KEYS.TOKEN)
+    localStorage.removeItem(STORAGE_KEYS.USER_ROLE)
+  }
+
+  function isRole(roleName: string): boolean {
+    return roles.value.includes(roleName)
+  }
+
+  function hasAnyRole(roleList: string[]): boolean {
+    return roleList.some(r => roles.value.includes(r))
+  }
+
+  function hasAllRoles(roleList: string[]): boolean {
+    return roleList.every(r => roles.value.includes(r))
+  }
+
+  // 监听 storage 事件（跨标签页同步）
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEYS.TOKEN) {
+        token.value = e.newValue
+      }
+      if (e.key === STORAGE_KEYS.USER_ROLE) {
+        role.value = e.newValue
+      }
+    })
+  }
 
   return {
-    state,
-    setUser,
-    // token/role helpers
-    tokenRef,
-    roleRef,
-    loggedIn,
+    // State
+    token,
+    user,
+    role,
+    // Getters
+    isLoggedIn,
+    isAdmin,
     roles,
-    getToken,
-    getUserRole,
+    // Actions
     setToken,
     setUserRole,
-    logoutLocal,
-    isLoggedIn: () => !!tokenRef.value,
-    isRole: (role: string) => roles.value.includes(role),
-    hasAnyRole: (list: string[]) => list.some(r => roles.value.includes(r)),
-    hasAllRoles: (list: string[]) => list.every(r => roles.value.includes(r)),
+    setUser,
+    logout,
+    isRole,
+    hasAnyRole,
+    hasAllRoles,
   }
-}
-
-export function setToken(value: string | null) {
-  if (value == null) localStorage.removeItem(TOKEN_KEY)
-  else localStorage.setItem(TOKEN_KEY, value)
-  tokenRef.value = value
-}
-
-export function setUserRole(role: string | null) {
-  if (role == null) localStorage.removeItem(ROLE_KEY)
-  else localStorage.setItem(ROLE_KEY, role)
-  roleRef.value = role
-}
+})

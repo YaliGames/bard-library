@@ -215,9 +215,9 @@ import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/
 const route = useRoute()
 const router = useRouter()
 const { state: userSettings } = useSettingsStore()
-const { loggedIn, isRole } = useAuthStore()
-const isLoggedIn = loggedIn
-const isAdmin = computed(() => isRole('admin'))
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const isAdmin = computed(() => authStore.isAdmin)
 const fileId = Number(route.params.id)
 const bookId = ref<number>(0)
 const initialChapterIndex = ref<number | undefined>(undefined)

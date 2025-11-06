@@ -8,11 +8,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import ShelfBrowser from '@/components/Shelf/ShelfBrowser.vue'
 
-const { loggedIn } = useAuthStore()
-const isLoggedIn = loggedIn
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 </script>
 
 <style scoped></style>

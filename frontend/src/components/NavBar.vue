@@ -160,19 +160,18 @@
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
-import { useAuthStore, logoutLocal } from '@/stores/auth'
+import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { settingsApi } from '@/api/settings'
 import { navMenu, userMenu } from '@/config/navMenu'
 const router = useRouter()
-const { state: authState, setUser } = useAuthStore()
+const authStore = useAuthStore()
 const { setAll: setAllSettings } = useSettingsStore()
-const user = computed(() => authState.user)
+const user = computed(() => authStore.user)
 const loadingUser = ref(false)
 const mobileOpen = ref(false)
 
-const { isRole } = useAuthStore()
-const isAdmin = computed(() => isRole('admin'))
+const isAdmin = computed(() => authStore.isAdmin)
 const avatarLetter = computed(() =>
   (user.value?.name?.[0] || user.value?.email?.[0] || 'U').toUpperCase(),
 )
@@ -196,22 +195,22 @@ const fetchUserFailed = ref(false)
 async function fetchUser() {
   const token = localStorage.getItem('token')
   if (!token) {
-    setUser(null)
+    authStore.setUser(null)
     fetchUserFailed.value = false
     return
   }
   loadingUser.value = true
   try {
     const me = await authApi.me()
-    setUser(me)
+    authStore.setUser(me)
     fetchUserFailed.value = false
   } catch (e: any) {
-    setUser(null)
+    authStore.setUser(null)
     fetchUserFailed.value = true
     // 如果是服务器错误(500)或认证错误(401,403),清除 token 并跳转登录
     const status = e?.status || e?.response?.status
     if (status === 401 || status === 403 || status === 500) {
-      logoutLocal()
+      authStore.logout()
       const redirect = encodeURIComponent(
         window.location.pathname + window.location.search + window.location.hash,
       )
@@ -266,7 +265,7 @@ async function logoutAndGo() {
   try {
     await authApi.logout()
   } catch {}
-  setUser(null)
+  authStore.setUser(null)
   mobileOpen.value = false
   router.push({ name: 'login' })
 }

@@ -1,6 +1,6 @@
 import { http } from './http'
 import type { User } from './types'
-import { setToken, setUserRole, logoutLocal } from '@/stores/auth'
+import { useAuthStore } from '@/stores/auth'
 
 // 类型定义
 export interface LoginResponse {
@@ -35,10 +35,14 @@ export const authApi = {
    */
   login: async (email: string, password: string) => {
     const res = await http.post<LoginResponse>('/api/v1/auth/login', { email, password })
-    setToken(res.token)
-    const role = (res.user as any)?.role || ''
-    if (role) setUserRole(role)
-    else setUserRole(null)
+    
+    const authStore = useAuthStore()
+    authStore.setToken(res.token)
+    authStore.setUser(res.user)
+    
+    const role = (res.user as any)?.role || null
+    authStore.setUserRole(role)
+    
     return res
   },
 
@@ -62,7 +66,8 @@ export const authApi = {
     try {
       await http.post<void>('/api/v1/auth/logout')
     } finally {
-      logoutLocal()
+      const authStore = useAuthStore()
+      authStore.logout()
     }
   },
 

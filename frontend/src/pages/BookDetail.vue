@@ -250,9 +250,9 @@ const route = useRoute()
 const router = useRouter()
 const id = Number(route.params.id)
 
-const { loggedIn, isRole } = useAuthStore()
-const isLoggedIn = loggedIn
-const isAdmin = computed(() => isRole('admin'))
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const isAdmin = computed(() => authStore.isAdmin)
 
 const loading = ref(true)
 const book = ref<Book | null>(null)

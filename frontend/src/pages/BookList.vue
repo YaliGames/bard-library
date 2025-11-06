@@ -185,8 +185,8 @@ const err = ref('')
 const sort = ref<'modified' | 'created' | 'rating' | 'id'>('created')
 const order = ref<'asc' | 'desc'>('desc')
 const route = useRoute()
-const { loggedIn } = useAuthStore()
-const isLoggedIn = loggedIn
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 // 骨架数量与分页大小一致，兜底 12
 const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
 
