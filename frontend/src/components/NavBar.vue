@@ -164,6 +164,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { settingsApi } from '@/api/settings'
 import { navMenu, userMenu } from '@/config/navMenu'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError } = useErrorHandler()
 const router = useRouter()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
@@ -208,6 +211,7 @@ async function fetchUser() {
   } catch (e: any) {
     authStore.setUser(null)
     fetchUserFailed.value = true
+    handleError(e, { context: 'NavBar.fetchUser', showToast: false })
     // 如果是服务器错误(500)或认证错误(401,403),清除 token 并跳转登录
     const status = e?.status || e?.response?.status
     if (status === 401 || status === 403 || status === 500) {

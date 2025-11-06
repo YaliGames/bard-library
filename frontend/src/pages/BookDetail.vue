@@ -87,7 +87,10 @@
               :authors="(book.authors || []).map(a => a.name)"
               class="rounded"
             />
-            <div class="absolute top-2 right-2 flex gap-1" v-if="userSettings.bookDetail?.showReadTag">
+            <div
+              class="absolute top-2 right-2 flex gap-1"
+              v-if="userSettings.bookDetail?.showReadTag"
+            >
               <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
               <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>
             </div>
@@ -235,7 +238,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { getDownloadUrl } from '@/utils/signedUrls'
 import CoverImage from '@/components/CoverImage.vue'
 import BookActions from '@/components/Book/Actions.vue'
@@ -245,7 +247,9 @@ import { txtApi } from '@/api/txt'
 import type { FileRec, Book } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 
+const { handleError, handleSuccess } = useErrorHandler()
 const route = useRoute()
 const router = useRouter()
 const id = Number(route.params.id)
@@ -298,7 +302,7 @@ onMounted(async () => {
         continueTarget.value = { fileId, chapterIndex }
       }
     } catch (e: any) {
-      ElMessage.error(e?.message || '读取阅读进度失败')
+      handleError(e, { context: 'BookDetail.loadReadingProgress' })
     }
     // 加载章节（若存在 txt 文件）
     const firstTxt = fs.find(f => (f.format || '').toLowerCase() === 'txt')
@@ -307,14 +311,14 @@ onMounted(async () => {
       try {
         chapters.value = await txtApi.listChapters(firstTxt.id)
       } catch (e: any) {
-        ElMessage.error(e?.message || '加载章节失败')
+        handleError(e, { context: 'BookDetail.loadChapters' })
       } finally {
         chaptersLoading.value = false
       }
     }
   } catch (e: any) {
     err.value = e?.message || '加载失败'
-    ElMessage.error(err.value)
+    handleError(e, { context: 'BookDetail.loadBook' })
   } finally {
     loading.value = false
   }
@@ -367,9 +371,9 @@ async function toggleRead() {
   try {
     await booksApi.markRead(book.value.id, target)
     ;(book.value as any).is_read_mark = target ? 1 : 0
-    ElMessage.success(target ? '已标记为已读' : '已取消已读')
+    handleSuccess(target ? '已标记为已读' : '已取消已读')
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    handleError(e, { context: 'BookDetail.toggleRead' })
   }
 }
 
@@ -377,7 +381,10 @@ function openChapterFromDetail(index: number) {
   // 使用当前首个 TXT 文件进入阅读器并跳转到指定章节
   const firstTxt = files.value.filter(f => (f.format || '').toLowerCase() === 'txt')[0]
   if (!firstTxt) {
-    ElMessage.warning('未找到可阅读的 TXT 文件')
+    handleError(new Error('未找到可阅读的 TXT 文件'), {
+      context: 'BookDetail.openChapter',
+      message: '未找到可阅读的 TXT 文件',
+    })
     return
   }
   router.push({

@@ -72,7 +72,9 @@ import { ref, onMounted } from 'vue'
 import ShelfCardList from '@/components/Shelf/CardList.vue'
 import type { Shelf } from '@/api/types'
 import { shelvesApi } from '@/api/shelves'
-import { ElMessage } from 'element-plus'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const props = withDefaults(
   defineProps<{
@@ -129,11 +131,8 @@ async function reload(page = 1) {
   }
 }
 
-// 点击卡片直接通过卡片内部的 router-link 进入详情
-
 // 创建/编辑
 const createVisible = ref(false)
-// 移除废弃变量，避免未使用告警
 const form = ref<{ name: string; description?: string; is_public?: boolean }>({ name: '' }) // 已废弃
 const saving = ref(false)
 
@@ -141,7 +140,6 @@ function openCreate() {
   form.value = { name: '', description: '', is_public: props.admin ? true : undefined }
   createVisible.value = true
 }
-// 列表不再提供编辑入口
 
 async function createShelf() {
   if (!props.canManage) return
@@ -156,16 +154,13 @@ async function createShelf() {
     await shelvesApi.createRaw(payload)
     createVisible.value = false
     await reload()
-    ElMessage.success('已创建')
+    handleSuccess('已创建')
   } catch (e: any) {
-    ElMessage.error(e?.message || '创建失败')
+    handleError(e, { context: 'ShelfBrowser.createShelf' })
   } finally {
     saving.value = false
   }
 }
-// 列表不再保存编辑
-
-// 列表不再提供删除入口
 
 onMounted(reload)
 </script>

@@ -149,12 +149,13 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { authApi } from '@/api/auth'
 import { type User } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 
+const { handleError, handleSuccess } = useErrorHandler()
 const { setUser } = useAuthStore()
 
 const profileRef = ref()
@@ -217,14 +218,11 @@ onMounted(async () => {
     profile.name = me.name
     profile.email = me.email
     profile.role = me.role
-    // @ts-ignore 兼容后端新增字段
     profile.location = me.location || ''
-    // @ts-ignore
     profile.website = me.website || ''
-    // @ts-ignore
     profile.bio = me.bio || ''
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载失败')
+    handleError(e, { context: 'Profile.loadUserInfo' })
   } finally {
     loadingProfile.value = false
   }
@@ -243,9 +241,9 @@ function onSaveProfile() {
       })
       // 同步到全局 user（至少 name 会更新）
       setUser(updated as any)
-      ElMessage.success('已保存')
+      handleSuccess('已保存')
     } catch (e: any) {
-      ElMessage.error(e?.message || '保存失败')
+      handleError(e, { context: 'Profile.saveProfile' })
     } finally {
       savingProfile.value = false
     }
@@ -261,10 +259,10 @@ function onChangePwd() {
         current_password: pwd.current_password,
         new_password: pwd.new_password,
       })
-      ElMessage.success('密码已更新')
+      handleSuccess('密码已更新')
       pwd.current_password = pwd.new_password = pwd.new_password2 = ''
     } catch (e: any) {
-      ElMessage.error(e?.message || '更新失败')
+      handleError(e, { context: 'Profile.changePassword' })
     } finally {
       savingPwd.value = false
     }
@@ -275,9 +273,9 @@ async function onRequestDelete() {
   deleting.value = true
   try {
     await authApi.requestDelete()
-    ElMessage.success('已提交删除申请，我们会尽快处理')
+    handleSuccess('已提交删除申请，我们会尽快处理')
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    handleError(e, { context: 'Profile.requestDelete' })
   } finally {
     deleting.value = false
   }

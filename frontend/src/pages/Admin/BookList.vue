@@ -124,7 +124,10 @@ import CoverImage from '@/components/CoverImage.vue'
 import BookFilters from '@/components/Book/Filters.vue'
 import { booksApi } from '@/api/books'
 import type { Book } from '@/api/types'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const router = useRouter()
 const filters = ref({
@@ -171,7 +174,7 @@ async function fetchList(page = 1) {
     rows.value = r.data
     meta.value = r.meta || null
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载失败')
+    handleError(e, { context: 'Admin.BookList.fetchList' })
   } finally {
     loading.value = false
   }
@@ -219,10 +222,10 @@ async function del(id: number) {
   }
   try {
     await booksApi.remove(id, { withFiles })
-    ElMessage.success(withFiles ? '已删除（含封面与附件）' : '已删除记录')
+    handleSuccess(withFiles ? '已删除（含封面与附件）' : '已删除记录')
     await fetchList(meta.value?.current_page || 1)
   } catch (e: any) {
-    ElMessage.error(e?.message || '删除失败')
+    handleError(e, { context: 'Admin.BookList.del' })
   }
 }
 function goCreateNew() {

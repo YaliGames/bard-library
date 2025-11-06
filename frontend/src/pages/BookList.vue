@@ -150,13 +150,15 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import CoverImage from '@/components/CoverImage.vue'
 import BookFilters from '@/components/Book/Filters.vue'
 import { booksApi } from '@/api/books'
 import type { Book } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const data = ref<Book[]>([])
 const meta = ref<{
@@ -226,6 +228,7 @@ async function fetchBooks(page = 1) {
     meta.value = r.meta || null
   } catch (e: any) {
     err.value = e?.message || '加载失败'
+    handleError(e, { context: 'BookList.fetchBooks', showToast: false })
   } finally {
     loading.value = false
   }
@@ -265,9 +268,9 @@ async function toggleRead(b: Book) {
     await booksApi.markRead(b.id, target)
     // 乐观更新 & 回刷列表
     ;(b as any).is_read_mark = target ? 1 : 0
-    ElMessage.success(target ? '已标记为已读' : '已取消已读')
+    handleSuccess(target ? '已标记为已读' : '已取消已读')
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    handleError(e, { context: 'BookList.toggleRead' })
   }
 }
 

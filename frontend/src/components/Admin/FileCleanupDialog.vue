@@ -150,8 +150,10 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { ElMessage } from 'element-plus'
 import { adminFilesApi } from '@/api/adminFiles'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'executed'): void }>()
@@ -215,7 +217,7 @@ async function previewCleanup() {
       removePhysical: removePhysical.value,
     })
   } catch (e: any) {
-    ElMessage.error(e?.message || '预览失败')
+    handleError(e, { context: 'FileCleanupDialog.previewCleanup' })
   } finally {
     cleaning.value = false
   }
@@ -231,17 +233,20 @@ async function executeCleanup() {
     if (ckMissing.value) kinds.push('missing')
     if (ckOrphans.value) kinds.push('orphans')
     if (kinds.length === 0) {
-      ElMessage.error('请至少选择一项清理内容')
+      handleError(new Error('No cleanup kind selected'), {
+        context: 'FileCleanupDialog.executeCleanup',
+        message: '请至少选择一项清理内容',
+      })
       return
     }
     if (ckOrphans.value) removePhysical.value = true
     await adminFilesApi.cleanup({ kinds, dry: false, removePhysical: removePhysical.value })
-    ElMessage.success('清理完成')
+    handleSuccess('清理完成')
     cleanupPreview.value = null
     emit('executed')
     currentStep.value = 2
   } catch (e: any) {
-    ElMessage.error(e?.message || '清理失败')
+    handleError(e, { context: 'FileCleanupDialog.executeCleanup' })
   } finally {
     cleaning.value = false
   }

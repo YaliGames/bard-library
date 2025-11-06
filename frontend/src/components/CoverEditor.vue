@@ -42,9 +42,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import CoverImage from './CoverImage.vue'
-import { ElMessage } from 'element-plus'
 import { coversApi } from '@/api/covers'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 
+const { handleError, handleSuccess } = useErrorHandler()
 const props = defineProps<{
   modelValue: number | null | undefined
   bookId?: number
@@ -67,7 +68,10 @@ const url = ref('')
 async function onFileChange(file: any) {
   if (!file?.raw) return
   if (!props.bookId) {
-    ElMessage.error('请先保存图书后再上传封面')
+    handleError(new Error('Book ID is required'), {
+      context: 'CoverEditor.onFileChange',
+      message: '请先保存图书后再上传封面',
+    })
     return
   }
   uploading.value = true
@@ -77,9 +81,9 @@ async function onFileChange(file: any) {
     const r = await coversApi.upload(props.bookId, fd)
     emit('update:modelValue', r.file_id)
     emit('changed', r.file_id)
-    ElMessage.success('封面已更新')
+    handleSuccess('封面已更新')
   } catch (e: any) {
-    ElMessage.error(e?.message || '上传失败')
+    handleError(e, { context: 'CoverEditor.onFileChange' })
   } finally {
     uploading.value = false
   }
@@ -88,7 +92,10 @@ async function onFileChange(file: any) {
 async function importFromUrl() {
   if (!url.value) return
   if (!props.bookId) {
-    ElMessage.error('请先保存图书后再操作')
+    handleError(new Error('Book ID is required'), {
+      context: 'CoverEditor.importFromUrl',
+      message: '请先保存图书后再操作',
+    })
     return
   }
   linking.value = true
@@ -96,10 +103,10 @@ async function importFromUrl() {
     const r = await coversApi.fromUrl(props.bookId, { url: url.value })
     emit('update:modelValue', r.file_id)
     emit('changed', r.file_id)
-    ElMessage.success('封面已更新')
+    handleSuccess('封面已更新')
     url.value = ''
   } catch (e: any) {
-    ElMessage.error(e?.message || '导入失败')
+    handleError(e, { context: 'CoverEditor.importFromUrl' })
   } finally {
     linking.value = false
   }
@@ -117,9 +124,9 @@ async function removeCover() {
     await coversApi.clear(props.bookId)
     emit('update:modelValue', null)
     emit('changed', null)
-    ElMessage.success('已移除封面')
+    handleSuccess('已移除封面')
   } catch (e: any) {
-    ElMessage.error(e?.message || '移除失败')
+    handleError(e, { context: 'CoverEditor.removeCover' })
   } finally {
     removing.value = false
   }

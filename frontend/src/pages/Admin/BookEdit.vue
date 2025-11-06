@@ -212,13 +212,16 @@ import { tagsApi } from '@/api/tags'
 import { seriesApi } from '@/api/series'
 import type { Book, FileRec, Author, Tag, Series } from '@/api/types'
 import { importsApi } from '@/api/imports'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import CoverEditor from '@/components/CoverEditor.vue'
 import MetadataSearchDialog from '@/components/Metadata/SearchDialog.vue'
 import type { MetaRecord } from '@/types/metadata'
 import { metadataApi } from '@/api/metadata'
 import { coversApi } from '@/api/covers'
 import { getDownloadUrl } from '@/utils/signedUrls'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const route = useRoute()
 const router = useRouter()
@@ -347,9 +350,9 @@ async function save() {
         }
       }
     }
-    ElMessage.success('保存成功')
+    handleSuccess('保存成功')
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    handleError(e, { context: 'Admin.BookEdit.save' })
   }
 }
 
@@ -368,9 +371,9 @@ async function removeFile(fid: number) {
     if (!isNew.value) {
       files.value = await booksApi.files(Number(idParam))
     }
-    ElMessage.success('已删除')
+    handleSuccess('已删除')
   } catch (e: any) {
-    ElMessage.error(e?.message || '删除失败')
+    handleError(e, { context: 'Admin.BookEdit.removeFile' })
   }
 }
 
@@ -394,7 +397,7 @@ async function uploadToCurrent() {
     await importsApi.upload(fd)
     files.value = await booksApi.files(Number(idParam))
     pickedFile.value = null
-    ElMessage.success('上传成功')
+    handleSuccess('上传成功')
   } finally {
     uploading.value = false
   }
@@ -477,7 +480,7 @@ async function onMetaApply(payload: { item: MetaRecord; provider: string }) {
     }
   }
   metaDialogVisible.value = false
-  ElMessage.success('已填充元数据，请确认并保存')
+  handleSuccess('已填充元数据，请确认并保存')
 }
 
 function formatDateYmd(d: Date): string {

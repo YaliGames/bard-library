@@ -119,10 +119,13 @@
 </template>
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { settingsApi, type UserSettings } from '@/api/settings'
 import { useSettingsStore, defaultSettings } from '@/stores/settings'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const settingsStore = useSettingsStore()
 const userSettings = settingsStore.settings
@@ -161,9 +164,9 @@ async function onSave() {
     const merged = { ...userSettings, ...local }
     const remote = await settingsApi.update(merged)
     setAll(remote)
-    ElMessage.success('已保存')
+    handleSuccess('已保存')
   } catch (e: any) {
-    ElMessage.warning(e?.message || '保存失败')
+    handleError(e, { context: 'UserSettings.save' })
   } finally {
     saving.value = false
   }

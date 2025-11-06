@@ -280,7 +280,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import CoverImage from '@/components/CoverImage.vue'
 import BookFilters from '@/components/Book/Filters.vue'
 import { booksApi } from '@/api/books'
@@ -288,6 +288,9 @@ import type { Book, Shelf } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { shelvesApi } from '@/api/shelves'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const data = ref<Book[]>([])
 const meta = ref<{
@@ -360,9 +363,9 @@ async function saveShelf() {
       is_public: form.value.is_public,
     })
     await fetchShelfInfo()
-    ElMessage.success('已保存')
+    handleSuccess('已保存')
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    handleError(e, { context: 'ShelfDetail.saveShelf' })
   }
 }
 
@@ -379,14 +382,14 @@ async function deleteShelf() {
   }
   try {
     await shelvesApi.remove(shelf.value.id)
-    ElMessage.success('已删除')
+    handleSuccess('已删除')
     if (authStore.isRole('admin')) {
       router.push({ name: 'admin-shelf-list' })
     } else {
       router.push({ name: 'user-shelves' })
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || '删除失败')
+    handleError(e, { context: 'ShelfDetail.deleteShelf' })
   }
 }
 
@@ -477,9 +480,9 @@ async function toggleRead(b: Book) {
   try {
     await booksApi.markRead(b.id, target)
     ;(b as any).is_read_mark = target ? 1 : 0
-    ElMessage.success(target ? '已标记为已读' : '已取消已读')
+    handleSuccess(target ? '已标记为已读' : '已取消已读')
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    handleError(e, { context: 'ShelfDetail.toggleRead' })
   }
 }
 
@@ -540,9 +543,9 @@ async function addToShelf(b: Book) {
       submitIds = Array.from(new Set([...myIds, shelf.value.id]))
     }
     await booksApi.setShelves(b.id, submitIds)
-    ElMessage.success('已添加')
+    handleSuccess('已添加')
   } catch (e: any) {
-    ElMessage.error(e?.message || '添加失败')
+    handleError(e, { context: 'ShelfDetail.addToShelf' })
   }
 }
 
@@ -564,9 +567,9 @@ async function removeFromShelf(b: Book) {
     await booksApi.setShelves(b.id, submitIds)
     // 本页列表移除该书
     data.value = data.value.filter(x => x.id !== b.id)
-    ElMessage.success('已移出')
+    handleSuccess('已移出')
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    handleError(e, { context: 'ShelfDetail.removeFromShelf' })
   }
 }
 

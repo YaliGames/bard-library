@@ -207,11 +207,13 @@
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
 import { importsApi } from '@/api/imports'
 import { useRouter } from 'vue-router'
 import { systemSettingsApi } from '@/api/systemSettings'
 import { formatBytes } from '@/utils/systemSettings'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const uploader = ref()
 const uploadKey = ref(0)
@@ -243,7 +245,10 @@ function onFileChange(_fileObj: any, fileList?: any[]) {
   // 按顺序保留前 maxBatch 个
   const limited = list.slice(0, Math.max(1, maxBatch.value))
   if (list.length > limited.length) {
-    ElMessage.warning(`最多一次性上传 ${maxBatch.value} 个文件，已保留前 ${maxBatch.value} 个`)
+    handleError(new Error('Exceed max batch'), {
+      context: 'Admin.BookUpload.onFileChange',
+      message: `最多一次性上传 ${maxBatch.value} 个文件，已保留前 ${maxBatch.value} 个`,
+    })
   }
 
   // 过滤超过大小限制的文件（基于 raw.size）
@@ -252,7 +257,10 @@ function onFileChange(_fileObj: any, fileList?: any[]) {
     const limit = sizeLimitBytes.value
     const overs = allowed.filter((it: any) => (it?.raw?.size ?? 0) > limit)
     if (overs.length) {
-      ElMessage.warning(`已移除 ${overs.length} 个超过大小限制（>${formatBytes(limit)}）的文件`)
+      handleError(new Error('Exceed size limit'), {
+        context: 'Admin.BookUpload.onFileChange',
+        message: `已移除 ${overs.length} 个超过大小限制（>${formatBytes(limit)}）的文件`,
+      })
       allowed = allowed.filter((it: any) => (it?.raw?.size ?? 0) <= limit)
     }
   }
@@ -268,7 +276,10 @@ function onFileRemove(_fileObj: any, fileList?: any[]) {
 }
 
 function onExceed() {
-  ElMessage.warning(`最多一次性上传 ${maxBatch.value} 个文件`)
+  handleError(new Error('Exceed max batch'), {
+    context: 'Admin.BookUpload.onExceed',
+    message: `最多一次性上传 ${maxBatch.value} 个文件`,
+  })
 }
 
 function reset() {
@@ -360,22 +371,31 @@ function restoreLast() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
-      ElMessage.info('没有可恢复的导入记录')
+      handleError(new Error('No restore data'), {
+        context: 'Admin.BookUpload.restoreLast',
+        message: '没有可恢复的导入记录',
+      })
       return
     }
     const obj = JSON.parse(raw)
     const arr = Array.isArray(obj?.results) ? obj.results : []
     if (!arr.length) {
-      ElMessage.info('记录为空')
+      handleError(new Error('No restore data'), {
+        context: 'Admin.BookUpload.restoreLast',
+        message: '导入记录为空',
+      })
       return
     }
     results.value = arr
     uploading.value = false
     doneCount.value = results.value.length
     step.value = 2
-    ElMessage.success('已恢复上次导入结果')
+    handleSuccess('已恢复上次导入结果')
   } catch {
-    ElMessage.error('恢复失败：记录格式不正确')
+    handleError(new Error('Illegal restore data format'), {
+      context: 'Admin.BookUpload.restoreLast',
+      message: '恢复上传记录失败，记录格式不正确',
+    })
   }
 }
 
@@ -384,7 +404,7 @@ function clearSaved() {
     localStorage.removeItem(STORAGE_KEY)
   } catch {}
   refreshHasSaved()
-  ElMessage.success('已清除保存的导入记录')
+  handleSuccess('已清除保存的导入记录')
 }
 
 onMounted(async () => {

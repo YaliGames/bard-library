@@ -106,7 +106,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 
 interface Item {
   id: number
@@ -138,6 +138,7 @@ const props = defineProps<{
   tableHeight?: number | string
 }>()
 
+const { handleError, handleSuccess } = useErrorHandler()
 const router = useRouter()
 const q = ref('')
 const newName = ref('')
@@ -180,7 +181,7 @@ async function load() {
   try {
     items.value = await props.fetchList(q.value.trim() || undefined)
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载失败')
+    handleError(e, { context: 'AdminCrudList.load' })
   } finally {
     loading.value = false
   }
@@ -202,7 +203,7 @@ async function loadRemote() {
       sortOrder: order as any,
     })
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载失败')
+    handleError(e, { context: 'AdminCrudList.loadRemote' })
   } finally {
     loading.value = false
   }
@@ -237,9 +238,9 @@ async function create() {
     newName.value = ''
     newExtras.value = {}
     await reload()
-    ElMessage.success('已创建')
+    handleSuccess('已创建')
   } catch (e: any) {
-    ElMessage.error(e?.message || '创建失败')
+    handleError(e, { context: 'AdminCrudList.create' })
   } finally {
     creating.value = false
   }
@@ -273,9 +274,9 @@ async function update(id: number) {
     }
     cancelEdit()
     await reload()
-    ElMessage.success('已保存')
+    handleSuccess('已保存')
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    handleError(e, { context: 'AdminCrudList.update' })
   } finally {
     updating.value = false
   }
@@ -286,9 +287,9 @@ async function remove(id: number) {
   try {
     await props.deleteItem(id)
     await reload()
-    ElMessage.success('已删除')
+    handleSuccess('已保存')
   } catch (e: any) {
-    ElMessage.error(e?.message || '删除失败')
+    handleError(e, { context: 'AdminCrudList.remove' })
   } finally {
     removingId.value = null
   }

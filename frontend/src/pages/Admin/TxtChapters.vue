@@ -134,8 +134,11 @@ import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { txtApi, type Chapter } from '@/api/txt'
 import { adminFilesApi, type AdminFileItem } from '@/api/adminFiles'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { builtinRegexPresets } from '@/config/regexPresets'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+
+const { handleError, handleSuccess } = useErrorHandler()
 
 const router = useRouter()
 const route = useRoute()
@@ -195,7 +198,7 @@ async function searchFiles(query: string) {
     const res = await adminFilesApi.list({ q: query, format: 'txt' })
     txtFiles.value = res.items
   } catch (e: any) {
-    ElMessage.error(e?.message || '搜索失败')
+    handleError(e, { context: 'Admin.TxtChapters.searchFiles' })
     txtFiles.value = []
   } finally {
     filesLoading.value = false
@@ -211,7 +214,10 @@ function onFileSelected(id: number | undefined) {
 
 async function load() {
   if (!selectedFileId.value) {
-    ElMessage.error('请先选择一个 TXT 文件')
+    handleError(new Error('No file selected'), {
+      context: 'Admin.TxtChapters.load',
+      message: '请先选择一个 TXT 文件',
+    })
     return
   }
   fileId.value = selectedFileId.value
@@ -226,7 +232,7 @@ async function fetchChapters() {
   try {
     chapters.value = await txtApi.listChapters(fileId.value)
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载失败')
+    handleError(e, { context: 'Admin.TxtChapters.fetchChapters' })
   } finally {
     chaptersLoading.value = false
   }
@@ -234,7 +240,10 @@ async function fetchChapters() {
 
 async function preview() {
   if (!fileId.value) {
-    ElMessage.error('请先选择一个 TXT 文件')
+    handleError(new Error('No file selected'), {
+      context: 'Admin.TxtChapters.preview',
+      message: '请先选择一个 TXT 文件',
+    })
     return
   }
 
@@ -247,7 +256,10 @@ async function preview() {
   }
 
   if (!pat) {
-    ElMessage.warning('请选择内置规则或输入自定义正则表达式')
+    handleError(new Error('No pattern provided'), {
+      context: 'Admin.TxtChapters.preview',
+      message: '请选择内置规则或输入自定义正则表达式',
+    })
     return
   }
 
@@ -256,7 +268,7 @@ async function preview() {
   try {
     chapters.value = await txtApi.listChapters(fileId.value, { pattern: pat, dry: true })
   } catch (e: any) {
-    ElMessage.error(e?.message || '预览失败')
+    handleError(e, { context: 'Admin.TxtChapters.preview' })
   } finally {
     chaptersLoading.value = false
   }
@@ -274,18 +286,21 @@ async function save() {
   }
 
   if (!pat) {
-    ElMessage.warning('请选择内置规则或输入自定义正则表达式')
+    handleError(new Error('No pattern provided'), {
+      context: 'Admin.TxtChapters.save',
+      message: '请选择内置规则或输入自定义正则表达式',
+    })
     return
   }
 
   saving.value = true
   try {
     await txtApi.saveChapters(fileId.value, { pattern: pat, replace: true })
-    ElMessage.success('已保存')
+    handleSuccess('章节目录已保存')
     isPreviewMode.value = false // 退出预览模式
     await fetchChapters()
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    handleError(e, { context: 'Admin.TxtChapters.save' })
   } finally {
     saving.value = false
   }
@@ -303,7 +318,7 @@ async function promptRename(row: Chapter) {
     const title = (value ?? '').trim()
     if (!fileId.value) return
     await txtApi.renameChapter(fileId.value, row.index, title || null)
-    ElMessage.success('已重命名')
+    handleSuccess('已重命名章节')
     await fetchChapters()
   } catch {
     // cancelled
@@ -317,7 +332,10 @@ async function onDeleteMerge(row: Chapter, direction: 'prev' | 'next') {
   const isFirst = row.index === 0
   const isLast = chapters.value.length > 0 && row.index === chapters.value.length - 1
   if ((direction === 'prev' && isFirst) || (direction === 'next' && isLast)) {
-    ElMessage.warning('无法与不存在的相邻章节合并')
+    handleError(new Error('Cannot merge with non-existing chapter'), {
+      context: 'Admin.TxtChapters.onDeleteMerge',
+      message: '无法与不存在的相邻章节合并',
+    })
     return
   }
   try {
@@ -336,10 +354,10 @@ async function onDeleteMerge(row: Chapter, direction: 'prev' | 'next') {
   }
   try {
     await txtApi.deleteChapterWithMerge(fileId.value, row.index, direction)
-    ElMessage.success('已删除并合并')
+    handleSuccess('已删除并合并章节')
     await fetchChapters()
   } catch (e: any) {
-    ElMessage.error(e?.message || '操作失败')
+    handleError(e, { context: 'Admin.TxtChapters.onDeleteMerge' })
   }
 }
 

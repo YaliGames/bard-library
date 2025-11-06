@@ -126,11 +126,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { adminFilesApi, type AdminFileItem } from '@/api/adminFiles'
 import { getPreviewUrl, getDownloadUrl } from '@/utils/signedUrls'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 import FileCleanupDialog from '@/components/Admin/FileCleanupDialog.vue'
 
+const { handleError, handleSuccess } = useErrorHandler()
 const router = useRouter()
 
 // 查询条件
@@ -178,7 +179,7 @@ async function reload() {
     })
     items.value = data.items
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载失败')
+    handleError(e, { context: 'Admin.FileManager.reload' })
   } finally {
     loading.value = false
   }
@@ -202,18 +203,23 @@ async function download(id: number) {
 async function remove(id: number, physical: boolean) {
   try {
     await adminFilesApi.remove(id, physical)
-    ElMessage.success('已删除')
+    handleSuccess('已删除文件')
     reload()
   } catch (e: any) {
-    ElMessage.error(e?.message || '删除失败')
+    handleError(e, { context: 'Admin.FileManager.remove' })
   }
 }
 
 function copy(text: string) {
   navigator.clipboard
     ?.writeText(text)
-    .then(() => ElMessage.success('已复制路径'))
-    .catch(() => ElMessage.error('复制失败'))
+    .then(() => handleSuccess('已复制路径'))
+    .catch(() =>
+      handleError(new Error('Copy failed'), {
+        context: 'Admin.FileManager.copy',
+        message: '复制路径失败',
+      }),
+    )
 }
 
 reload()

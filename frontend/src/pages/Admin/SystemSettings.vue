@@ -126,11 +126,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { systemSettingsApi, type SettingDef, type CategoryDef } from '@/api/systemSettings'
 import { parseSizeToBytes, formatBytes } from '@/utils/systemSettings'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
 
+const { handleError, handleSuccess } = useErrorHandler()
 const loading = ref(true)
 const saving = ref(false)
 
@@ -208,14 +210,10 @@ async function load() {
       active.value = Object.keys(categories)[0]
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || '加载失败')
+    handleError(e, { context: 'Admin.SystemSettings.load' })
   } finally {
     loading.value = false
   }
-}
-
-function reload() {
-  load()
 }
 
 // 确认重置对话框
@@ -266,13 +264,13 @@ async function resetToDefaults() {
         }
       }
     }
-    ElMessage.success('所有设置已重置为默认值')
+    handleSuccess('所有设置已重置为默认值')
     // 切换到第一个分类
     if (Object.keys(categories).length > 0) {
       active.value = Object.keys(categories)[0]
     }
   } catch (e: any) {
-    ElMessage.error(e?.message || '重置失败')
+    handleError(e, { context: 'Admin.SystemSettings.resetToDefaults' })
   } finally {
     saving.value = false
   }
@@ -289,7 +287,10 @@ async function save() {
       if (def.type === 'size') {
         const bytes = parseSizeToBytes(sizeInputs[k])
         if (bytes == null || bytes < 0) {
-          ElMessage.error(`「${labelOf(k, def)}」格式无效`)
+          handleError(new Error('Invalid size format'), {
+            context: 'Admin.SystemSettings.save',
+            message: `「${labelOf(k, def)}」格式无效`,
+          })
           return
         }
         payload[k] = { type: 'size', value: bytes }
@@ -299,7 +300,10 @@ async function save() {
           const v = t ? JSON.parse(t) : null
           payload[k] = { type: 'json', value: v }
         } catch {
-          ElMessage.error(`「${labelOf(k, def)}」JSON 语法错误`)
+          handleError(new Error('Invalid JSON format'), {
+            context: 'Admin.SystemSettings.save',
+            message: `「${labelOf(k, def)}」JSON 语法错误`,
+          })
           return
         }
       } else if (def.type === 'bool') {
@@ -307,7 +311,10 @@ async function save() {
       } else if (def.type === 'int') {
         const n = Number(valuesReactive[k] ?? 0)
         if (!Number.isFinite(n)) {
-          ElMessage.error(`「${labelOf(k, def)}」必须是整数`)
+          handleError(new Error('Invalid integer format'), {
+            context: 'Admin.SystemSettings.save',
+            message: `「${labelOf(k, def)}」必须是整数`,
+          })
           return
         }
         payload[k] = { type: 'int', value: Math.trunc(n) }
@@ -344,9 +351,9 @@ async function save() {
         }
       }
     }
-    ElMessage.success('已保存')
+    handleSuccess('设置已保存')
   } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
+    handleError(e, { context: 'Admin.SystemSettings.save' })
   } finally {
     saving.value = false
   }
