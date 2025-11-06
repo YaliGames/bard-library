@@ -72,7 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 监听 storage 事件（跨标签页同步）
   if (typeof window !== 'undefined') {
-    window.addEventListener('storage', (e) => {
+    window.addEventListener('storage', e => {
       if (e.key === STORAGE_KEYS.TOKEN) {
         token.value = e.newValue
       }

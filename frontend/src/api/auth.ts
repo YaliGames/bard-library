@@ -35,14 +35,14 @@ export const authApi = {
    */
   login: async (email: string, password: string) => {
     const res = await http.post<LoginResponse>('/api/v1/auth/login', { email, password })
-    
+
     const authStore = useAuthStore()
     authStore.setToken(res.token)
     authStore.setUser(res.user)
-    
+
     const role = (res.user as any)?.role || null
     authStore.setUserRole(role)
-    
+
     return res
   },
 

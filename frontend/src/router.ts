@@ -153,10 +153,10 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach(async (to) => {
+router.beforeEach(async to => {
   const authStore = useAuthStore()
   const systemStore = useSystemStore()
-  
+
   // ✅ 直接读取 store 状态（已在 App.vue 中初始化）
   // 如果系统不允许游客访问，且用户未登录，则重定向到登录页
   if (!systemStore.allowGuestAccess && !authStore.isLoggedIn) {
@@ -168,19 +168,19 @@ router.beforeEach(async (to) => {
 
   // 管理员路由检查
   const isAdminRoute = to.path.startsWith('/admin')
-  
+
   // 未登录禁止访问 /admin
   if (isAdminRoute && !authStore.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
-  
+
   // 管理路由：要求 admin 角色
   if (isAdminRoute && authStore.isLoggedIn) {
     if (!authStore.isRole('admin')) {
       return { name: 'home' }
     }
   }
-  
+
   // 若已登录仍访问登录页，重定向到书库
   if (to.name === 'login' && authStore.isLoggedIn) {
     return { name: 'books' }
