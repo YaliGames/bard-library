@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import ShelfBrowser from '@/components/Shelf/ShelfBrowser.vue'
+import ShelfBrowser from '@/components/Shelf/Browser.vue'
 
 const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)

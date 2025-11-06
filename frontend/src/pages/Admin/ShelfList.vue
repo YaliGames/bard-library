@@ -10,5 +10,5 @@
 </template>
 
 <script setup lang="ts">
-import ShelfBrowser from '@/components/Shelf/ShelfBrowser.vue'
+import ShelfBrowser from '@/components/Shelf/Browser.vue'
 </script>

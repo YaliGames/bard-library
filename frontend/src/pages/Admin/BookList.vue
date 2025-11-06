@@ -121,7 +121,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import CoverImage from '@/components/CoverImage.vue'
-import BookFilters from '@/components/Book/BookFilters.vue'
+import BookFilters from '@/components/Book/Filters.vue'
 import { booksApi } from '@/api/books'
 import type { Book } from '@/api/types'
 import { ElMessage, ElMessageBox } from 'element-plus'

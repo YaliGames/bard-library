@@ -64,14 +64,12 @@
         <el-button type="primary" :loading="saving" @click="createShelf">创建</el-button>
       </template>
     </el-dialog>
-
-    <!-- 列表页不再提供编辑/删除弹窗，编辑能力移动至详情页 -->
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import ShelfCardList from '@/components/Shelf/ShelfCardList.vue'
+import ShelfCardList from '@/components/Shelf/CardList.vue'
 import type { Shelf } from '@/api/types'
 import { shelvesApi } from '@/api/shelves'
 import { ElMessage } from 'element-plus'

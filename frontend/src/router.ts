@@ -37,7 +37,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/shelf/:id',
     name: 'shelf-detail',
-    component: () => import('./pages/Shelf.vue'),
+    component: () => import('./pages/ShelfDetail.vue'),
   },
   {
     path: '/books/:id',
@@ -48,17 +48,17 @@ const routes: RouteRecordRaw[] = [
     path: '/reader',
     children: [
       {
-        path: '/txt/:id',
+        path: 'txt/:id',
         name: 'reader-txt',
         component: () => import('./pages/Reader/TxtReader.vue'),
       },
       {
-        path: '/pdf/:id',
+        path: 'pdf/:id',
         name: 'reader-pdf',
         component: () => import('./pages/Reader/PdfReader.vue'),
       },
       {
-        path: '/epub/:id',
+        path: 'epub/:id',
         name: 'reader-epub',
         component: () => import('./pages/Reader/EpubReader.vue'),
       },
@@ -67,7 +67,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/user',
     redirect: {
-      name: 'user-index',
+      name: 'user-profile',
     },
     children: [
       {
@@ -91,57 +91,57 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'index',
         name: 'admin-index',
-        component: () => import('./pages/Admin/AdminIndex.vue'),
+        component: () => import('./pages/Admin/Index.vue'),
       },
       {
         path: 'upload',
         name: 'admin-upload',
-        component: () => import('./pages/Admin/AdminBookUpload.vue'),
+        component: () => import('./pages/Admin/BookUpload.vue'),
       },
       {
         path: 'books',
         name: 'admin-book-list',
-        component: () => import('./pages/Admin/AdminBookList.vue'),
+        component: () => import('./pages/Admin/BookList.vue'),
       },
       {
         path: 'books/:id',
         name: 'admin-book-edit',
-        component: () => import('./pages/Admin/AdminBookEdit.vue'),
+        component: () => import('./pages/Admin/BookEdit.vue'),
       },
       {
         path: 'authors',
         name: 'admin-author-list',
-        component: () => import('./pages/Admin/AdminAuthorList.vue'),
+        component: () => import('./pages/Admin/AuthorList.vue'),
       },
       {
         path: 'tags',
         name: 'admin-tag-list',
-        component: () => import('./pages/Admin/AdminTagList.vue'),
+        component: () => import('./pages/Admin/TagList.vue'),
       },
       {
         path: 'shelves',
         name: 'admin-shelf-list',
-        component: () => import('./pages/Admin/AdminShelfList.vue'),
+        component: () => import('./pages/Admin/ShelfList.vue'),
       },
       {
         path: 'series',
         name: 'admin-series-list',
-        component: () => import('./pages/Admin/AdminSeriesList.vue'),
+        component: () => import('./pages/Admin/SeriesList.vue'),
       },
       {
         path: 'files',
         name: 'admin-file-manager',
-        component: () => import('./pages/Admin/AdminFileManager.vue'),
+        component: () => import('./pages/Admin/FileManager.vue'),
       },
       {
         path: 'settings',
         name: 'system-settings',
-        component: () => import('./pages/Admin/AdminSystemSettings.vue'),
+        component: () => import('./pages/Admin/SystemSettings.vue'),
       },
       {
         path: 'txt/chapters/:id?',
         name: 'admin-txt-chapters',
-        component: () => import('./pages/Admin/AdminTxtChapters.vue'),
+        component: () => import('./pages/Admin/TxtChapters.vue'),
       },
     ],
   },
