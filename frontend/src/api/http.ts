@@ -37,12 +37,17 @@ function createClient(): AxiosInstance {
         const env = json as ApiEnvelope<any>
         if (env.code && env.code !== 0) {
           if (env.code === 401) {
-            localStorage.removeItem('token')
-            const redirect = encodeURIComponent(
-              window.location.pathname + window.location.search + window.location.hash,
+            const redirectTo =
+              window.location.pathname + window.location.search + window.location.hash
+            window.dispatchEvent(
+              new CustomEvent('app:unauthorized', { detail: { redirectTo } }),
             )
-            window.location.href = `/login?redirect=${redirect}`
-            return new Promise(() => {})
+            return Promise.reject(
+              Object.assign(new Error('Unauthorized'), {
+                code: 401,
+                status: 401,
+              }),
+            )
           }
           return Promise.reject(
             Object.assign(new Error(env.message || 'Request failed'), {
@@ -60,12 +65,14 @@ function createClient(): AxiosInstance {
       const data: any = error.response?.data
       const message = data?.message || data?.error || error.message || 'Network error'
       if (status === 401) {
-        localStorage.removeItem('token')
-        const redirect = encodeURIComponent(
-          window.location.pathname + window.location.search + window.location.hash,
+        const redirectTo = window.location.pathname + window.location.search + window.location.hash
+        window.dispatchEvent(new CustomEvent('app:unauthorized', { detail: { redirectTo } }))
+        return Promise.reject(
+          Object.assign(new Error('Unauthorized'), {
+            code: 401,
+            status: 401,
+          }),
         )
-        window.location.href = `/login?redirect=${redirect}`
-        return new Promise(() => {})
       }
       const err: any = new Error(message)
       err.status = status

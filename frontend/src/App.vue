@@ -14,22 +14,40 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import { useSystemStore } from '@/stores/system'
-// import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/auth'
 
 const systemStore = useSystemStore()
-// const authStore = useAuthStore()
+const authStore = useAuthStore()
+const router = useRouter()
+
+function handleUnauthorized(event: Event) {
+  const customEvent = event as CustomEvent<{ redirectTo: string }>
+  const redirectTo = customEvent.detail?.redirectTo || '/'
+
+  authStore.logout()
+
+  const redirect = encodeURIComponent(redirectTo)
+  router.push(`/login?redirect=${redirect}`)
+}
 
 onMounted(async () => {
   // 初始化系统配置
   await systemStore.fetchPublicPermissions()
-  
+
+  window.addEventListener('app:unauthorized', handleUnauthorized)
+
   // 如果已登录，可以在这里加载用户信息
   // if (authStore.isLoggedIn) {
   //   await loadUserInfo()
   // }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('app:unauthorized', handleUnauthorized)
 })
 </script>
 
