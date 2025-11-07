@@ -104,12 +104,13 @@ import { useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { getPublicPermissions } from '@/utils/publicSettings'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const router = useRouter()
 const { setUser } = useAuthStore()
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
+const { loading, withLoading } = useSimpleLoading(false)
 const err = ref('')
 const msg = ref('')
 const needVerify = ref(false)
@@ -127,34 +128,33 @@ onMounted(async () => {
 
 async function onSubmit() {
   if (!validateForm()) return
-  loading.value = true
   err.value = ''
-  try {
-    const res = await authApi.login(email.value, password.value)
-    if (res?.user) {
-      setUser(res.user as any)
-    } else {
-      try {
-        const me = await authApi.me()
-        setUser(me as any)
-      } catch {}
+  await withLoading(async () => {
+    try {
+      const res = await authApi.login(email.value, password.value)
+      if (res?.user) {
+        setUser(res.user as any)
+      } else {
+        try {
+          const me = await authApi.me()
+          setUser(me as any)
+        } catch {}
+      }
+      const redirect = (router.currentRoute.value.query.redirect as string) || ''
+      if (redirect) {
+        router.replace(redirect)
+      } else {
+        router.replace({ name: 'admin-book-list' })
+      }
+    } catch (e: any) {
+      if (e?.status === 403) {
+        needVerify.value = true
+        err.value = '邮箱未验证，请先完成邮箱验证'
+      } else {
+        err.value = e?.message || '登录失败'
+      }
     }
-    const redirect = (router.currentRoute.value.query.redirect as string) || ''
-    if (redirect) {
-      router.replace(redirect)
-    } else {
-      router.replace({ name: 'admin-book-list' })
-    }
-  } catch (e: any) {
-    if (e?.status === 403) {
-      needVerify.value = true
-      err.value = '邮箱未验证，请先完成邮箱验证'
-    } else {
-      err.value = e?.message || '登录失败'
-    }
-  } finally {
-    loading.value = false
-  }
+  })
 }
 
 function validateForm(): boolean {

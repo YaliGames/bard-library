@@ -220,8 +220,10 @@ import { metadataApi } from '@/api/metadata'
 import { coversApi } from '@/api/covers'
 import { getDownloadUrl } from '@/utils/signedUrls'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { loading: uploading, setLoading: setUploading } = useSimpleLoading(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -240,7 +242,6 @@ const tagsAll = ref<Tag[]>([])
 const authorValues = ref<(number | string)[]>([])
 const tagValues = ref<(number | string)[]>([])
 const pickedFile = ref<File | null>(null)
-const uploading = ref(false)
 const metaDialogVisible = ref(false)
 const pendingCoverUrl = ref<string | null>(null)
 const pendingCoverProvider = ref<string | null>(null)
@@ -389,7 +390,7 @@ function onFileRemoved() {
 
 async function uploadToCurrent() {
   if (!pickedFile.value || isNew.value) return
-  uploading.value = true
+  setUploading(true)
   try {
     const fd = new FormData()
     fd.append('file', pickedFile.value)
@@ -399,7 +400,7 @@ async function uploadToCurrent() {
     pickedFile.value = null
     handleSuccess('上传成功')
   } finally {
-    uploading.value = false
+    setUploading(false)
   }
 }
 

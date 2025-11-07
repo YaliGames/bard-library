@@ -248,6 +248,7 @@ import type { FileRec, Book } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
 const route = useRoute()
@@ -258,13 +259,15 @@ const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const isAdmin = computed(() => authStore.isAdmin)
 
-const loading = ref(true)
+const { isLoadingKey, startLoading, stopLoading } = useLoading()
+const loading = computed(() => isLoadingKey('book'))
+const chaptersLoading = computed(() => isLoadingKey('chapters'))
+
 const book = ref<Book | null>(null)
 const files = ref<FileRec[]>([])
 const err = ref('')
 const continueTarget = ref<{ fileId: number; chapterIndex?: number } | null>(null)
 const chapters = ref<{ index: number; title?: string | null; offset: number; length: number }[]>([])
-const chaptersLoading = ref(false)
 
 const isReadMark = computed(() => book.value?.is_read_mark || book.value?.is_read_mark === 1)
 const isReading = computed(() => book.value?.is_reading || book.value?.is_reading === 1)
@@ -286,6 +289,7 @@ function humanSize(n: number) {
 // 封面预览由 CoverImage 组件处理
 
 onMounted(async () => {
+  startLoading('book')
   try {
     const [b, fs] = await Promise.all([booksApi.get(id), booksApi.files(id)])
     book.value = b
@@ -307,20 +311,20 @@ onMounted(async () => {
     // 加载章节（若存在 txt 文件）
     const firstTxt = fs.find(f => (f.format || '').toLowerCase() === 'txt')
     if (firstTxt) {
-      chaptersLoading.value = true
+      startLoading('chapters')
       try {
         chapters.value = await txtApi.listChapters(firstTxt.id)
       } catch (e: any) {
         handleError(e, { context: 'BookDetail.loadChapters' })
       } finally {
-        chaptersLoading.value = false
+        stopLoading('chapters')
       }
     }
   } catch (e: any) {
     err.value = e?.message || '加载失败'
     handleError(e, { context: 'BookDetail.loadBook' })
   } finally {
-    loading.value = false
+    stopLoading('book')
   }
 })
 

@@ -154,6 +154,7 @@ import { type User } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
 const { setUser } = useAuthStore()
@@ -162,7 +163,7 @@ const profileRef = ref()
 const pwdRef = ref()
 const profile = reactive<User>({ id: 0, name: '', email: '' })
 const savingProfile = ref(false)
-const loadingProfile = ref(true)
+const { loading: loadingProfile, setLoading: setLoadingProfile } = useSimpleLoading(true)
 
 const pwd = reactive<{ current_password: string; new_password: string; new_password2: string }>({
   current_password: '',
@@ -224,7 +225,7 @@ onMounted(async () => {
   } catch (e: any) {
     handleError(e, { context: 'Profile.loadUserInfo' })
   } finally {
-    loadingProfile.value = false
+    setLoadingProfile(false)
   }
 })
 

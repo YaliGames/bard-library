@@ -71,6 +71,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authApi } from '@/api/auth'
 import { getPublicPermissions } from '@/utils/publicSettings'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const route = useRoute()
 const router = useRouter()
@@ -79,7 +80,7 @@ const email = ref('')
 const token = ref('')
 const password = ref('')
 const password2 = ref('')
-const loading = ref(false)
+const { loading, withLoading } = useSimpleLoading(false)
 const err = ref('')
 const msg = ref('')
 const canRecover = ref(true)
@@ -123,17 +124,16 @@ async function onSubmit() {
     err.value = '两次输入的密码不一致'
     return
   }
-  loading.value = true
   err.value = ''
   msg.value = ''
-  try {
-    await authApi.resetPassword({ email: e, token: token.value, password: password.value })
-    msg.value = '密码已重置，请使用新密码登录'
-    setTimeout(() => router.replace({ name: 'login' }), 1200)
-  } catch (e: any) {
-    err.value = e?.message || '重置失败'
-  } finally {
-    loading.value = false
-  }
+  await withLoading(async () => {
+    try {
+      await authApi.resetPassword({ email: e, token: token.value, password: password.value })
+      msg.value = '密码已重置，请使用新密码登录'
+      setTimeout(() => router.replace({ name: 'login' }), 1200)
+    } catch (e: any) {
+      err.value = e?.message || '重置失败'
+    }
+  })
 }
 </script>

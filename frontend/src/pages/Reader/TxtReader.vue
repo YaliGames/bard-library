@@ -211,6 +211,7 @@ import TxtChapterNav from '@/components/Reader/TxtChapterNav.vue'
 import TxtReaderContent from '@/components/Reader/TxtContent.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/utils/reader'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const route = useRoute()
 const router = useRouter()
@@ -219,6 +220,7 @@ const userSettings = settingsStore.settings
 const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
 const isAdmin = computed(() => authStore.isAdmin)
+const { loading, setLoading } = useSimpleLoading(true)
 const fileId = Number(route.params.id)
 const bookId = ref<number>(0)
 const initialChapterIndex = ref<number | undefined>(undefined)
@@ -275,7 +277,6 @@ const content = ref('')
 const sentences = ref<string[]>([])
 // 每个句子的字符全局偏移范围，用于将全文位置映射到句内位置
 let sentenceOffsets: Array<{ start: number; end: number }> = []
-const loading = ref(true)
 const err = ref('')
 const currentChapterIndex = ref<number | null>(null)
 const settingsVisible = ref(false)
@@ -470,7 +471,7 @@ async function loadBookmarksForChapter() {
 
 async function loadChapters() {
   err.value = ''
-  loading.value = true
+  setLoading(true)
   try {
     const list = await txtApi.listChapters(fileId)
     try {
@@ -515,12 +516,12 @@ async function loadChapters() {
   } catch (e: any) {
     err.value = e?.message || '加载目录失败'
   } finally {
-    loading.value = false
+    setLoading(false)
   }
 }
 
 async function openChapter(index: number) {
-  loading.value = true
+  setLoading(true)
   try {
     const data = await txtApi.getChapterContent(fileId, index)
     // 若章节内容接口也返回了 book_id，则以其为准
@@ -538,7 +539,7 @@ async function openChapter(index: number) {
     hideSelectionMenu()
     await loadBookmarksForChapter()
     // 提前结束 loading 以渲染正文，再进行定位
-    loading.value = false
+    setLoading(false)
     await nextTick()
     // 章节切换目录自动滚动
     if (pendingScroll.value && pendingScroll.value.chapterIndex === index) {
@@ -568,7 +569,7 @@ async function openChapter(index: number) {
       } catch {}
     }
   } finally {
-    loading.value = false
+    setLoading(false)
   }
 }
 

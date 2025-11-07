@@ -107,6 +107,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useLoading } from '@/composables/useLoading'
 
 interface Item {
   id: number
@@ -139,13 +140,14 @@ const props = defineProps<{
 }>()
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { isLoadingKey, startLoading, stopLoading } = useLoading()
+const loading = computed(() => isLoadingKey('loading'))
+const creating = computed(() => isLoadingKey('creating'))
+const updating = computed(() => isLoadingKey('updating'))
 const router = useRouter()
 const q = ref('')
 const newName = ref('')
 const items = ref<Item[]>([])
-const loading = ref(false)
-const creating = ref(false)
-const updating = ref(false)
 const removingId = ref<number | null>(null)
 
 const editingId = ref<number | null>(null)
@@ -177,19 +179,19 @@ function back() {
 }
 
 async function load() {
-  loading.value = true
+  startLoading('loading')
   try {
     items.value = await props.fetchList(q.value.trim() || undefined)
   } catch (e: any) {
     handleError(e, { context: 'AdminCrudList.load' })
   } finally {
-    loading.value = false
+    stopLoading('loading')
   }
 }
 
 async function loadRemote() {
   if (!props.fetchListEx) return load()
-  loading.value = true
+  startLoading('loading')
   try {
     const order =
       sortOrderEp.value === 'ascending'
@@ -205,7 +207,7 @@ async function loadRemote() {
   } catch (e: any) {
     handleError(e, { context: 'AdminCrudList.loadRemote' })
   } finally {
-    loading.value = false
+    stopLoading('loading')
   }
 }
 
@@ -224,7 +226,7 @@ function onSortChange(e: { prop?: string; order?: 'ascending' | 'descending' | n
 
 async function create() {
   if (!newName.value.trim() && !(props.extraFields && props.extraFields.length)) return
-  creating.value = true
+  startLoading('creating')
   try {
     if (props.createItemRaw) {
       const payload: Record<string, any> = { name: newName.value.trim() }
@@ -242,7 +244,7 @@ async function create() {
   } catch (e: any) {
     handleError(e, { context: 'AdminCrudList.create' })
   } finally {
-    creating.value = false
+    stopLoading('creating')
   }
 }
 
@@ -261,7 +263,7 @@ function cancelEdit() {
 
 async function update(id: number) {
   if (!editingId.value) return
-  updating.value = true
+  startLoading('updating')
   try {
     if (props.updateItemRaw) {
       const payload: Record<string, any> = { name: editingName.value.trim() }
@@ -278,7 +280,7 @@ async function update(id: number) {
   } catch (e: any) {
     handleError(e, { context: 'AdminCrudList.update' })
   } finally {
-    updating.value = false
+    stopLoading('updating')
   }
 }
 

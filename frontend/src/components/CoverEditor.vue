@@ -40,12 +40,17 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import CoverImage from './CoverImage.vue'
 import { coversApi } from '@/api/covers'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { isLoadingKey, startLoading, stopLoading } = useLoading()
+const uploading = computed(() => isLoadingKey('uploading'))
+const linking = computed(() => isLoadingKey('linking'))
+const removing = computed(() => isLoadingKey('removing'))
 const props = defineProps<{
   modelValue: number | null | undefined
   bookId?: number
@@ -60,9 +65,6 @@ const emit = defineEmits<{
   (e: 'changed', v: number | null): void
 }>()
 
-const uploading = ref(false)
-const linking = ref(false)
-const removing = ref(false)
 const url = ref('')
 
 async function onFileChange(file: any) {
@@ -74,7 +76,7 @@ async function onFileChange(file: any) {
     })
     return
   }
-  uploading.value = true
+  startLoading('uploading')
   try {
     const fd = new FormData()
     fd.append('file', file.raw)
@@ -85,7 +87,7 @@ async function onFileChange(file: any) {
   } catch (e: any) {
     handleError(e, { context: 'CoverEditor.onFileChange' })
   } finally {
-    uploading.value = false
+    stopLoading('uploading')
   }
 }
 
@@ -98,7 +100,7 @@ async function importFromUrl() {
     })
     return
   }
-  linking.value = true
+  startLoading('linking')
   try {
     const r = await coversApi.fromUrl(props.bookId, { url: url.value })
     emit('update:modelValue', r.file_id)
@@ -108,7 +110,7 @@ async function importFromUrl() {
   } catch (e: any) {
     handleError(e, { context: 'CoverEditor.importFromUrl' })
   } finally {
-    linking.value = false
+    stopLoading('linking')
   }
 }
 
@@ -119,7 +121,7 @@ async function removeCover() {
     emit('changed', null)
     return
   }
-  removing.value = true
+  startLoading('removing')
   try {
     await coversApi.clear(props.bookId)
     emit('update:modelValue', null)
@@ -128,7 +130,7 @@ async function removeCover() {
   } catch (e: any) {
     handleError(e, { context: 'CoverEditor.removeCover' })
   } finally {
-    removing.value = false
+    stopLoading('removing')
   }
 }
 </script>

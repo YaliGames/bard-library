@@ -137,17 +137,20 @@ import { adminFilesApi, type AdminFileItem } from '@/api/adminFiles'
 import { ElMessageBox } from 'element-plus'
 import { builtinRegexPresets } from '@/config/regexPresets'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
+
+const { isLoadingKey, startLoading, stopLoading } = useLoading()
+const filesLoading = computed(() => isLoadingKey('files'))
+const chaptersLoading = computed(() => isLoadingKey('chapters'))
 
 const router = useRouter()
 const route = useRoute()
 const fileId = ref<number | undefined>(undefined)
 const selectedFileId = ref<number | undefined>(undefined)
 const txtFiles = ref<AdminFileItem[]>([])
-const filesLoading = ref(false)
 const chapters = ref<Chapter[]>([])
-const chaptersLoading = ref(false)
 const pattern = ref('')
 const saving = ref(false)
 const ruleType = ref<'builtin' | 'custom'>('builtin') // 规则类型
@@ -193,7 +196,7 @@ async function searchFiles(query: string) {
     txtFiles.value = []
     return
   }
-  filesLoading.value = true
+  startLoading('files')
   try {
     const res = await adminFilesApi.list({ q: query, format: 'txt' })
     txtFiles.value = res.items
@@ -201,7 +204,7 @@ async function searchFiles(query: string) {
     handleError(e, { context: 'Admin.TxtChapters.searchFiles' })
     txtFiles.value = []
   } finally {
-    filesLoading.value = false
+    stopLoading('files')
   }
 }
 
@@ -227,14 +230,14 @@ async function load() {
 
 async function fetchChapters() {
   if (!fileId.value) return
-  chaptersLoading.value = true
+  startLoading('chapters')
   isPreviewMode.value = false // 加载实际目录时退出预览模式
   try {
     chapters.value = await txtApi.listChapters(fileId.value)
   } catch (e: any) {
     handleError(e, { context: 'Admin.TxtChapters.fetchChapters' })
   } finally {
-    chaptersLoading.value = false
+    stopLoading('chapters')
   }
 }
 
@@ -263,14 +266,14 @@ async function preview() {
     return
   }
 
-  chaptersLoading.value = true
+  startLoading('chapters')
   isPreviewMode.value = true // 进入预览模式
   try {
     chapters.value = await txtApi.listChapters(fileId.value, { pattern: pat, dry: true })
   } catch (e: any) {
     handleError(e, { context: 'Admin.TxtChapters.preview' })
   } finally {
-    chaptersLoading.value = false
+    stopLoading('chapters')
   }
 }
 

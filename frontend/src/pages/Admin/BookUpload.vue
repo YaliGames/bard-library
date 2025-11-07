@@ -212,14 +212,15 @@ import { useRouter } from 'vue-router'
 import { systemSettingsApi } from '@/api/systemSettings'
 import { formatBytes } from '@/utils/systemSettings'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { loading: uploading, setLoading: setUploading } = useSimpleLoading(false)
 
 const uploader = ref()
 const uploadKey = ref(0)
 const uiFileList = ref<any[]>([])
 const files = ref<File[]>([])
-const uploading = ref(false)
 const results = ref<any[]>([])
 const parseTxt = ref(false)
 const router = useRouter()
@@ -285,7 +286,7 @@ function onExceed() {
 function reset() {
   files.value = []
   results.value = []
-  uploading.value = false
+  setUploading(false)
   step.value = 0
   try {
     uploader.value?.clearFiles?.()
@@ -324,7 +325,7 @@ const fileProgressRows = computed(() =>
 async function submit() {
   if (files.value.length === 0) return
   step.value = 1
-  uploading.value = true
+  setUploading(true)
   results.value = []
   doneCount.value = 0
   filePercents.value = files.value.map(() => 0)
@@ -354,7 +355,7 @@ async function submit() {
       doneCount.value++
     }
   }
-  uploading.value = false
+  setUploading(false)
   step.value = 2
   saveResults()
 }
@@ -387,7 +388,7 @@ function restoreLast() {
       return
     }
     results.value = arr
-    uploading.value = false
+    setUploading(false)
     doneCount.value = results.value.length
     step.value = 2
     handleSuccess('已恢复上次导入结果')

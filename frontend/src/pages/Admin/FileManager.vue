@@ -130,8 +130,10 @@ import { adminFilesApi, type AdminFileItem } from '@/api/adminFiles'
 import { getPreviewUrl, getDownloadUrl } from '@/utils/signedUrls'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import FileCleanupDialog from '@/components/Admin/FileCleanupDialog.vue'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { loading, setLoading } = useSimpleLoading(false)
 const router = useRouter()
 
 // 查询条件
@@ -146,7 +148,6 @@ const sortOrder = ref<'asc' | 'desc'>('desc')
 
 // 列表
 const items = ref<AdminFileItem[]>([])
-const loading = ref(false)
 
 const showCleanup = ref(false)
 
@@ -167,7 +168,7 @@ function formatSize(n: number) {
 }
 
 async function reload() {
-  loading.value = true
+  setLoading(true)
   try {
     const data = await adminFilesApi.list({
       q: q.value.trim() || undefined,
@@ -181,7 +182,7 @@ async function reload() {
   } catch (e: any) {
     handleError(e, { context: 'Admin.FileManager.reload' })
   } finally {
-    loading.value = false
+    setLoading(false)
   }
 }
 

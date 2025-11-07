@@ -124,6 +124,7 @@ import { settingsApi, type UserSettings } from '@/api/settings'
 import { useSettingsStore, defaultSettings } from '@/stores/settings'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
@@ -132,7 +133,7 @@ const userSettings = settingsStore.settings
 const setAll = settingsStore.setAll
 const local = reactive<UserSettings>(JSON.parse(JSON.stringify(defaultSettings)))
 const saving = ref(false)
-const loading = ref(true)
+const { loading, setLoading } = useSimpleLoading(true)
 
 // 左侧菜单：JSON化
 type MenuId = 'display' | 'reading' | 'global' | 'reset'
@@ -154,7 +155,7 @@ onMounted(async () => {
   } finally {
     // 将 store 当前值拷贝到本地编辑副本
     Object.assign(local, JSON.parse(JSON.stringify(userSettings)))
-    loading.value = false
+    setLoading(false)
   }
 })
 

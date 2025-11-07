@@ -68,9 +68,10 @@
 import { ref, onMounted } from 'vue'
 import { authApi } from '@/api/auth'
 import { getPublicPermissions } from '@/utils/publicSettings'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const email = ref('')
-const loading = ref(false)
+const { loading, withLoading } = useSimpleLoading(false)
 const err = ref('')
 const msg = ref('')
 const canRecover = ref(true)
@@ -93,16 +94,15 @@ async function onSubmit() {
     err.value = '邮箱格式不正确'
     return
   }
-  loading.value = true
   err.value = ''
   msg.value = ''
-  try {
-    await authApi.forgotPassword(e)
-    msg.value = '如果邮箱存在，我们已发送重置邮件'
-  } catch (e: any) {
-    err.value = e?.message || '请求失败'
-  } finally {
-    loading.value = false
-  }
+  await withLoading(async () => {
+    try {
+      await authApi.forgotPassword(e)
+      msg.value = '如果邮箱存在，我们已发送重置邮件'
+    } catch (e: any) {
+      err.value = e?.message || '请求失败'
+    }
+  })
 }
 </script>

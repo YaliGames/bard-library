@@ -290,10 +290,14 @@ import { useAuthStore } from '@/stores/auth'
 import { shelvesApi } from '@/api/shelves'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { usePagination } from '@/composables/usePagination'
+import { useLoading } from '@/composables/useLoading'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
-const shelfLoading = ref(true)
+const { isLoadingKey, startLoading, stopLoading } = useLoading()
+const shelfLoading = computed(() => isLoadingKey('shelf'))
+const addLoading = computed(() => isLoadingKey('addBooks'))
+
 const router = useRouter()
 const route = useRoute()
 const shelfId = computed(() => Number(route.params.id))
@@ -433,7 +437,7 @@ function filterByAuthor(id: number) {
 }
 
 async function fetchShelfInfo() {
-  shelfLoading.value = true
+  startLoading('shelf')
   try {
     const s = await shelvesApi.show(shelfId.value)
     shelf.value = s
@@ -446,7 +450,7 @@ async function fetchShelfInfo() {
     else shelfError.value = '加载书架失败'
     shelf.value = { id: shelfId.value, name: `#${shelfId.value}` }
   } finally {
-    shelfLoading.value = false
+    stopLoading('shelf')
   }
 }
 
@@ -512,7 +516,6 @@ onMounted(() => {
 // 添加书籍
 const addVisible = ref(false)
 const addQ = ref('')
-const addLoading = ref(false)
 const addList = ref<Book[]>([])
 function openAddDialog() {
   addVisible.value = true
@@ -520,14 +523,14 @@ function openAddDialog() {
   addList.value = []
 }
 async function searchAdd() {
-  addLoading.value = true
+  startLoading('addBooks')
   try {
     const r = await booksApi.list({ q: addQ.value || undefined, perPage: 12 })
     addList.value = r.data
   } catch {
     addList.value = []
   } finally {
-    addLoading.value = false
+    stopLoading('addBooks')
   }
 }
 async function addToShelf(b: Book) {

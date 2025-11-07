@@ -165,6 +165,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { settingsApi } from '@/api/settings'
 import { navMenu, userMenu } from '@/config/navMenu'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const { handleError } = useErrorHandler()
 const router = useRouter()
@@ -172,7 +173,7 @@ const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
 const setAllSettings = settingsStore.setAll
 const user = computed(() => authStore.user)
-const loadingUser = ref(false)
+const { loading: loadingUser, setLoading: setLoadingUser } = useSimpleLoading(false)
 const mobileOpen = ref(false)
 
 const isAdmin = computed(() => authStore.isAdmin)
@@ -203,7 +204,7 @@ async function fetchUser() {
     fetchUserFailed.value = false
     return
   }
-  loadingUser.value = true
+  setLoadingUser(true)
   try {
     const me = await authApi.me()
     authStore.setUser(me)
@@ -222,7 +223,7 @@ async function fetchUser() {
       router.push({ name: 'login', query: { redirect } })
     }
   } finally {
-    loadingUser.value = false
+    setLoadingUser(false)
   }
 }
 

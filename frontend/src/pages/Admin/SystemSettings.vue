@@ -130,10 +130,11 @@ import { ElMessageBox } from 'element-plus'
 import { systemSettingsApi, type SettingDef, type CategoryDef } from '@/api/systemSettings'
 import { parseSizeToBytes, formatBytes } from '@/utils/systemSettings'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useSimpleLoading } from '@/composables/useLoading'
 import SettingsItem from '@/components/Settings/SettingsItem.vue'
 
 const { handleError, handleSuccess } = useErrorHandler()
-const loading = ref(true)
+const { loading, setLoading } = useSimpleLoading(true)
 const saving = ref(false)
 
 const valuesReactive = reactive<Record<string, any>>({})
@@ -178,7 +179,7 @@ function parsedSizeText(key: string) {
 }
 
 async function load() {
-  loading.value = true
+  setLoading(true)
   try {
     const res = await systemSettingsApi.get()
     // 填充 categories
@@ -212,7 +213,7 @@ async function load() {
   } catch (e: any) {
     handleError(e, { context: 'Admin.SystemSettings.load' })
   } finally {
-    loading.value = false
+    setLoading(false)
   }
 }
 

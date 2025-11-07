@@ -73,6 +73,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import type { MetaRecord } from '@/types/metadata'
 import { metadataApi } from '@/api/metadata'
 import { prefetchResourceToken } from '@/utils/signedUrls'
+import { useLoading } from '@/composables/useLoading'
 
 const props = defineProps<{
   modelValue: boolean
@@ -93,8 +94,9 @@ const providers = ref<ProviderInfo[]>([])
 const providerId = ref<string>(props.defaultProvider || '')
 const query = ref('')
 const items = ref<MetaRecord[]>([])
-const loading = ref(false)
-const applying = ref(false)
+const { isLoadingKey, startLoading, stopLoading } = useLoading()
+const loading = computed(() => isLoadingKey('loading'))
+const applying = computed(() => isLoadingKey('applying'))
 const busy = computed(() => loading.value || applying.value)
 const error = ref('')
 
@@ -106,22 +108,22 @@ async function doSearch() {
     error.value = '请选择平台'
     return
   }
-  loading.value = true
+  startLoading('loading')
   try {
     items.value = await metadataApi.search(providerId.value, query.value, 5)
   } catch (e: any) {
     error.value = e?.message || '搜索失败'
   } finally {
-    loading.value = false
+    stopLoading('loading')
   }
 }
 
 function emitApply(b: MetaRecord) {
-  applying.value = true
+  startLoading('applying')
   emit('apply', { item: b, provider: providerId.value })
 }
 function emitPreview(b: MetaRecord) {
-  applying.value = true
+  startLoading('applying')
   emit('preview', { item: b, provider: providerId.value })
 }
 function coverUrlForItem(b: MetaRecord) {
@@ -145,8 +147,8 @@ watch(
       prefetchResourceToken().catch(() => {})
     }
     if (!v) {
-      applying.value = false
-      loading.value = false
+      stopLoading('applying')
+      stopLoading('loading')
     }
   },
 )
@@ -172,8 +174,8 @@ watch(
 )
 
 function onClosed() {
-  applying.value = false
-  loading.value = false
+  stopLoading('applying')
+  stopLoading('loading')
   emit('closed')
 }
 </script>

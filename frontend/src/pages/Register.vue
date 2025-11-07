@@ -129,9 +129,10 @@
 import { reactive, ref, onMounted } from 'vue'
 import { authApi } from '@/api/auth'
 import { getPublicPermissions } from '@/utils/publicSettings'
+import { useSimpleLoading } from '@/composables/useLoading'
 
 const form = reactive({ name: '', email: '', password: '', password2: '' })
-const loading = ref(false)
+const { loading, withLoading } = useSimpleLoading(false)
 const err = ref('')
 const msg = ref('')
 const canRegister = ref(true)
@@ -190,16 +191,15 @@ function validateForm(): boolean {
 async function onSubmit() {
   if (loading.value) return
   if (!validateForm()) return
-  loading.value = true
   err.value = ''
   msg.value = ''
-  try {
-    await authApi.register(form.name, form.email, form.password)
-    msg.value = '注册成功，请前往邮箱点击验证链接完成激活后再登录'
-  } catch (e: any) {
-    err.value = e?.message || '注册失败'
-  } finally {
-    loading.value = false
-  }
+  await withLoading(async () => {
+    try {
+      await authApi.register(form.name, form.email, form.password)
+      msg.value = '注册成功，请前往邮箱点击验证链接完成激活后再登录'
+    } catch (e: any) {
+      err.value = e?.message || '注册失败'
+    }
+  })
 }
 </script>
