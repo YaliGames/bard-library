@@ -291,8 +291,10 @@ import { shelvesApi } from '@/api/shelves'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { usePagination } from '@/composables/usePagination'
 import { useLoading } from '@/composables/useLoading'
+import { useBookActions } from '@/composables/useBookActions'
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { toggleReadMark } = useBookActions()
 
 const { isLoadingKey, startLoading, stopLoading } = useLoading()
 const shelfLoading = computed(() => isLoadingKey('shelf'))
@@ -484,14 +486,7 @@ function resetFilters() {
 }
 
 async function toggleRead(b: Book) {
-  const target = !(b as any).is_read_mark || (b as any).is_read_mark === 0 ? true : false
-  try {
-    await booksApi.markRead(b.id, target)
-    ;(b as any).is_read_mark = target ? 1 : 0
-    handleSuccess(target ? '已标记为已读' : '已取消已读')
-  } catch (e: any) {
-    handleError(e, { context: 'ShelfDetail.toggleRead' })
-  }
+  await toggleReadMark(b)
 }
 
 // 路由变化时，更新 shelfId 并重新加载

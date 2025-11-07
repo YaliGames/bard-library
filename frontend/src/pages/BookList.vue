@@ -158,8 +158,10 @@ import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { usePagination } from '@/composables/usePagination'
+import { useBookActions } from '@/composables/useBookActions'
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { toggleReadMark } = useBookActions()
 
 // 统一的筛选模型
 const filters = ref({
@@ -266,15 +268,7 @@ function resetFilters() {
 // 封面地址由 CoverImage 组件内部处理
 
 async function toggleRead(b: Book) {
-  const target = !(b as any).is_read_mark || (b as any).is_read_mark === 0 ? true : false
-  try {
-    await booksApi.markRead(b.id, target)
-    // 乐观更新 & 回刷列表
-    ;(b as any).is_read_mark = target ? 1 : 0
-    handleSuccess(target ? '已标记为已读' : '已取消已读')
-  } catch (e: any) {
-    handleError(e, { context: 'BookList.toggleRead' })
-  }
+  await toggleReadMark(b)
 }
 
 // 选项数据改由 BookFilters 组件加载

@@ -249,8 +249,10 @@ import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useLoading } from '@/composables/useLoading'
+import { useBookActions } from '@/composables/useBookActions'
 
-const { handleError, handleSuccess } = useErrorHandler()
+const { handleError } = useErrorHandler()
+const { toggleReadMark } = useBookActions()
 const route = useRoute()
 const router = useRouter()
 const id = Number(route.params.id)
@@ -371,14 +373,7 @@ function _continueRead() {
 
 async function toggleRead() {
   if (!book.value) return
-  const target = !isReadMark.value
-  try {
-    await booksApi.markRead(book.value.id, target)
-    ;(book.value as any).is_read_mark = target ? 1 : 0
-    handleSuccess(target ? '已标记为已读' : '已取消已读')
-  } catch (e: any) {
-    handleError(e, { context: 'BookDetail.toggleRead' })
-  }
+  await toggleReadMark(book.value)
 }
 
 function openChapterFromDetail(index: number) {
