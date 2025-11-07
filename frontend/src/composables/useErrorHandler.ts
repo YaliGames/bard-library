@@ -18,13 +18,7 @@ export function useErrorHandler() {
    * 统一的错误处理函数
    */
   function handleError(error: any, options: ErrorHandlerOptions = {}) {
-    const {
-      context = 'Unknown',
-      message,
-      showToast = true,
-      logToConsole = true,
-      onError,
-    } = options
+    const { context = 'Unknown', message, showToast = true, logToConsole = true, onError } = options
 
     // 提取错误消息
     const errorMessage =

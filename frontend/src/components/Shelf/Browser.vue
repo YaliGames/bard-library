@@ -73,6 +73,7 @@ import ShelfCardList from '@/components/Shelf/CardList.vue'
 import type { Shelf } from '@/api/types'
 import { shelvesApi } from '@/api/shelves'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { usePagination } from '@/composables/usePagination'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
@@ -101,18 +102,17 @@ const props = withDefaults(
 
 const q = ref('')
 const visibility = ref<'all' | 'public' | 'private'>('all')
-const loading = ref(false)
-const list = ref<Array<Shelf & { books?: any[] }>>([])
-const meta = ref<{
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
-} | null>(null)
 
-async function reload(page = 1) {
-  loading.value = true
-  try {
+const {
+  data: list,
+  loading,
+  currentPage,
+  lastPage,
+  total,
+  perPage,
+  loadPage,
+} = usePagination<Shelf & { books?: any[] }>({
+  fetcher: async (page: number) => {
     const res = await shelvesApi.listPage({
       page,
       per_page: props.perPage,
@@ -122,13 +122,28 @@ async function reload(page = 1) {
       visibility:
         props.showVisibility && visibility.value !== 'all' ? visibility.value : (undefined as any),
     })
-    list.value = res.data
-    meta.value = res.meta
-  } catch {
-    list.value = []
-  } finally {
-    loading.value = false
-  }
+    return res
+  },
+  onError: () => {},
+})
+
+const meta = {
+  get current_page() {
+    return currentPage.value
+  },
+  get last_page() {
+    return lastPage.value
+  },
+  get per_page() {
+    return perPage.value
+  },
+  get total() {
+    return total.value
+  },
+}
+
+function reload(page = 1) {
+  loadPage(page)
 }
 
 // 创建/编辑

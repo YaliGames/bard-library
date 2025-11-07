@@ -157,17 +157,10 @@ import type { Book } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { usePagination } from '@/composables/usePagination'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
-const data = ref<Book[]>([])
-const meta = ref<{
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
-} | null>(null)
-const loading = ref(true)
 // 统一的筛选模型
 const filters = ref({
   q: '',
@@ -189,58 +182,68 @@ const order = ref<'asc' | 'desc'>('desc')
 const route = useRoute()
 const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
-// 骨架数量与分页大小一致，兜底 12
-const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
 
 // 系统设置
 const settingsStore = useSettingsStore()
 const userSettings = settingsStore.settings
 
+const { data, loading, currentPage, lastPage, total, perPage, loadPage } = usePagination<Book>({
+  fetcher: async (page: number) => {
+    try {
+      const tagParam = filters.value.tagIds.length ? filters.value.tagIds : undefined
+      const r = await booksApi.list({
+        q: filters.value.q || undefined,
+        page,
+        authorId: filters.value.authorId || undefined,
+        tagId: tagParam,
+        shelfId: filters.value.shelfId || undefined,
+        read_state: filters.value.readState || undefined,
+        min_rating: filters.value.ratingRange?.[0],
+        max_rating: filters.value.ratingRange?.[1],
+        publisher: filters.value.publisher || undefined,
+        published_from: filters.value.publishedRange?.[0] || undefined,
+        published_to: filters.value.publishedRange?.[1] || undefined,
+        language: filters.value.language || undefined,
+        series_value: filters.value.series_value || undefined,
+        isbn: filters.value.isbn || undefined,
+        sort: sort.value,
+        order: order.value,
+      })
+      return r
+    } catch (e: any) {
+      err.value = e?.message || '加载失败'
+      handleError(e, { context: 'BookList.fetchBooks', showToast: false })
+      throw e
+    }
+  },
+  onError: (e: any) => {
+    err.value = e?.message || '加载失败'
+  },
+})
+
+const skeletonCount = computed(() => Math.max(1, Number(perPage.value || 12)))
+
+const meta = computed(() => ({
+  current_page: currentPage.value,
+  last_page: lastPage.value,
+  per_page: perPage.value,
+  total: total.value,
+}))
+
 function filterByAuthor(id: number) {
   filters.value.authorId = id
-  searchPage(1)
-}
-
-async function fetchBooks(page = 1) {
-  loading.value = true
-  err.value = ''
-  try {
-    const tagParam = filters.value.tagIds.length ? filters.value.tagIds : undefined
-    const r = await booksApi.list({
-      q: filters.value.q || undefined,
-      page,
-      authorId: filters.value.authorId || undefined,
-      tagId: tagParam,
-      shelfId: filters.value.shelfId || undefined,
-      read_state: filters.value.readState || undefined,
-      min_rating: filters.value.ratingRange?.[0],
-      max_rating: filters.value.ratingRange?.[1],
-      publisher: filters.value.publisher || undefined,
-      published_from: filters.value.publishedRange?.[0] || undefined,
-      published_to: filters.value.publishedRange?.[1] || undefined,
-      language: filters.value.language || undefined,
-      series_value: filters.value.series_value || undefined,
-      isbn: filters.value.isbn || undefined,
-      sort: sort.value,
-      order: order.value,
-    })
-    data.value = r.data
-    meta.value = r.meta || null
-  } catch (e: any) {
-    err.value = e?.message || '加载失败'
-    handleError(e, { context: 'BookList.fetchBooks', showToast: false })
-  } finally {
-    loading.value = false
-  }
+  loadPage(1)
 }
 
 function searchPage(page: number) {
-  fetchBooks(page)
+  loadPage(page)
 }
+
 function toggleOrder() {
   order.value = order.value === 'desc' ? 'asc' : 'desc'
-  searchPage(1)
+  loadPage(1)
 }
+
 function resetFilters() {
   Object.assign(filters.value, {
     q: '',
@@ -257,7 +260,7 @@ function resetFilters() {
   })
   sort.value = 'created'
   order.value = 'desc'
-  searchPage(1)
+  loadPage(1)
 }
 
 // 封面地址由 CoverImage 组件内部处理
@@ -289,6 +292,6 @@ onMounted(() => {
     if (Number.isFinite(n)) filters.value.tagIds = [n]
   }
   // 应用初始化筛选
-  fetchBooks(1)
+  loadPage(1)
 })
 </script>

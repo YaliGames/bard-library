@@ -289,17 +289,10 @@ import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { shelvesApi } from '@/api/shelves'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { usePagination } from '@/composables/usePagination'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
-const data = ref<Book[]>([])
-const meta = ref<{
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
-} | null>(null)
-const loading = ref(true)
 const shelfLoading = ref(true)
 const router = useRouter()
 const route = useRoute()
@@ -332,9 +325,50 @@ const err = ref('')
 const sort = ref<'modified' | 'created' | 'rating' | 'id'>('created')
 const order = ref<'asc' | 'desc'>('desc')
 const isLoggedIn = computed(() => authStore.isLoggedIn)
-const skeletonCount = computed(() => Math.max(1, Number(meta.value?.per_page || 12)))
 const settingsStore = useSettingsStore()
 const userSettings = settingsStore.settings
+
+const { data, loading, currentPage, lastPage, total, perPage, loadPage } = usePagination<Book>({
+  fetcher: async (page: number) => {
+    try {
+      const tagParam = filters.value.tagIds.length ? filters.value.tagIds : undefined
+      const r = await booksApi.list({
+        q: filters.value.q || undefined,
+        page,
+        authorId: filters.value.authorId || undefined,
+        tagId: tagParam,
+        shelfId: shelfId.value || undefined,
+        read_state: filters.value.readState || undefined,
+        min_rating: filters.value.ratingRange?.[0],
+        max_rating: filters.value.ratingRange?.[1],
+        publisher: filters.value.publisher || undefined,
+        published_from: filters.value.publishedRange?.[0] || undefined,
+        published_to: filters.value.publishedRange?.[1] || undefined,
+        language: filters.value.language || undefined,
+        series_value: filters.value.series_value || undefined,
+        isbn: filters.value.isbn || undefined,
+        sort: sort.value,
+        order: order.value,
+      })
+      return r
+    } catch (e: any) {
+      err.value = e?.message || '加载失败'
+      throw e
+    }
+  },
+  onError: (e: any) => {
+    err.value = e?.message || '加载失败'
+  },
+})
+
+const skeletonCount = computed(() => Math.max(1, Number(perPage.value || 12)))
+
+const meta = computed(() => ({
+  current_page: currentPage.value,
+  last_page: lastPage.value,
+  per_page: perPage.value,
+  total: total.value,
+}))
 
 function back() {
   router.back()
@@ -395,7 +429,7 @@ async function deleteShelf() {
 
 function filterByAuthor(id: number) {
   filters.value.authorId = id
-  searchPage(1)
+  loadPage(1)
 }
 
 async function fetchShelfInfo() {
@@ -416,45 +450,15 @@ async function fetchShelfInfo() {
   }
 }
 
-async function fetchBooks(page = 1) {
-  loading.value = true
-  err.value = ''
-  try {
-    const tagParam = filters.value.tagIds.length ? filters.value.tagIds : undefined
-    const r = await booksApi.list({
-      q: filters.value.q || undefined,
-      page,
-      authorId: filters.value.authorId || undefined,
-      tagId: tagParam,
-      shelfId: shelfId.value || undefined,
-      read_state: filters.value.readState || undefined,
-      min_rating: filters.value.ratingRange?.[0],
-      max_rating: filters.value.ratingRange?.[1],
-      publisher: filters.value.publisher || undefined,
-      published_from: filters.value.publishedRange?.[0] || undefined,
-      published_to: filters.value.publishedRange?.[1] || undefined,
-      language: filters.value.language || undefined,
-      series_value: filters.value.series_value || undefined,
-      isbn: filters.value.isbn || undefined,
-      sort: sort.value,
-      order: order.value,
-    })
-    data.value = r.data
-    meta.value = r.meta || null
-  } catch (e: any) {
-    err.value = e?.message || '加载失败'
-  } finally {
-    loading.value = false
-  }
+function searchPage(page: number) {
+  loadPage(page)
 }
 
-function searchPage(page: number) {
-  fetchBooks(page)
-}
 function toggleOrder() {
   order.value = order.value === 'desc' ? 'asc' : 'desc'
-  searchPage(1)
+  loadPage(1)
 }
+
 function resetFilters() {
   Object.assign(filters.value, {
     q: '',
@@ -472,7 +476,7 @@ function resetFilters() {
   filters.value.shelfId = shelfId.value
   sort.value = 'created'
   order.value = 'desc'
-  searchPage(1)
+  loadPage(1)
 }
 
 async function toggleRead(b: Book) {
@@ -492,7 +496,7 @@ watch(
   () => {
     filters.value.shelfId = shelfId.value
     fetchShelfInfo()
-    if (!shelfError.value) fetchBooks(1)
+    if (!shelfError.value) loadPage(1)
   },
 )
 
@@ -501,7 +505,7 @@ onMounted(() => {
   fetchShelfInfo()
   // 仅在可见（未报错）时加载书籍
   setTimeout(() => {
-    if (!shelfError.value) fetchBooks(1)
+    if (!shelfError.value) loadPage(1)
   }, 0)
 })
 

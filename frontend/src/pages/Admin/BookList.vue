@@ -126,6 +126,7 @@ import { booksApi } from '@/api/books'
 import type { Book } from '@/api/types'
 import { ElMessageBox } from 'element-plus'
 import { useErrorHandler } from '@/composables/useErrorHandler'
+import { usePagination } from '@/composables/usePagination'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
@@ -138,9 +139,6 @@ const filters = ref({
   readState: null as any,
   ratingRange: [0, 5] as [number, number],
 })
-const rows = ref<Book[]>([])
-const meta = ref<any>(null)
-const loading = ref(false)
 
 // 最大简介字符数与辅助函数
 const MAX_DESC_CHARS = 300
@@ -159,11 +157,16 @@ function formatDate(dateStr: string | null | undefined) {
   }
 }
 
-// 封面地址由 CoverImage 组件内部处理
-
-async function fetchList(page = 1) {
-  loading.value = true
-  try {
+const {
+  data: rows,
+  loading,
+  currentPage,
+  lastPage,
+  total,
+  perPage,
+  loadPage,
+} = usePagination<Book>({
+  fetcher: async (page: number) => {
     const r = await booksApi.list({
       q: filters.value.q || undefined,
       page,
@@ -171,17 +174,32 @@ async function fetchList(page = 1) {
       tagId: filters.value.tagIds.length ? filters.value.tagIds[0] : undefined,
       // 管理页暂不提供 shelf/readState
     })
-    rows.value = r.data
-    meta.value = r.meta || null
-  } catch (e: any) {
+    return r
+  },
+  onError: (e: any) => {
     handleError(e, { context: 'Admin.BookList.fetchList' })
-  } finally {
-    loading.value = false
-  }
+  },
+})
+
+const meta = {
+  get current_page() {
+    return currentPage.value
+  },
+  get last_page() {
+    return lastPage.value
+  },
+  get per_page() {
+    return perPage.value
+  },
+  get total() {
+    return total.value
+  },
 }
+
 function go(p: number) {
-  fetchList(p)
+  loadPage(p)
 }
+
 function reset() {
   Object.assign(filters.value, {
     q: '',
@@ -223,7 +241,7 @@ async function del(id: number) {
   try {
     await booksApi.remove(id, { withFiles })
     handleSuccess(withFiles ? '已删除（含封面与附件）' : '已删除记录')
-    await fetchList(meta.value?.current_page || 1)
+    await loadPage(currentPage.value)
   } catch (e: any) {
     handleError(e, { context: 'Admin.BookList.del' })
   }
@@ -235,13 +253,14 @@ function goQuickUpload() {
   router.push({ name: 'admin-upload' })
 }
 
-onMounted(() => fetchList(1))
+onMounted(() => loadPage(1))
 </script>
 
 <style scoped>
 .desc-clamp {
   display: -webkit-box;
   -webkit-line-clamp: 3; /* 显示行数 */
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
