@@ -186,7 +186,7 @@ class ShelvesController extends Controller
             return response()->json(['message' => 'Permission denied'], 403);
         }
         $payload = $request->validate([
-            'book_ids' => ['required','array'],
+            'book_ids' => ['present','array'],
             'book_ids.*' => ['integer'],
         ]);
         $s->books()->sync($payload['book_ids']);
@@ -202,7 +202,7 @@ class ShelvesController extends Controller
         }
         $isAdmin = ($user->role ?? 'user') === 'admin';
         $payload = $request->validate([
-            'shelf_ids' => ['required','array'],
+            'shelf_ids' => ['present','array'],
             'shelf_ids.*' => ['integer'],
         ]);
         $ids = $payload['shelf_ids'];

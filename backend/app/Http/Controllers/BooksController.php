@@ -214,7 +214,18 @@ class BooksController extends Controller
     {
         $userId = $this->userResolver->id($request);
         $q = Book::query()
-            ->with(['authors', 'tags', 'files', 'series', 'shelves'])
+            ->with([
+                'authors',
+                'tags',
+                'files',
+                'series',
+                'shelves' => function ($query) use ($userId) {
+                    $query->where('is_public', true);
+                    if ($userId > 0) {
+                        $query->orWhere('user_id', $userId);
+                    }
+                }
+            ])
             ->select('books.*')
             ->selectRaw(
                 $userId > 0

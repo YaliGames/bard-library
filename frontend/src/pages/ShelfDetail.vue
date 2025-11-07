@@ -531,20 +531,12 @@ async function searchAdd() {
 async function addToShelf(b: Book) {
   if (!shelf.value) return
   try {
-    // 取该书当前的书架列表
-    const full = await booksApi.get(b.id)
-    const allIds = (full.shelves || []).map((s: any) => s.id)
-    // 根据权限构造要提交的 shelf_ids
-    let submitIds: number[] = []
-    if (authStore.isRole('admin')) {
-      submitIds = Array.from(new Set([...allIds, shelf.value.id]))
-    } else {
-      const myIds = (full.shelves || [])
-        .filter((s: any) => (s.user_id ?? 0) === (authStore.user?.id ?? -1))
-        .map((s: any) => s.id)
-      submitIds = Array.from(new Set([...myIds, shelf.value.id]))
+    const currentBookIds = data.value.map(book => book.id)
+    const newBookIds = Array.from(new Set([...currentBookIds, b.id]))
+    await shelvesApi.setBooks(shelf.value.id, newBookIds)
+    if (!data.value.find(x => x.id === b.id)) {
+      data.value.push(b)
     }
-    await booksApi.setShelves(b.id, submitIds)
     handleSuccess('已添加')
   } catch (e: any) {
     handleError(e, { context: 'ShelfDetail.addToShelf' })
@@ -555,18 +547,8 @@ async function addToShelf(b: Book) {
 async function removeFromShelf(b: Book) {
   if (!shelf.value) return
   try {
-    const full = await booksApi.get(b.id)
-    const allIds = (full.shelves || []).map((s: any) => s.id)
-    let submitIds: number[] = []
-    if (authStore.isRole('admin')) {
-      submitIds = allIds.filter((id: number) => id !== shelf.value!.id)
-    } else {
-      const myIds = (full.shelves || [])
-        .filter((s: any) => (s.user_id ?? 0) === (authStore.user?.id ?? -1))
-        .map((s: any) => s.id)
-      submitIds = myIds.filter((id: number) => id !== shelf.value!.id)
-    }
-    await booksApi.setShelves(b.id, submitIds)
+    const newBookIds = data.value.filter(book => book.id !== b.id).map(book => book.id)
+    await shelvesApi.setBooks(shelf.value.id, newBookIds)
     // 本页列表移除该书
     data.value = data.value.filter(x => x.id !== b.id)
     handleSuccess('已移出')
