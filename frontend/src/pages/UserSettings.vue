@@ -53,6 +53,13 @@
           >
             <el-switch v-model="local.bookDetail.showReadTag" />
           </SettingsItem>
+          <SettingsItem
+            :loading="loading"
+            title="书架页显示筛选"
+            description="书架详情页面中，显示筛选条件面板，可以对书架内的书籍进行筛选。"
+          >
+            <el-switch v-model="local.shelfDetail.showFilters" />
+          </SettingsItem>
           <div class="mt-4 flex items-center justify-end">
             <el-button type="primary" :disabled="loading" :loading="saving" @click="onSave">
               保存

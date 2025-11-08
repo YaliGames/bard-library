@@ -73,7 +73,7 @@
           </el-skeleton>
         </div>
 
-        <template v-if="false">
+        <template v-if="userSettings.shelfDetail?.showFilters ?? true">
           <BookFilters
             v-model="filters"
             :showShelves="false"

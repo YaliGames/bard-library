@@ -12,6 +12,9 @@ export const defaultSettings: UserSettings = {
   bookDetail: {
     showReadTag: true,
   },
+  shelfDetail: {
+    showFilters: true,
+  },
   txtReader: {
     autoScrollCategory: true,
   },

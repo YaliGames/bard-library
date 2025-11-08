@@ -8,6 +8,9 @@ export interface UserSettings {
   bookDetail: {
     showReadTag: boolean
   }
+  shelfDetail: {
+    showFilters: boolean
+  }
   txtReader: {
     autoScrollCategory: boolean
   }
