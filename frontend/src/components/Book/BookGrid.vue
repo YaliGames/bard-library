@@ -61,12 +61,7 @@
                   <el-tag v-if="book.is_read_mark" type="success" effect="dark" size="small">
                     已读
                   </el-tag>
-                  <el-tag
-                    v-else-if="book.is_reading"
-                    type="warning"
-                    effect="dark"
-                    size="small"
-                  >
+                  <el-tag v-else-if="book.is_reading" type="warning" effect="dark" size="small">
                     正在阅读
                   </el-tag>
                 </template>
@@ -77,10 +72,7 @@
             <!-- 作者列表 -->
             <div class="text-gray-600 text-sm flex flex-wrap gap-1">
               <template v-for="(author, idx) in book.authors || []" :key="author.id">
-                <div
-                  class="cursor-pointer text-primary"
-                  @click="emit('author-click', author.id)"
-                >
+                <div class="cursor-pointer text-primary" @click="emit('author-click', author.id)">
                   {{ author.name }}
                 </div>
                 <span v-if="idx < (book.authors || []).length - 1">/</span>
@@ -223,4 +215,3 @@ function handlePageChange(page: number) {
   emit('page-change', page)
 }
 </script>
-
