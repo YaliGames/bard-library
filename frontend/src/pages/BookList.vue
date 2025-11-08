@@ -45,122 +45,30 @@
         </el-button>
       </div>
 
-      <div
-        v-if="loading"
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
-        <div v-for="i in skeletonCount" :key="i" class="bg-white rounded-lg shadow-sm p-4">
-          <el-skeleton animated :loading="true">
-            <template #template>
-              <div class="flex flex-col gap-2">
-                <!-- 封面占位 -->
-                <div class="w-full aspect-[3/4] flex">
-                  <el-skeleton-item variant="image" class="w-full h-full rounded" />
-                </div>
-                <!-- 标题占位 -->
-                <el-skeleton-item variant="text" class="w-[70%] h-[18px] mt-1.5" />
-                <!-- 作者行占位 -->
-                <el-skeleton-item variant="text" class="w-[50%] h-[14px]" />
-                <!-- 评分+按钮占位 -->
-                <div class="flex items-center justify-between mt-2">
-                  <el-skeleton-item variant="text" class="w-[120px] h-[18px]" />
-                  <!-- <el-skeleton-item variant="circle" class="w-7 h-7" /> -->
-                </div>
-              </div>
-            </template>
-          </el-skeleton>
-        </div>
-      </div>
-      <template v-else>
-        <!-- 网格视图 -->
-        <div
-          v-if="data.length > 0"
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-        >
-          <div class="bg-white rounded-lg shadow-sm p-4" v-for="b in data" :key="b.id">
-            <div class="flex flex-col gap-1.5">
-              <router-link :to="`/books/${b.id}`">
-                <CoverImage
-                  :file-id="b.cover_file_id || null"
-                  :title="b.title"
-                  :authors="(b.authors || []).map(a => a.name)"
-                  class="rounded"
-                >
-                  <template #overlay v-if="userSettings.bookList?.showReadTag">
-                    <el-tag v-if="b.is_read_mark" type="success" effect="dark" size="small">
-                      已读
-                    </el-tag>
-                    <el-tag v-else-if="b.is_reading" type="warning" effect="dark" size="small">
-                      正在阅读
-                    </el-tag>
-                  </template>
-                </CoverImage>
-                <div class="font-semibold mt-2">{{ b.title || '#' + b.id }}</div>
-              </router-link>
-              <div class="text-gray-600 text-sm flex flex-wrap gap-1">
-                <template v-for="(a, idx) in b.authors || []" :key="a.id">
-                  <div class="cursor-pointer text-primary" @click="filterByAuthor(a.id)">
-                    {{ a.name }}
-                  </div>
-                  <span v-if="idx < (b?.authors ?? []).length - 1">/</span>
-                </template>
-                <div class="text-gray-500" v-if="(b.authors || []).length === 0">暂无作者</div>
-              </div>
-              <div class="flex items-center justify-between gap-2">
-                <el-rate
-                  v-model="b.rating"
-                  :max="5"
-                  allow-half
-                  disabled
-                  show-score
-                  score-template="{value}"
-                />
-                <template v-if="userSettings.bookList?.showMarkReadButton && isLoggedIn">
-                  <el-tooltip :content="b.is_read_mark ? '取消已读' : '标为已读'" placement="top">
-                    <el-button
-                      size="small"
-                      :type="b.is_read_mark ? 'success' : 'default'"
-                      @click="toggleRead(b)"
-                      circle
-                    >
-                      <span class="material-symbols-outlined">done_all</span>
-                    </el-button>
-                  </el-tooltip>
-                </template>
-              </div>
-            </div>
-          </div>
-        </div>
-        <el-empty description="暂无书籍" v-else />
-
-        <div v-if="meta" class="mt-3 flex justify-center">
-          <el-pagination
-            background
-            layout="prev, pager, next, jumper"
-            :total="meta.total"
-            :page-size="meta.per_page"
-            :current-page="meta.current_page"
-            @current-change="searchPage"
-          />
-        </div>
-      </template>
+      <BookGrid
+        :data="data"
+        :loading="loading"
+        :meta="meta"
+        @page-change="searchPage"
+        @author-click="filterByAuthor"
+        @toggle-read="toggleRead"
+      />
     </div>
   </section>
 </template>
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import CoverImage from '@/components/CoverImage.vue'
 import BookFilters from '@/components/Book/Filters.vue'
+import BookGrid from '@/components/Book/BookGrid.vue'
 import { booksApi } from '@/api/books'
 import type { Book } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
-import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { usePagination } from '@/composables/usePagination'
 import { useBookActions } from '@/composables/useBookActions'
 
-const { handleError, handleSuccess } = useErrorHandler()
+const { handleError } = useErrorHandler()
 const { toggleReadMark } = useBookActions()
 
 // 统一的筛选模型
@@ -182,8 +90,6 @@ const err = ref('')
 const sort = ref<'modified' | 'created' | 'rating' | 'id'>('created')
 const order = ref<'asc' | 'desc'>('desc')
 const route = useRoute()
-const authStore = useAuthStore()
-const isLoggedIn = computed(() => authStore.isLoggedIn)
 
 // 系统设置
 const settingsStore = useSettingsStore()
@@ -222,8 +128,6 @@ const { data, loading, currentPage, lastPage, total, perPage, loadPage } = usePa
     err.value = e?.message || '加载失败'
   },
 })
-
-const skeletonCount = computed(() => Math.max(1, Number(perPage.value || 12)))
 
 const meta = computed(() => ({
   current_page: currentPage.value,
