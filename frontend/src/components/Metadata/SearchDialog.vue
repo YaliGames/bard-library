@@ -17,14 +17,18 @@
         clearable
         :disabled="busy"
       />
-      <el-button type="primary" :loading="loading" :disabled="busy" @click="doSearch">
+      <el-button type="primary" :loading="loading" :disabled="busy || !canSearch" @click="doSearch">
         搜索
       </el-button>
     </div>
 
-    <div v-if="error" class="text-red-500 text-sm mb-2">{{ error }}</div>
+    <el-alert v-if="error" type="error" :title="error" :closable="false" class="mb-3" />
 
-    <div v-if="items.length === 0 && !loading" class="text-gray-500 text-sm">无结果</div>
+    <el-empty
+      v-if="items.length === 0 && !loading && hasSearched"
+      description="未找到相关内容"
+      :image-size="80"
+    />
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[420px] overflow-auto pr-1">
       <el-card v-for="(b, idx) in items" :key="b.id + '_' + idx" shadow="hover">
@@ -99,15 +103,16 @@ const loading = computed(() => isLoadingKey('loading'))
 const applying = computed(() => isLoadingKey('applying'))
 const busy = computed(() => loading.value || applying.value)
 const error = ref('')
+const hasSearched = ref(false)
+const canSearch = computed(() => {
+  return !!providerId.value && !!query.value.trim()
+})
 
 async function doSearch() {
-  if (busy.value) return
+  if (busy.value || !canSearch.value) return
   items.value = []
   error.value = ''
-  if (!providerId.value) {
-    error.value = '请选择平台'
-    return
-  }
+  hasSearched.value = true
   startLoading('loading')
   try {
     items.value = await metadataApi.search(providerId.value, query.value, 5)
@@ -149,6 +154,8 @@ watch(
     if (!v) {
       stopLoading('applying')
       stopLoading('loading')
+      hasSearched.value = false
+      error.value = ''
     }
   },
 )
@@ -176,6 +183,9 @@ watch(
 function onClosed() {
   stopLoading('applying')
   stopLoading('loading')
+  hasSearched.value = false
+  error.value = ''
+  items.value = []
   emit('closed')
 }
 </script>
