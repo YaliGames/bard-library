@@ -58,6 +58,17 @@
         <el-form-item v-if="admin" label="公开">
           <el-switch v-model="form.is_public" />
         </el-form-item>
+        <el-form-item v-if="admin" label="全局书架">
+          <div>
+            <el-switch v-model="form.global" />
+            <div class="text-xs text-red-500 mt-1" v-if="form?.global && !form?.is_public">
+              请注意，未开启公开模式的全局书架将无法被除管理员外的任何用户访问
+            </div>
+            <div class="text-xs text-gray-500 mt-1" v-else-if="form?.global && form?.is_public">
+              全局书架不属于任何用户，所有用户可见
+            </div>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
@@ -148,11 +159,18 @@ function reload(page = 1) {
 
 // 创建/编辑
 const createVisible = ref(false)
-const form = ref<{ name: string; description?: string; is_public?: boolean }>({ name: '' }) // 已废弃
+const form = ref<{ name: string; description?: string; is_public?: boolean; global?: boolean }>({
+  name: '',
+})
 const saving = ref(false)
 
 function openCreate() {
-  form.value = { name: '', description: '', is_public: props.admin ? true : undefined }
+  form.value = {
+    name: '',
+    description: '',
+    is_public: props.admin ? true : undefined,
+    global: props.admin ? false : undefined,
+  }
   createVisible.value = true
 }
 
@@ -165,7 +183,10 @@ async function createShelf() {
       name: form.value.name.trim(),
       description: form.value.description || '',
     }
-    if (props.admin) payload.is_public = !!form.value.is_public
+    if (props.admin) {
+      payload.is_public = !!form.value.is_public
+      payload.global = !!form.value.global // 传递全局书架标识
+    }
     await shelvesApi.createRaw(payload)
     createVisible.value = false
     await reload()

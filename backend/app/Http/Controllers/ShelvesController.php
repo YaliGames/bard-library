@@ -111,13 +111,19 @@ class ShelvesController extends Controller
         if ($isAdmin) {
             $rules['is_public'] = ['sometimes','boolean'];
             $rules['user_id'] = ['sometimes','nullable','integer'];
+            $rules['global'] = ['sometimes','boolean'];
         }
         $data = $request->validate($rules);
 
         if ($isAdmin) {
             $data['is_public'] = (bool)($data['is_public'] ?? false);
-            // allow admin to optionally assign owner; if omitted, it's a global/admin shelf (user_id = null)
-            $data['user_id'] = $data['user_id'] ?? null;
+            $isGlobal = (bool)($data['global'] ?? false);
+            if ($isGlobal) {
+                $data['user_id'] = null;
+            } else {
+                $data['user_id'] = $data['user_id'] ?? $user->id;
+            }
+            unset($data['global']);
         } else {
             $data['user_id'] = $user->id;
             $data['is_public'] = false;
@@ -146,12 +152,25 @@ class ShelvesController extends Controller
         if ($isAdmin) {
             $rules['is_public'] = ['sometimes','boolean'];
             $rules['user_id'] = ['sometimes','nullable','integer'];
+            $rules['global'] = ['sometimes','boolean'];
         }
         $data = $request->validate($rules);
 
         if (!$isAdmin) {
             // prevent non-admin from altering owner or visibility
             unset($data['user_id'], $data['is_public']);
+        } else {
+            if (isset($data['global'])) {
+                $isGlobal = (bool)$data['global'];
+                if ($isGlobal) {
+                    $data['user_id'] = null;
+                } else {
+                    if (!isset($data['user_id'])) {
+                        $data['user_id'] = $s->user_id ?? $user->id;
+                    }
+                }
+                unset($data['global']);
+            }
         }
 
         $s->fill($data)->save();

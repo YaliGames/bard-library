@@ -63,6 +63,23 @@
                   <el-form-item v-if="authStore.isRole('admin')" label="公开">
                     <el-switch v-model="form.is_public" />
                   </el-form-item>
+                  <el-form-item v-if="authStore.isRole('admin')" label="全局书架">
+                    <div>
+                      <el-switch v-model="form.global" />
+                      <div
+                        class="text-xs text-red-500 mt-1"
+                        v-if="form?.global && !form?.is_public"
+                      >
+                        请注意，未开启公开模式的全局书架将无法被除管理员外的任何用户访问
+                      </div>
+                      <div
+                        class="text-xs text-gray-500 mt-1"
+                        v-else-if="form?.global && form?.is_public"
+                      >
+                        全局书架不属于任何用户，所有用户可见
+                      </div>
+                    </div>
+                  </el-form-item>
                 </el-form>
                 <div class="flex justify-end gap-2">
                   <el-button type="danger" @click="deleteShelf">删除书架</el-button>
@@ -262,7 +279,9 @@ function back() {
 
 // 编辑模式切换与表单
 const isEditing = ref(false)
-const form = ref<{ name: string; description?: string; is_public?: boolean }>({ name: '' })
+const form = ref<{ name: string; description?: string; is_public?: boolean; global?: boolean }>({
+  name: '',
+})
 function toggleEdit() {
   if (!canManage.value) return
   isEditing.value = !isEditing.value
@@ -271,17 +290,22 @@ function toggleEdit() {
       name: shelf.value.name,
       description: shelf.value.description || '',
       is_public: shelf.value.is_public,
+      global: shelf.value.user_id === null,
     }
   }
 }
 async function saveShelf() {
   if (!shelf.value) return
   try {
-    await shelvesApi.updateRaw(shelf.value.id, {
+    const payload: Record<string, any> = {
       name: form.value.name.trim(),
       description: form.value.description || '',
       is_public: form.value.is_public,
-    })
+    }
+    if (authStore.isRole('admin')) {
+      payload.global = !!form.value.global
+    }
+    await shelvesApi.updateRaw(shelf.value.id, payload)
     await fetchShelfInfo()
     handleSuccess('已保存')
   } catch (e: any) {
