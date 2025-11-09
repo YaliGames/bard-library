@@ -247,7 +247,12 @@ const hasAnyAdvanced = computed(
     props.showTags ||
     props.showAuthor ||
     (props.showReadState && isLoggedIn.value) ||
-    props.showRating,
+    props.showRating ||
+    props.showPublisher ||
+    props.showPublishedAt ||
+    props.showLanguage ||
+    props.showSeries ||
+    props.showIsbn,
 )
 
 watch(
