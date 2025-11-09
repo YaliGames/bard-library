@@ -1,0 +1,55 @@
+id: jjwxc
+name: 晋江文学城
+base_url: https://www.jjwxc.net/
+search:
+  url: https://www.jjwxc.net/search.php
+  method: GET
+  params:
+    t: 1
+    kw: $query
+  result_list_xpath: //div[@id='search_result']//div[not(contains(div[@class='info'], '文章类型：评论'))]//h3[@class='title']/a
+  detail_url_attr: href
+detail:
+  fields:
+    title:
+      # 使用 Schema.org 的 itemprop="articleSection"
+      xpath: //span[@itemprop='articleSection']
+      attr: text
+    cover:
+      # 文案区左侧封面
+      xpath: //img[contains(@class,'noveldefaultimage')]
+      attr: src
+    authors:
+      # 使用 Schema.org 的 itemprop="author"
+      xpath: //span[@itemprop='author']
+      attr: text
+      multi: true
+    description:
+      # 使用 Schema.org 的 itemprop="description"
+      xpath: //div[@itemprop='description']//text()
+      attr: text
+      multi: true
+      join: "\n"
+    tags:
+      # “内容标签：” 所在块内的标签链接
+      xpath: //div[contains(@class,'smallreadbody')][.//span[contains(., '内容标签')]]//a
+      attr: text
+      multi: true
+    series:
+      # 右侧信息栏“所属系列：”
+      xpath: //ul[@name='printright']//li[span[contains(., '所属系列：')]]/span[@itemprop='series']
+      attr: text
+    wordCount:
+      # 右侧信息栏“全文字数：”
+      xpath: //ul[@name='printright']//li[span[contains(., '全文字数：')]]/span[@itemprop='wordCount']
+      attr: text
+    status:
+      # 右侧信息栏“文章进度：”
+      xpath: //ul[@name='printright']//li[span[contains(., '文章进度：')]]/span[@itemprop='updataStatus']
+      attr: text
+headers:
+  User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36
+  Referer: https://www.jjwxc.net/
+cache_ttl: 720
+concurrency: 5
+encoding: GB18030

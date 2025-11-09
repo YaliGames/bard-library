@@ -4,6 +4,7 @@ namespace App\Services\Metadata;
 
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
+use Illuminate\Support\Facades\Log;
 
 class MetadataScraper
 {
@@ -16,8 +17,24 @@ class MetadataScraper
         $this->client = new Client([
             'headers' => $config['headers'] ?? [],
             'http_errors' => false,
-            'timeout' => 10,
+            'timeout' => 30,
         ]);
+    }
+
+    /**
+     * 规范化编码名称
+     */
+    protected function normalizeEncoding(string $encoding): string
+    {
+        $enc = strtolower(trim($encoding));
+        $map = [
+            'gbk' => 'GBK',
+            'gb2312' => 'GBK',
+            'gb18030' => 'GB18030',
+            'utf-8' => 'UTF-8',
+            'utf8' => 'UTF-8',
+        ];
+        return $map[$enc] ?? 'UTF-8';
     }
 
     /**
@@ -53,66 +70,90 @@ class MetadataScraper
     public function searchDetailUrls(string $query, int $limit = 5): array
     {
         $searchCfg = $this->config['search'] ?? null;
-        if (!$searchCfg) return [];
+        if (!$searchCfg) {
+            return [];
+        }
+        
+        // 准备参数
         $params = $searchCfg['params'] ?? [];
-        foreach ($params as $k => &$v) { $v = str_replace('$query', $query, (string)$v); }
-        $enc = strtolower($this->config['encoding'] ?? 'utf-8');
-        if (in_array($enc, ['gbk','gb2312'])) {
+        foreach ($params as $k => &$v) {
+            $v = str_replace('$query', $query, (string)$v);
+        }
+        
+        // 编码转换 (仅针对查询参数)
+        $configEnc = $this->config['encoding'] ?? 'utf-8';
+        $targetEnc = $this->normalizeEncoding($configEnc);
+        
+        // 如果目标网站使用 GBK/GB18030，需要转换查询参数
+        if ($targetEnc !== 'UTF-8') {
             foreach ($params as $k => &$v) {
-                if (is_string($v) && function_exists('mb_convert_encoding')) {
-                    $v = @mb_convert_encoding($v, 'GBK', 'UTF-8');
+                if (is_string($v)) {
+                    $v = mb_convert_encoding($v, $targetEnc, 'UTF-8');
                 }
             }
         }
+        
+        // 发送请求
         $method = strtoupper($searchCfg['method'] ?? 'GET');
         $url = $searchCfg['url'] ?? '';
-        if (!$url) return [];
-        $res = $this->client->request($method, $url, [ 'query' => $params ]);
-        $html = (string)$res->getBody();
-        if ($html !== '' && $enc !== 'utf-8' && function_exists('mb_convert_encoding')) {
-            $to = 'UTF-8'; $from = strtoupper($enc);
-            $html = @mb_convert_encoding($html, $to, $from);
+        if (!$url) {
+            return [];
         }
+        
+        $res = $this->client->request($method, $url, ['query' => $params]);
+        $rawHtml = $res->getBody()->getContents();
+        
+        // 检测并转换编码
+        $html = $this->convertToUtf8($rawHtml);
+        
+        // 解析 HTML
         $crawler = new Crawler($html);
         $listXpath = $searchCfg['result_list_xpath'] ?? '';
-        if (!$listXpath) return [];
-        $nodes = $crawler->filterXPath($listXpath);
-        if ($nodes->count() === 0) return [];
-        $attr = $searchCfg['detail_url_attr'] ?? 'href';
-        $urls = [];
-        foreach ($nodes as $n) {
-            $node = new Crawler($n);
-            $u = $node->attr($attr);
-            if (!empty($searchCfg['detail_url_parse']) && $searchCfg['detail_url_parse'] === 'extract_redirect_target') {
-                $u = $this->extractRedirectTarget($u);
+        if (!$listXpath) {
+            return [];
+        }
+        
+        try {
+            $nodes = $crawler->filterXPath($listXpath);
+            if ($nodes->count() === 0) {
+                return [];
             }
-            // 规范化为绝对 URL
-            if ($u) {
-                if (str_starts_with($u, '//')) { $u = 'https:' . $u; }
-                elseif (!preg_match('#^https?://#i', $u)) {
-                    $base = rtrim((string)($this->config['base_url'] ?? ''), '/');
-                    if ($base) { $u = $base . '/' . ltrim($u, '/'); }
+            
+            $attr = $searchCfg['detail_url_attr'] ?? 'href';
+            $urls = [];
+            
+            foreach ($nodes as $n) {
+                $node = new Crawler($n);
+                $u = $node->attr($attr);
+                
+                if (!empty($searchCfg['detail_url_parse']) && $searchCfg['detail_url_parse'] === 'extract_redirect_target') {
+                    $u = $this->extractRedirectTarget($u);
+                }
+                
+                // 规范化为绝对 URL
+                $u = $this->normalizeUrl($u);
+                
+                if ($u) {
+                    $urls[] = $u;
+                    if (count($urls) >= $limit) break;
                 }
             }
-            if ($u) {
-                $urls[] = $u;
-                if (count($urls) >= $limit) break;
-            }
+            
+            return array_values(array_unique($urls));
+        } catch (\Throwable $e) {
+            Log::error("[MetadataScraper] XPath解析错误", ['error' => $e->getMessage()]);
+            return [];
         }
-        // 去重
-        $urls = array_values(array_unique($urls));
-        return $urls;
     }
 
     public function fetchDetail(string $url): array
     {
         $res = $this->client->request('GET', $url);
-        $html = (string)$res->getBody();
-        $enc = strtolower($this->config['encoding'] ?? 'utf-8');
-        if ($html !== '' && $enc !== 'utf-8' && function_exists('mb_convert_encoding')) {
-            $to = 'UTF-8'; $from = strtoupper($enc);
-            $html = @mb_convert_encoding($html, $to, $from);
-        }
+        $rawHtml = $res->getBody()->getContents();
+        
+        // 检测并转换编码
+        $html = $this->convertToUtf8($rawHtml);
+        
         $crawler = new Crawler($html);
         $fields = $this->config['detail']['fields'] ?? [];
         $result = [];
@@ -151,70 +192,22 @@ class MetadataScraper
             }
             $result[$field] = $value;
         }
-        // 通用补充和规范化
+        // 规范化结果
         $result['url'] = $url;
-        if (!isset($result['description']) && isset($result['desc'])) { $result['description'] = $result['desc']; }
-        if (!isset($result['publishedDate']) && isset($result['published_date'])) { $result['publishedDate'] = $result['published_date']; }
+        
+        // 规范化 authors 字段
         if (isset($result['authors']) && !is_array($result['authors'])) {
             $a = trim((string)$result['authors']);
             $result['authors'] = $a === '' ? [] : preg_split('/[\s\/，,]+/u', $a);
         }
-        // 如果 description 为空，尝试从 intro 最后一个，按段落 <p> 拼接兜底
-        if (empty($result['description'])) {
-            try {
-                $introNodes = $crawler->filterXPath("//div[@id='link-report']//div[contains(@class,'intro')]");
-                if ($introNodes->count() > 0) {
-                    $lastNode = $introNodes->last();
-                    // 优先取段落集合
-                    $paras = $lastNode->filter('p');
-                    if ($paras->count() > 0) {
-                        $parts = [];
-                        foreach ($paras as $p) {
-                            $t = trim((new Crawler($p))->text());
-                            if ($t !== '') $parts[] = $t;
-                        }
-                        if (!empty($parts)) {
-                            $result['description'] = implode("\n\n", $parts);
-                        }
-                    }
-                    // 否则退回整块文本
-                    if (empty($result['description'])) {
-                        $last = trim($lastNode->text());
-                        if ($last !== '') $result['description'] = $last;
-                    }
-                }
-            } catch (\Throwable $e) {}
-        }
-        // 如果 tags 为空，尝试 class=tag 的锚点兜底；再不行，尝试 criteria 变量解析
-        if (empty($result['tags']) || (is_array($result['tags']) && count($result['tags']) === 0)) {
-            try {
-                $tagNodes = $crawler->filterXPath("//a[contains(concat(' ', normalize-space(@class), ' '), ' tag ')]");
-                $tags = [];
-                foreach ($tagNodes as $n) {
-                    $t = trim((new Crawler($n))->text());
-                    if ($t !== '') $tags[] = $t;
-                }
-                $tags = array_values(array_unique($tags));
-                if (!empty($tags)) $result['tags'] = $tags;
-            } catch (\Throwable $e) {}
-            // criteria 变量回退
-            if (empty($result['tags']) || (is_array($result['tags']) && count($result['tags']) === 0)) {
-                if (preg_match("/criteria\s*=\s*'([^']+)'/", $html, $m)) {
-                    $parts = explode('|', $m[1]);
-                    $tags = [];
-                    foreach ($parts as $p) {
-                        $p = trim($p);
-                        if ($p !== '' && str_starts_with($p, '7:')) {
-                            $tags[] = substr($p, 2);
-                        }
-                    }
-                    if (!empty($tags)) $result['tags'] = array_values(array_unique($tags));
-                }
-            }
-        }
+        
+        // 生成 ID
         if (empty($result['id'])) {
-            if (preg_match('/(\d{5,})/', $url, $m)) { $result['id'] = $m[1]; }
-            else { $result['id'] = substr(md5($url), 0, 12); }
+            if (preg_match('/(\d{5,})/', $url, $m)) {
+                $result['id'] = $m[1];
+            } else {
+                $result['id'] = substr(md5($url), 0, 12);
+            }
         }
         $result['source'] = [
             'id' => $this->config['id'] ?? 'unknown',
@@ -224,27 +217,81 @@ class MetadataScraper
         return $result;
     }
 
+    /**
+     * 转换HTML为UTF-8编码
+     */
+    protected function convertToUtf8(string $rawHtml): string
+    {
+        $detectedEnc = mb_detect_encoding($rawHtml, ['UTF-8', 'GB18030', 'GBK', 'ASCII'], true);
+        
+        if ($detectedEnc && $detectedEnc !== 'UTF-8') {
+            $html = mb_convert_encoding($rawHtml, 'UTF-8', $detectedEnc);
+            // 修改HTML中的charset声明，避免DomCrawler误判
+            $html = preg_replace('/charset\s*=\s*["\']?(gb2312|gbk|gb18030)["\']?/i', 'charset="UTF-8"', $html);
+            return $html;
+        }
+        
+        return $rawHtml;
+    }
+
+    /**
+     * 规范化URL为绝对路径
+     */
+    protected function normalizeUrl(?string $url): ?string
+    {
+        if (!$url) {
+            return null;
+        }
+        
+        if (str_starts_with($url, '//')) {
+            return 'https:' . $url;
+        }
+        
+        if (!preg_match('#^https?://#i', $url)) {
+            $base = rtrim((string)($this->config['base_url'] ?? ''), '/');
+            if ($base) {
+                return $base . '/' . ltrim($url, '/');
+            }
+        }
+        
+        return $url;
+    }
+
     protected function extractRedirectTarget(?string $url): ?string
     {
-        if (!$url) return $url;
+        if (!$url) {
+            return $url;
+        }
+        
         if (preg_match('/\?url=([^&]+)/', $url, $m)) {
             return urldecode($m[1]);
         }
+        
         return $url;
     }
 
     protected function applyFilter(string $filter, $value)
     {
-        if ($value === null) return $value;
-        if (strpos($filter, 'floatval') !== false) { $value = floatval($value); }
-        if (strpos($filter, '/2') !== false && is_numeric($value)) { $value = $value / 2; }
-        if (strpos($filter, 'trim') !== false && is_string($value)) { $value = trim($value); }
-        if (strpos($filter, 'normalizePublishDate') !== false && is_string($value)) { $value = $this->normalizePublishDate($value); }
+        if ($value === null) {
+            return $value;
+        }
+        
+        if (strpos($filter, 'floatval') !== false) {
+            $value = floatval($value);
+        }
+        
+        if (strpos($filter, '/2') !== false && is_numeric($value)) {
+            $value = $value / 2;
+        }
+        
+        if (strpos($filter, 'trim') !== false && is_string($value)) {
+            $value = trim($value);
+        }
+        
+        if (strpos($filter, 'normalizePublishDate') !== false && is_string($value)) {
+            $value = preg_replace('/[^0-9\-]/', '', $value);
+        }
+        
         return $value;
-    }
-
-    protected function normalizePublishDate(string $v): string
-    {
-        return preg_replace('/[^0-9\-]/', '', $v);
     }
 }
