@@ -108,30 +108,7 @@
 
         <!-- 排序控件（与书库页一致） -->
         <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
-          <div class="flex flex-row items-center">
-            <el-select
-              v-model="sort"
-              placeholder="选择排序"
-              @change="() => searchPage(1)"
-              class="min-w-[150px]"
-            >
-              <el-option label="创建时间" value="created" />
-              <el-option label="修改时间" value="modified" />
-              <el-option label="评分" value="rating" />
-              <el-option label="ID" value="id" />
-            </el-select>
-          </div>
-          <el-button @click="toggleOrder">
-            <span class="material-symbols-outlined" v-if="sort == 'created'">
-              {{ order === 'desc' ? 'clock_arrow_down' : 'clock_arrow_up' }}
-            </span>
-            <span class="material-symbols-outlined" v-else-if="sort == 'modified'">
-              {{ order === 'desc' ? 'edit_arrow_down' : 'edit_arrow_up' }}
-            </span>
-            <span class="material-symbols-outlined" v-else>
-              {{ order === 'desc' ? 'arrow_downward' : 'arrow_upward' }}
-            </span>
-          </el-button>
+          <SortControl v-model:sort="sort" v-model:order="order" @change="() => searchPage(1)" />
         </div>
       </template>
 
@@ -151,30 +128,8 @@
     </div>
   </section>
 
-  <!-- 添加书籍 -->
-  <el-dialog v-model="addVisible" title="添加书籍到当前书架" width="720px">
-    <div class="flex items-center gap-2 mb-3">
-      <el-input
-        v-model="addQ"
-        placeholder="搜索书名/作者"
-        class="w-[300px]"
-        @keyup.enter="searchAdd"
-      />
-      <el-button type="primary" :loading="addLoading" @click="searchAdd">搜索</el-button>
-    </div>
-    <el-empty v-if="!addLoading && addList.length === 0" description="输入关键字搜索书籍" />
-    <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      <div v-for="b in addList" :key="b.id" class="bg-white rounded-lg shadow-sm p-2">
-        <router-link :to="`/books/${b.id}`" class="block font-semibold truncate mb-1">
-          {{ b.title }}
-        </router-link>
-        <div class="text-xs text-gray-500 truncate mb-2">
-          {{ (b.authors || []).map(a => a.name).join(' / ') || '无作者' }}
-        </div>
-        <el-button size="small" type="primary" @click="addToShelf(b)">添加</el-button>
-      </div>
-    </div>
-  </el-dialog>
+  <!-- 添加书籍对话框 -->
+  <AddBooksDialog v-model="addVisible" :exclude-book-ids="currentBookIds" @add="handleBookAdded" />
 </template>
 
 <script setup lang="ts">
@@ -183,6 +138,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import BookFilters from '@/components/Book/Filters.vue'
 import BookGrid from '@/components/Book/BookGrid.vue'
+import AddBooksDialog from '@/components/Shelf/AddBooksDialog.vue'
+import SortControl from '@/components/SortControl.vue'
 import { booksApi } from '@/api/books'
 import type { Book, Shelf } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
@@ -198,7 +155,6 @@ const { toggleReadMark } = useBookActions()
 
 const { isLoadingKey, startLoading, stopLoading } = useLoading()
 const shelfLoading = computed(() => isLoadingKey('shelf'))
-const addLoading = computed(() => isLoadingKey('addBooks'))
 
 const router = useRouter()
 const route = useRoute()
@@ -364,11 +320,6 @@ function searchPage(page: number) {
   loadPage(page)
 }
 
-function toggleOrder() {
-  order.value = order.value === 'desc' ? 'asc' : 'desc'
-  loadPage(1)
-}
-
 function resetFilters() {
   Object.assign(filters.value, {
     q: '',
@@ -414,36 +365,19 @@ onMounted(() => {
 
 // 添加书籍
 const addVisible = ref(false)
-const addQ = ref('')
-const addList = ref<Book[]>([])
+
+// 当前书架中的书籍 ID 列表
+const currentBookIds = computed(() => data.value.map(b => b.id))
+
 function openAddDialog() {
   addVisible.value = true
-  addQ.value = ''
-  addList.value = []
 }
-async function searchAdd() {
-  startLoading('addBooks')
-  try {
-    const r = await booksApi.list({ q: addQ.value || undefined, perPage: 12 })
-    addList.value = r.data
-  } catch {
-    addList.value = []
-  } finally {
-    stopLoading('addBooks')
-  }
-}
-async function addToShelf(b: Book) {
-  if (!shelf.value) return
-  try {
-    const currentBookIds = data.value.map(book => book.id)
-    const newBookIds = Array.from(new Set([...currentBookIds, b.id]))
-    await shelvesApi.setBooks(shelf.value.id, newBookIds)
-    if (!data.value.find(x => x.id === b.id)) {
-      data.value.push(b)
-    }
-    handleSuccess('已添加')
-  } catch (e: any) {
-    handleError(e, { context: 'ShelfDetail.addToShelf' })
+
+// 当书籍添加成功时的回调
+async function handleBookAdded(book: Book) {
+  // 将书籍添加到当前列表
+  if (!data.value.find(x => x.id === book.id)) {
+    data.value.push(book)
   }
 }
 

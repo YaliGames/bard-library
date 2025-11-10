@@ -19,30 +19,7 @@
 
       <!-- 排序控件 -->
       <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
-        <div class="flex flex-row items-center">
-          <el-select
-            v-model="sort"
-            placeholder="选择排序"
-            @change="() => searchPage(1)"
-            class="min-w-[150px]"
-          >
-            <el-option label="创建时间" value="created" />
-            <el-option label="修改时间" value="modified" />
-            <el-option label="评分" value="rating" />
-            <el-option label="ID" value="id" />
-          </el-select>
-        </div>
-        <el-button @click="toggleOrder">
-          <span class="material-symbols-outlined" v-if="sort == 'created'">
-            {{ order === 'desc' ? 'clock_arrow_down' : 'clock_arrow_up' }}
-          </span>
-          <span class="material-symbols-outlined" v-else-if="sort == 'modified'">
-            {{ order === 'desc' ? 'edit_arrow_down' : 'edit_arrow_up' }}
-          </span>
-          <span class="material-symbols-outlined" v-else>
-            {{ order === 'desc' ? 'arrow_downward' : 'arrow_upward' }}
-          </span>
-        </el-button>
+        <SortControl v-model:sort="sort" v-model:order="order" @change="() => searchPage(1)" />
       </div>
 
       <BookGrid
@@ -61,6 +38,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import BookFilters from '@/components/Book/Filters.vue'
 import BookGrid from '@/components/Book/BookGrid.vue'
+import SortControl from '@/components/SortControl.vue'
 import { booksApi } from '@/api/books'
 import type { Book } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
@@ -143,11 +121,6 @@ function filterByAuthor(id: number) {
 
 function searchPage(page: number) {
   loadPage(page)
-}
-
-function toggleOrder() {
-  order.value = order.value === 'desc' ? 'asc' : 'desc'
-  loadPage(1)
 }
 
 function resetFilters() {
