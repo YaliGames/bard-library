@@ -1,15 +1,20 @@
 <template>
-  <div class="user-list-page">
-    <div class="page-header">
-      <h1>用户管理</h1>
-      <el-button v-permission="'users.create'" type="primary" @click="handleCreate">
-        <el-icon><Plus /></el-icon>
-        创建用户
-      </el-button>
+  <section class="container mx-auto px-4 py-4 max-w-7xl">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">用户管理</h2>
+      <div class="flex items-center">
+        <el-button v-permission="'users.create'" type="primary" @click="handleCreate">
+          <span class="material-symbols-outlined mr-1 text-lg">add</span>
+          创建用户
+        </el-button>
+        <el-button @click="back">
+          <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span>
+          返回
+        </el-button>
+      </div>
     </div>
 
-    <!-- 搜索和筛选 -->
-    <el-card class="filter-card">
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
       <el-form :inline="true" :model="filters">
         <el-form-item label="搜索">
           <el-input
@@ -46,17 +51,17 @@
           <el-button @click="resetFilters">重置</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
 
     <!-- 用户表格 -->
-    <el-card>
+    <div class="bg-white rounded-lg shadow-sm p-4">
       <el-table :data="users" v-loading="loading" stripe>
         <el-table-column prop="name" label="用户名" min-width="120">
           <template #default="{ row }">
             <div>
               <strong>{{ row.name }}</strong>
             </div>
-            <div style="font-size: 12px; color: var(--el-text-color-secondary)">
+            <div class="text-xs text-gray-500">
               {{ row.email }}
             </div>
           </template>
@@ -69,16 +74,11 @@
               :key="role.id"
               size="small"
               :type="getRoleTagType(role)"
-              style="margin: 2px"
+              class="m-0.5"
             >
               {{ role.display_name }}
             </el-tag>
-            <span
-              v-if="!row.roles || row.roles.length === 0"
-              style="color: var(--el-text-color-secondary)"
-            >
-              无角色
-            </span>
+            <span v-if="!row.roles || row.roles.length === 0" class="text-gray-500">无角色</span>
           </template>
         </el-table-column>
 
@@ -139,7 +139,7 @@
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination">
+      <div class="mt-5 flex justify-center">
         <el-pagination
           v-model:current-page="pagination.current_page"
           v-model:page-size="pagination.per_page"
@@ -150,7 +150,7 @@
           @current-change="loadUsers"
         />
       </div>
-    </el-card>
+    </div>
 
     <!-- 创建/编辑对话框 -->
     <UserDialog v-model:visible="dialogVisible" :user="currentUser" @success="loadUsers" />
@@ -159,7 +159,7 @@
     <el-dialog v-model="rolesDialogVisible" title="用户角色" width="500px">
       <div v-if="currentUser">
         <h3>{{ currentUser.name }}</h3>
-        <p style="color: var(--el-text-color-secondary)">{{ currentUser.email }}</p>
+        <p class="text-gray-500">{{ currentUser.email }}</p>
         <el-divider />
 
         <div v-if="userRoles.length > 0">
@@ -168,11 +168,11 @@
             :key="role.id"
             size="large"
             :type="getRoleTagType(role)"
-            style="margin: 8px"
+            class="m-2"
           >
             <div>
               <strong>{{ role.display_name }}</strong>
-              <div style="font-size: 12px; margin-top: 4px">
+              <div class="text-xs mt-1">
                 优先级: {{ role.priority }} | {{ role.permissions?.length || 0 }} 个权限
               </div>
             </div>
@@ -185,14 +185,15 @@
         <el-button @click="rolesDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Search } from '@element-plus/icons-vue'
 import { usersApi } from '@/api/users'
 import { rolesApi } from '@/api/roles'
+import { useRouter } from 'vue-router'
 import type { User, Role } from '@/api/types'
 import UserDialog from '@/components/Admin/UserDialog.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -201,6 +202,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
+const router = useRouter()
 const authStore = useAuthStore()
 const { hasPermission } = usePermission()
 const loading = ref(false)
@@ -210,6 +212,10 @@ const dialogVisible = ref(false)
 const rolesDialogVisible = ref(false)
 const currentUser = ref<User>()
 const userRoles = ref<Role[]>([])
+
+function back() {
+  router.back()
+}
 
 // 权限检查
 const canDelete = computed(() => hasPermission('users.delete'))
@@ -330,31 +336,3 @@ onMounted(() => {
   loadRoles()
 })
 </script>
-
-<style scoped>
-.user-list-page {
-  padding: 20px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.filter-card {
-  margin-bottom: 20px;
-}
-
-.pagination {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-}
-</style>

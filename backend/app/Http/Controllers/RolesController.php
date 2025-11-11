@@ -83,6 +83,10 @@ class RolesController extends Controller
     {
         $role = Role::findOrFail($id);
         
+        if ($role->name === 'super_admin') {
+            return response()->json(['message' => 'Cannot modify super admin role'], 403);
+        }
+        
         // 系统角色只有超级管理员可以修改
         if ($role->is_system && !$request->user()->hasRole('super_admin')) {
             return response()->json(['message' => 'Cannot modify system role'], 403);

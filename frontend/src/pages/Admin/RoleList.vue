@@ -1,24 +1,28 @@
 <template>
-  <div class="role-list-page">
-    <div class="page-header">
-      <h1>角色管理</h1>
-      <el-button v-permission="'roles.create'" type="primary" @click="handleCreate">
-        <el-icon><Plus /></el-icon>
-        创建角色
-      </el-button>
+  <section class="container mx-auto px-4 py-4 max-w-7xl">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">角色管理</h2>
+      <div class="flex items-center">
+        <el-button v-permission="'roles.create'" type="primary" @click="handleCreate">
+          <span class="material-symbols-outlined mr-1 text-lg">add</span>
+          创建角色
+        </el-button>
+        <el-button @click="back">
+          <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span>
+          返回
+        </el-button>
+      </div>
     </div>
 
-    <el-card>
+    <div class="bg-white rounded-lg shadow-sm p-4">
       <el-table :data="roles" v-loading="loading" stripe>
         <el-table-column prop="display_name" label="角色名称" min-width="120">
           <template #default="{ row }">
             <div>
               <strong>{{ row.display_name }}</strong>
-              <el-tag v-if="row.is_system" size="small" type="info" style="margin-left: 8px">
-                系统角色
-              </el-tag>
+              <el-tag v-if="row.is_system" size="small" type="info" class="ml-2">系统角色</el-tag>
             </div>
-            <div style="font-size: 12px; color: var(--el-text-color-secondary)">
+            <div class="text-xs text-gray-500">
               {{ row.name }}
             </div>
           </template>
@@ -41,11 +45,11 @@
             <el-button
               v-permission="'roles.edit'"
               link
-              type="primary"
+              :type="isSuperAdmin(row) ? 'info' : 'primary'"
               size="small"
               @click="handleEdit(row)"
             >
-              编辑
+              {{ isSuperAdmin(row) ? '查看' : '编辑' }}
             </el-button>
 
             <el-button
@@ -59,7 +63,7 @@
             </el-button>
 
             <el-popconfirm
-              v-if="!row.is_system"
+              v-if="!row.is_system && !isSuperAdmin(row)"
               v-permission="'roles.delete'"
               title="确定要删除这个角色吗?"
               confirm-button-text="确定"
@@ -71,13 +75,17 @@
               </template>
             </el-popconfirm>
 
-            <el-tooltip v-else content="系统角色不能删除" placement="top">
+            <el-tooltip
+              v-else
+              :content="isSuperAdmin(row) ? '超级管理员不能删除' : '系统角色不能删除'"
+              placement="top"
+            >
               <el-button link type="info" size="small" disabled>删除</el-button>
             </el-tooltip>
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
 
     <!-- 创建/编辑对话框 -->
     <RoleDialog v-model:visible="dialogVisible" :role="currentRole" @success="loadRoles" />
@@ -89,18 +97,9 @@
         <el-divider />
 
         <div v-if="rolePermissions.length > 0">
-          <div
-            v-for="[group, permissions] in groupedPermissions"
-            :key="group"
-            class="permission-group"
-          >
-            <h4>{{ getGroupDisplayName(group) }}</h4>
-            <el-tag
-              v-for="permission in permissions"
-              :key="permission.id"
-              size="small"
-              style="margin: 4px"
-            >
+          <div v-for="[group, permissions] in groupedPermissions" :key="group" class="mb-4">
+            <h4 class="my-2 text-sm text-gray-700">{{ getGroupDisplayName(group) }}</h4>
+            <el-tag v-for="permission in permissions" :key="permission.id" size="small" class="m-1">
               {{ permission.display_name }}
             </el-tag>
           </div>
@@ -112,25 +111,39 @@
         <el-button @click="permissionsDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
 import { rolesApi } from '@/api/roles'
+import { useRouter } from 'vue-router'
 import type { Role, Permission } from '@/api/types'
 import RoleDialog from '@/components/Admin/RoleDialog.vue'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 
 const { handleError, handleSuccess } = useErrorHandler()
 
+const router = useRouter()
 const loading = ref(false)
 const roles = ref<Role[]>([])
 const dialogVisible = ref(false)
 const permissionsDialogVisible = ref(false)
 const currentRole = ref<Role>()
 const rolePermissions = ref<Permission[]>([])
+
+function back() {
+  router.back()
+}
+
+// 检测是否为超级管理员
+const isSuperAdmin = (role: Role): boolean => {
+  const superAdminNames = ['super_admin']
+  if (superAdminNames.includes(role.name.toLowerCase())) {
+    return true
+  }
+  return false
+}
 
 // 加载角色列表
 const loadRoles = async () => {
@@ -158,6 +171,15 @@ const handleEdit = (role: Role) => {
 
 // 删除角色
 const handleDelete = async (role: Role) => {
+  // 超级管理员不允许删除
+  if (isSuperAdmin(role)) {
+    handleError(new Error('超级管理员不可删除'), {
+      context: 'RoleList.handleDelete',
+      message: '超级管理员角色受保护，不可删除',
+    })
+    return
+  }
+
   try {
     await rolesApi.delete(role.id)
     handleSuccess('角色删除成功')
@@ -214,31 +236,3 @@ onMounted(() => {
   loadRoles()
 })
 </script>
-
-<style scoped>
-.role-list-page {
-  padding: 20px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.permission-group {
-  margin-bottom: 16px;
-}
-
-.permission-group h4 {
-  margin: 8px 0;
-  font-size: 14px;
-  color: var(--el-text-color-regular);
-}
-</style>
