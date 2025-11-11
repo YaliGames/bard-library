@@ -158,25 +158,27 @@
     <!-- 角色详情对话框 -->
     <el-dialog v-model="rolesDialogVisible" title="用户角色" width="500px">
       <div v-if="currentUser">
-        <h3>{{ currentUser.name }}</h3>
-        <p class="text-gray-500">{{ currentUser.email }}</p>
+        <div class="flex items-center gap-2">
+          <el-avatar :size="32">{{ currentUser.name[0] }}</el-avatar>
+          <div>
+            <div class="text-gray-800">{{ currentUser.name }}</div>
+            <div class="text-gray-500 text-xs">{{ currentUser.email }}</div>
+          </div>
+        </div>
         <el-divider />
 
         <div v-if="userRoles.length > 0">
-          <el-tag
-            v-for="role in userRoles"
+          <div
+            v-for="role in userRoles.sort((a, b) => b.priority - a.priority)"
             :key="role.id"
-            size="large"
-            :type="getRoleTagType(role)"
-            class="m-2"
+            class="bg-gray-50 p-4 mb-2 rounded-lg flex items-center justify-between"
           >
             <div>
               <strong>{{ role.display_name }}</strong>
-              <div class="text-xs mt-1">
-                优先级: {{ role.priority }} | {{ role.permissions?.length || 0 }} 个权限
-              </div>
+              <div class="text-xs mt-1">优先级: {{ role.priority }}</div>
             </div>
-          </el-tag>
+            <div>{{ role.permissions?.length || 0 }} 个权限</div>
+          </div>
         </div>
         <el-empty v-else description="该用户还没有分配任何角色" />
       </div>
