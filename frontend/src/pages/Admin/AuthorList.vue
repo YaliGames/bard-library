@@ -8,6 +8,9 @@
     :extra-fields="extraFields"
     search-placeholder="搜索作者"
     create-placeholder="新建作者姓名"
+    create-permission="authors.create"
+    edit-permission="authors.edit"
+    delete-permission="authors.delete"
   />
 </template>
 <script setup lang="ts">

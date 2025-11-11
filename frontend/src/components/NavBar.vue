@@ -11,7 +11,7 @@
           v-if="!item.external"
           :to="item.path || '/'"
           class="nav-link"
-          v-show="!item.adminOnly || isAdmin"
+          v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
         >
           {{ item.label }}
         </router-link>
@@ -21,7 +21,7 @@
           class="nav-link"
           target="_blank"
           rel="noopener"
-          v-show="!item.adminOnly || isAdmin"
+          v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
         >
           {{ item.label }}
         </a>
@@ -69,7 +69,7 @@
             <template v-for="item in userMenuItems" :key="item.id">
               <el-dropdown-item
                 :divided="!!item.divided"
-                v-show="!item.adminOnly || isAdmin"
+                v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
                 @click="handleUserMenuItem(item)"
               >
                 {{ item.label }}
@@ -104,7 +104,7 @@
             v-if="!item.external"
             class="drawer-link"
             @click="go(item.path || '/')"
-            v-show="!item.adminOnly || isAdmin"
+            v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
           >
             {{ item.label }}
           </button>
@@ -139,7 +139,7 @@
             v-if="item.action === 'logout'"
             class="drawer-link text-red-600"
             @click="logoutAndGo"
-            v-show="!item.adminOnly || isAdmin"
+            v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
           >
             {{ item.label }}
           </button>
@@ -147,7 +147,7 @@
             v-else
             class="drawer-link"
             @click="item.path ? go(item.path) : null"
-            v-show="!item.adminOnly || isAdmin"
+            v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
           >
             {{ item.label }}
           </button>
@@ -166,6 +166,7 @@ import { settingsApi } from '@/api/settings'
 import { navMenu, userMenu } from '@/config/navMenu'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSimpleLoading } from '@/composables/useLoading'
+import { usePermission } from '@/composables/usePermission'
 
 const { handleError } = useErrorHandler()
 const router = useRouter()
@@ -176,21 +177,39 @@ const user = computed(() => authStore.user)
 const { loading: loadingUser, setLoading: setLoadingUser } = useSimpleLoading(false)
 const mobileOpen = ref(false)
 
-const isAdmin = computed(() => authStore.isAdmin)
+// 使用新的权限系统
+const { hasAnyPermission } = usePermission()
+
+// 检查是否有任何管理权限
+const hasAnyAdminPermission = computed(() => {
+  return hasAnyPermission([
+    'books.view',
+    'books.create',
+    'users.view',
+    'settings.view',
+    'files.view',
+    'authors.view',
+    'tags.view',
+    'series.view',
+    'shelves.view',
+    'roles.view',
+  ])
+})
+
 const avatarLetter = computed(() =>
   (user.value?.name?.[0] || user.value?.email?.[0] || 'U').toUpperCase(),
 )
 
 const menuItems = computed(() => {
   return (navMenu || []).filter((i: any) => {
-    if (i.adminOnly && !isAdmin.value) return false
+    if (i.requiresAdminPermission && !hasAnyAdminPermission.value) return false
     return true
   })
 })
 
 const userMenuItems = computed(() => {
   return (userMenu || []).filter((i: any) => {
-    if (i.adminOnly && !isAdmin.value) return false
+    if (i.requiresAdminPermission && !hasAnyAdminPermission.value) return false
     return true
   })
 })
@@ -198,9 +217,8 @@ const userMenuItems = computed(() => {
 const fetchUserFailed = ref(false)
 
 async function fetchUser() {
-  const token = localStorage.getItem('token')
-  if (!token) {
-    authStore.setUser(null)
+  // Cookie 认证: 如果有缓存的用户信息,调用 /me 验证 Session
+  if (!authStore.user) {
     fetchUserFailed.value = false
     return
   }
@@ -210,13 +228,13 @@ async function fetchUser() {
     authStore.setUser(me)
     fetchUserFailed.value = false
   } catch (e: any) {
-    authStore.setUser(null)
+    // Session 过期,清除用户信息
+    authStore.logout()
     fetchUserFailed.value = true
     handleError(e, { context: 'NavBar.fetchUser', showToast: false })
-    // 如果是服务器错误(500)或认证错误(401,403),清除 token 并跳转登录
+    // 如果是认证错误,跳转登录页
     const status = e?.status || e?.response?.status
-    if (status === 401 || status === 403 || status === 500) {
-      authStore.logout()
+    if (status === 401 || status === 403) {
       const redirect = encodeURIComponent(
         window.location.pathname + window.location.search + window.location.hash,
       )
@@ -229,14 +247,8 @@ async function fetchUser() {
 
 onMounted(fetchUser)
 
-// 响应登录后 localStorage token/role 变化：登录页成功后会设置 token，可触发刷新
-watchEffect(() => {
-  const token = localStorage.getItem('token') || ''
-  // 当 token 存在但本地 user 还没就绪且之前没有失败时,尝试读取一次
-  if (token && !user.value && !loadingUser.value && !fetchUserFailed.value) {
-    fetchUser()
-  }
-})
+// Cookie 认证: 不再需要监听 token 变化
+// main.ts 已经在 app 初始化时验证 Session
 
 function handleUserMenuItem(item: any) {
   // 支持 action=logout 与基于 path 的导航
@@ -253,8 +265,8 @@ function handleUserMenuItem(item: any) {
 
 // 登录后首次拉取用户设置
 watchEffect(async () => {
-  const token = localStorage.getItem('token') || ''
-  if (token && user.value) {
+  // Cookie 认证: 只要有用户就尝试获取设置
+  if (user.value) {
     try {
       const remote = await settingsApi.get()
       setAllSettings(remote)

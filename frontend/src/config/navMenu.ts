@@ -2,7 +2,7 @@ export type NavItem = {
   id: string
   label: string
   path?: string
-  adminOnly?: boolean
+  requiresAdminPermission?: boolean // 需要任一管理权限
   external?: boolean
 }
 
@@ -10,7 +10,7 @@ export const navMenu: NavItem[] = [
   { id: 'home', label: '首页', path: '/' },
   { id: 'books', label: '书库', path: '/books' },
   { id: 'shelf', label: '书架', path: '/shelf' },
-  { id: 'admin', label: '管理入口', path: '/admin/index', adminOnly: true },
+  { id: 'admin', label: '管理入口', path: '/admin/index', requiresAdminPermission: true },
 ]
 
 export default navMenu
@@ -21,14 +21,20 @@ export type UserMenuItem = {
   label: string
   path?: string
   action?: 'logout'
-  adminOnly?: boolean
+  requiresAdminPermission?: boolean // 需要任一管理权限
   divided?: boolean
 }
 
 export const userMenu: UserMenuItem[] = [
   { id: 'user-profile', label: '个人资料', path: '/user/profile' },
   { id: 'user-settings', label: '用户设置', path: '/user/settings' },
-  { id: 'system', label: '系统设置', path: '/admin/settings', divided: true, adminOnly: true },
-  { id: 'admin', label: '管理入口', path: '/admin/index', adminOnly: true },
+  {
+    id: 'system',
+    label: '系统设置',
+    path: '/admin/settings',
+    divided: true,
+    requiresAdminPermission: true,
+  },
+  { id: 'admin', label: '管理入口', path: '/admin/index', requiresAdminPermission: true },
   { id: 'logout', label: '退出登录', action: 'logout', divided: true },
 ]

@@ -60,10 +60,10 @@
                   <el-form-item label="描述">
                     <el-input v-model="form.description" type="textarea" maxlength="500" />
                   </el-form-item>
-                  <el-form-item v-if="authStore.isRole('admin')" label="公开">
+                  <el-form-item v-if="canSetPublic" label="公开">
                     <el-switch v-model="form.is_public" />
                   </el-form-item>
-                  <el-form-item v-if="authStore.isRole('admin')" label="全局书架">
+                  <el-form-item v-if="canSetGlobal" label="全局书架">
                     <div>
                       <el-switch v-model="form.global" />
                       <div
@@ -82,7 +82,9 @@
                   </el-form-item>
                 </el-form>
                 <div class="flex justify-end gap-2">
-                  <el-button type="danger" @click="deleteShelf">删除书架</el-button>
+                  <el-button v-if="canDelete" type="danger" @click="deleteShelf">
+                    删除书架
+                  </el-button>
                   <el-button type="primary" @click="saveShelf">保存</el-button>
                 </div>
               </div>
@@ -144,6 +146,7 @@ import { booksApi } from '@/api/books'
 import type { Book, Shelf } from '@/api/types'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
+import { usePermission } from '@/composables/usePermission'
 import { shelvesApi } from '@/api/shelves'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { usePagination } from '@/composables/usePagination'
@@ -152,6 +155,7 @@ import { useBookActions } from '@/composables/useBookActions'
 
 const { handleError, handleSuccess } = useErrorHandler()
 const { toggleReadMark } = useBookActions()
+const { hasPermission } = usePermission()
 
 const { isLoadingKey, startLoading, stopLoading } = useLoading()
 const shelfLoading = computed(() => isLoadingKey('shelf'))
@@ -162,10 +166,35 @@ const shelfId = computed(() => Number(route.params.id))
 const shelf = ref<(Shelf & { description?: string }) | null>(null)
 const shelfError = ref<string | null>(null)
 const authStore = useAuthStore()
+
+// 权限控制
 const canManage = computed(() => {
   if (!shelf.value) return false
-  if (authStore.isRole('admin')) return true
-  return (shelf.value.user_id ?? 0) === (authStore.user?.id ?? -1)
+  // 有 shelves.manage_all 权限可以管理所有书架
+  if (hasPermission('shelves.manage_all')) return true
+  // 书架所有者可以编辑自己的书架(需要 shelves.edit 权限)
+  const isOwner = (shelf.value.user_id ?? 0) === (authStore.user?.id ?? -1)
+  return isOwner && hasPermission('shelves.edit')
+})
+
+// 是否可以设置公开属性(需要特殊权限或manage_all)
+const canSetPublic = computed(() => {
+  return hasPermission('shelves.create_public') || hasPermission('shelves.manage_all')
+})
+
+// 是否可以设置全局书架(需要特殊权限或manage_all)
+const canSetGlobal = computed(() => {
+  return hasPermission('shelves.create_global') || hasPermission('shelves.manage_all')
+})
+
+// 是否可以删除当前书架
+const canDelete = computed(() => {
+  if (!shelf.value) return false
+  // 有 manage_all 权限可以删除任何书架
+  if (hasPermission('shelves.manage_all')) return true
+  // 所有者可以删除自己的书架(需要 shelves.delete 权限)
+  const isOwner = (shelf.value.user_id ?? 0) === (authStore.user?.id ?? -1)
+  return isOwner && hasPermission('shelves.delete')
 })
 
 // 统一的筛选模型（固定 shelfId）
@@ -256,9 +285,12 @@ async function saveShelf() {
     const payload: Record<string, any> = {
       name: form.value.name.trim(),
       description: form.value.description || '',
-      is_public: form.value.is_public,
     }
-    if (authStore.isRole('admin')) {
+    // 只有有权限时才发送这些字段
+    if (canSetPublic.value && form.value.is_public !== undefined) {
+      payload.is_public = !!form.value.is_public
+    }
+    if (canSetGlobal.value && form.value.global !== undefined) {
       payload.global = !!form.value.global
     }
     await shelvesApi.updateRaw(shelf.value.id, payload)
@@ -283,11 +315,8 @@ async function deleteShelf() {
   try {
     await shelvesApi.remove(shelf.value.id)
     handleSuccess('已删除')
-    if (authStore.isRole('admin')) {
-      router.push({ name: 'admin-shelf-list' })
-    } else {
-      router.push({ name: 'user-shelves' })
-    }
+    // 删除后跳转到书架列表
+    router.push({ name: 'user-shelves' })
   } catch (e: any) {
     handleError(e, { context: 'ShelfDetail.deleteShelf' })
   }

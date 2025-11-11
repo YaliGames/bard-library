@@ -1,6 +1,17 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useSystemStore } from '@/stores/system'
+import { usePermission } from '@/composables/usePermission'
+
+// 扩展路由元信息类型
+declare module 'vue-router' {
+  interface RouteMeta {
+    requiresAuth?: boolean
+    permission?: string // 支持 | 分隔多个权限 (有任一即可)
+    requireAllPermissions?: boolean // 是否需要所有权限
+  }
+}
 
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./pages/Home.vue') },
@@ -87,61 +98,79 @@ const routes: RouteRecordRaw[] = [
     redirect: {
       name: 'admin-index',
     },
+    meta: { requiresAuth: true, permission: 'books.view|users.view|settings.view|files.view' },
     children: [
       {
         path: 'index',
         name: 'admin-index',
         component: () => import('./pages/Admin/Index.vue'),
+        meta: { permission: 'books.view|users.view|settings.view|files.view' },
       },
       {
         path: 'upload',
         name: 'admin-upload',
         component: () => import('./pages/Admin/BookUpload.vue'),
+        meta: { permission: 'books.create', requireAllPermissions: true },
       },
       {
         path: 'books',
         name: 'admin-book-list',
         component: () => import('./pages/Admin/BookList.vue'),
+        meta: { permission: 'books.view' },
       },
       {
         path: 'books/:id',
         name: 'admin-book-edit',
         component: () => import('./pages/Admin/BookEdit.vue'),
+        meta: { permission: 'books.edit|books.create' },
       },
       {
         path: 'authors',
         name: 'admin-author-list',
         component: () => import('./pages/Admin/AuthorList.vue'),
+        meta: { permission: 'authors.view' },
       },
       {
         path: 'tags',
         name: 'admin-tag-list',
         component: () => import('./pages/Admin/TagList.vue'),
-      },
-      {
-        path: 'shelves',
-        name: 'admin-shelf-list',
-        component: () => import('./pages/Admin/ShelfList.vue'),
+        meta: { permission: 'tags.view' },
       },
       {
         path: 'series',
         name: 'admin-series-list',
         component: () => import('./pages/Admin/SeriesList.vue'),
+        meta: { permission: 'series.view' },
       },
       {
         path: 'files',
         name: 'admin-file-manager',
         component: () => import('./pages/Admin/FileManager.vue'),
+        meta: { permission: 'files.view' },
       },
       {
         path: 'settings',
         name: 'system-settings',
         component: () => import('./pages/Admin/SystemSettings.vue'),
+        meta: { permission: 'settings.view' },
+      },
+      {
+        path: 'users',
+        name: 'admin-user-list',
+        component: () => import('./pages/Admin/UserList.vue'),
+        meta: { permission: 'users.view' },
+      },
+      {
+        path: 'roles',
+        name: 'admin-role-list',
+        component: () => import('./pages/Admin/RoleList.vue'),
+        meta: { permission: 'roles.view' },
       },
       {
         path: 'txt/chapters/:id?',
         name: 'admin-txt-chapters',
         component: () => import('./pages/Admin/TxtChapters.vue'),
+        meta: { permission: 'books.edit' },
       },
     ],
   },
@@ -158,7 +187,7 @@ router.beforeEach(async to => {
   const systemStore = useSystemStore()
 
   // ✅ 直接读取 store 状态（已在 App.vue 中初始化）
-  // 如果系统不允许游客访问，且用户未登录，则重定向到登录页
+  // 如果系统不允许游客访问,且用户未登录,则重定向到登录页
   if (!systemStore.allowGuestAccess && !authStore.isLoggedIn) {
     const publicRoutes = ['login', 'register', 'forgot', 'reset']
     if (!publicRoutes.includes(String(to.name))) {
@@ -166,17 +195,30 @@ router.beforeEach(async to => {
     }
   }
 
-  // 管理员路由检查
-  const isAdminRoute = to.path.startsWith('/admin')
-
-  // 未登录禁止访问 /admin
-  if (isAdminRoute && !authStore.isLoggedIn) {
+  // 检查是否需要登录
+  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  // 管理路由：要求 admin 角色
-  if (isAdminRoute && authStore.isLoggedIn) {
-    if (!authStore.isRole('admin')) {
+  // 检查权限
+  if (to.meta.permission && authStore.isLoggedIn) {
+    // 如果有缓存的权限,直接使用
+    // 如果没有缓存,等待 NavBar 加载完成(最多等待 100ms)
+    if (!authStore.permissionsLoaded && authStore.permissions.length === 0) {
+      // 等待一小段时间让 NavBar 的 fetchUser 完成
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+
+    const { hasAnyPermission, hasAllPermissions } = usePermission()
+    const permissions = String(to.meta.permission).split('|')
+
+    // 检查是否需要所有权限
+    const hasPermission = to.meta.requireAllPermissions
+      ? hasAllPermissions(permissions)
+      : hasAnyPermission(permissions)
+
+    if (!hasPermission) {
+      ElMessage.error('无权限访问此页面')
       return { name: 'home' }
     }
   }

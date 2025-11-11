@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/auth'
 
 // 类型定义
 export interface LoginResponse {
-  token: string
   user: User
 }
 
@@ -37,11 +36,8 @@ export const authApi = {
     const res = await http.post<LoginResponse>('/api/v1/auth/login', { email, password })
 
     const authStore = useAuthStore()
-    authStore.setToken(res.token)
+    // 不再需要 token,使用 Cookie 认证
     authStore.setUser(res.user)
-
-    const role = (res.user as any)?.role || null
-    authStore.setUserRole(role)
 
     return res
   },

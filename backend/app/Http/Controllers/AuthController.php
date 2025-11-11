@@ -23,16 +23,25 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'string']
         ]);
+        
         $user = User::where('email', $data['email'])->first();
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 422);
         }
+        
         if (method_exists($user, 'hasVerifiedEmail') && !$user->hasVerifiedEmail()) {
-            // 未验证邮箱
             return response()->json(['message' => 'Email not verified'], 403);
         }
-        $token = $user->createToken('web')->plainTextToken;
-        return response()->json(['token' => $token, 'user' => $user]);
+        
+        // Laravel 标准 Session 认证
+        \Illuminate\Support\Facades\Auth::login($user, true);
+        $request->session()->regenerate();
+        
+        $user->load(['roles.permissions']);
+        
+        return response()->json([
+            'user' => $user
+        ]);
     }
 
     public function register(Request $request)
@@ -50,6 +59,13 @@ class AuthController extends Controller
         $user->email = $data['email'];
         $user->password = Hash::make($data['password']);
         $user->save();
+        
+        // 为新用户分配默认角色(普通用户)
+        $userRole = \App\Models\Role::where('name', 'user')->first();
+        if ($userRole) {
+            $user->roles()->attach($userRole->id);
+        }
+        
         // 发送验证邮件 - 生成签名 URL
         $verificationUrl = URL::temporarySignedRoute(
             'verification.verify',
@@ -133,17 +149,17 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $user = $request->user();
-        if ($user) {
-            $user->currentAccessToken()?->delete();
-        }
-        // 统一返回 JSON，交由 FormatJsonResponse 包裹为 { code:0, data:{success:true}, message:'' }
+        \Illuminate\Support\Facades\Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        
         return response()->json(['success' => true]);
     }
 
     public function me(Request $request)
     {
-        return $request->user();
+        $user = $request->user()->load('roles.permissions');
+        return $user;
     }
 
     public function resendVerification(Request $request)

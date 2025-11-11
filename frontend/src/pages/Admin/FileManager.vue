@@ -30,7 +30,7 @@
         <el-checkbox v-model="unusedCovers">仅未被引用的封面</el-checkbox>
         <el-checkbox v-model="missingPhysical">仅物理缺失</el-checkbox>
         <el-button type="primary" @click="reload" :loading="loading">搜索</el-button>
-        <el-button @click="showCleanup = true">清理工具</el-button>
+        <el-button v-permission="'files.cleanup'" @click="showCleanup = true">清理工具</el-button>
       </div>
     </el-card>
 
@@ -107,12 +107,16 @@
               <el-button size="small" @click="download(row.id)">下载</el-button>
               <el-popconfirm title="仅删除记录？" @confirm="remove(row.id, false)">
                 <template #reference>
-                  <el-button size="small" type="warning">删除记录</el-button>
+                  <el-button v-permission="'files.delete'" size="small" type="warning">
+                    删除记录
+                  </el-button>
                 </template>
               </el-popconfirm>
               <el-popconfirm title="删除记录并删除物理文件？" @confirm="remove(row.id, true)">
                 <template #reference>
-                  <el-button size="small" type="danger">删除记录及文件</el-button>
+                  <el-button v-permission="'files.delete'" size="small" type="danger">
+                    删除记录及文件
+                  </el-button>
                 </template>
               </el-popconfirm>
             </template>

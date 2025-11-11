@@ -20,11 +20,32 @@ class FilesController extends Controller
         return $q->get();
     }
 
-    public function download(int $id)
+    public function download(Request $request, int $id)
     {
-    $file = File::findOrFail($id);
-    $diskName = $file->storage ?: config('filesystems.default');
-    $disk = Storage::disk($diskName);
+        $file = File::findOrFail($id);
+        
+        // Laravel 标准认证
+        if (!\Illuminate\Support\Facades\Auth::check()) {
+            return response()->json([
+                'code' => 401,
+                'data' => null,
+                'message' => '需要登录才能下载文件'
+            ], 401);
+        }
+        
+        $user = \Illuminate\Support\Facades\Auth::user();
+        
+        // 检查是否有下载权限
+        if (!$user->hasPermission('books.download')) {
+            return response()->json([
+                'code' => 403,
+                'data' => null,
+                'message' => '没有权限下载文件'
+            ], 403);
+        }
+        
+        $diskName = $file->storage ?: config('filesystems.default');
+        $disk = Storage::disk($diskName);
         if (!$disk->exists($file->path)) {
             abort(404, 'File missing');
         }
@@ -51,9 +72,38 @@ class FilesController extends Controller
     }
 
     // 预览（用于图片/封面等内联展示）
-    public function preview(int $id)
+    public function preview(Request $request, int $id)
     {
         $file = File::findOrFail($id);
+        
+        // 如果是封面图片,允许公开访问
+        $isCover = $file->type === 'cover' || 
+                   str_starts_with($file->path, 'covers/') ||
+                   str_contains($file->mime ?? '', 'image/');
+        
+        // 非封面文件需要权限检查
+        if (!$isCover) {
+            // Laravel 标准认证
+            if (!\Illuminate\Support\Facades\Auth::check()) {
+                return response()->json([
+                    'code' => 401,
+                    'data' => null,
+                    'message' => '需要登录才能访问此文件'
+                ], 401);
+            }
+            
+            $user = \Illuminate\Support\Facades\Auth::user();
+            
+            // 检查是否有下载权限
+            if (!$user->hasPermission('books.download')) {
+                return response()->json([
+                    'code' => 403,
+                    'data' => null,
+                    'message' => '没有权限访问此文件'
+                ], 403);
+            }
+        }
+        
         $diskName = $file->storage ?: config('filesystems.default');
         $disk = Storage::disk($diskName);
         if (!$disk->exists($file->path)) {

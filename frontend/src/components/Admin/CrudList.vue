@@ -25,7 +25,10 @@
       </div>
 
       <!-- Row 2: 新建区域 -->
-      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      <div
+        v-permission="createPermission"
+        class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2"
+      >
         <el-input v-model="newName" :placeholder="createPlaceholder || '新建名称'" />
         <template v-for="ef in extraFields" :key="ef.key">
           <el-input
@@ -85,16 +88,19 @@
                 </el-button>
                 <el-button size="small" @click="cancelEdit">取消</el-button>
               </template>
-              <template v-else>
-                <el-button size="small" @click="startEdit(row)">编辑</el-button>
-                <el-popconfirm title="确认删除该项？" @confirm="remove(row.id)">
+              <div class="flex justify-center gap-2" v-else>
+                <!-- 编辑按钮：根据权限显示 -->
+                <el-button v-if="canEdit" size="small" @click="startEdit(row)">编辑</el-button>
+
+                <!-- 删除按钮：根据权限显示 -->
+                <el-popconfirm v-if="canDelete" title="确认删除该项？" @confirm="remove(row.id)">
                   <template #reference>
                     <el-button size="small" type="danger" :loading="removingId === row.id">
                       删除
                     </el-button>
                   </template>
                 </el-popconfirm>
-              </template>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -108,6 +114,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useLoading } from '@/composables/useLoading'
+import { usePermission } from '@/composables/usePermission'
 
 interface Item {
   id: number
@@ -137,10 +144,15 @@ const props = defineProps<{
   defaultSortKey?: string
   defaultSortOrder?: 'asc' | 'desc'
   tableHeight?: number | string
+  // 权限配置
+  createPermission?: string
+  editPermission?: string
+  deletePermission?: string
 }>()
 
 const { handleError, handleSuccess } = useErrorHandler()
 const { isLoadingKey, startLoading, stopLoading } = useLoading()
+const { hasPermission } = usePermission()
 const loading = computed(() => isLoadingKey('loading'))
 const creating = computed(() => isLoadingKey('creating'))
 const updating = computed(() => isLoadingKey('updating'))
@@ -156,6 +168,10 @@ const newExtras = ref<Record<string, any>>({})
 const editingExtras = ref<Record<string, any>>({})
 
 const tableHeight = computed(() => props.tableHeight ?? 520)
+
+// 权限检查
+const canEdit = computed(() => !props.editPermission || hasPermission(props.editPermission))
+const canDelete = computed(() => !props.deletePermission || hasPermission(props.deletePermission))
 
 // 使用 Element Plus 表格自带排序
 const remoteSort = computed(() => !!props.fetchListEx)

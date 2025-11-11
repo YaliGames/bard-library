@@ -3,11 +3,11 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold">图书管理</h2>
       <div class="flex items-center">
-        <el-button type="primary" plain @click="goQuickUpload">
+        <el-button v-permission="'books.create'" type="primary" plain @click="goQuickUpload">
           <span class="material-symbols-outlined mr-1 text-lg">upload</span>
           快速上传
         </el-button>
-        <el-button type="primary" @click="goCreateNew">
+        <el-button v-permission="'books.create'" type="primary" @click="goCreateNew">
           <span class="material-symbols-outlined mr-1 text-lg">add</span>
           新建
         </el-button>
@@ -97,8 +97,23 @@
           </el-table-column>
           <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" type="primary" @click="edit(row.id)">编辑</el-button>
-              <el-button size="small" type="danger" plain @click="del(row.id)">删除</el-button>
+              <el-button
+                v-permission="'books.edit'"
+                size="small"
+                type="primary"
+                @click="edit(row.id)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                v-permission="'books.delete'"
+                size="small"
+                type="danger"
+                plain
+                @click="del(row.id)"
+              >
+                删除
+              </el-button>
             </template>
           </el-table-column>
         </el-table>

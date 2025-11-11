@@ -44,16 +44,13 @@ class EnforceGuestAccess
         return strtoupper($request->getMethod()) === 'OPTIONS';
     }
 
-    /** 解析当前用户（非强制依赖路由中间件） */
+    /** 解析当前用户（使用 Laravel Session 认证） */
     protected function resolveUser(Request $request)
     {
-        $user = $request->user();
-        if ($user) return $user;
-        try {
-            return Auth::guard('sanctum')->user();
-        } catch (\Throwable $e) {
-            return null;
+        if (Auth::check()) {
+            return Auth::user();
         }
+        return null;
     }
 
     /** 基于设置构建游客可访问的路径白名单（支持通配） */

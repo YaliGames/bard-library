@@ -9,7 +9,9 @@
           class="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700"
         >
           <h3 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">导览</h3>
-          <el-button type="primary" v-if="isAdmin" @click="goEditChapters">编辑章节</el-button>
+          <el-button type="primary" v-permission="'books.edit'" @click="goEditChapters">
+            编辑章节
+          </el-button>
         </div>
         <div class="p-2">
           <TxtNavTabs
@@ -219,7 +221,6 @@ const settingsStore = useSettingsStore()
 const userSettings = settingsStore.settings
 const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
-const isAdmin = computed(() => authStore.isAdmin)
 const { loading, setLoading } = useSimpleLoading(true)
 const fileId = Number(route.params.id)
 const bookId = ref<number>(0)

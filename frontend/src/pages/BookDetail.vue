@@ -179,7 +179,10 @@
               @send="onSend"
             >
               <template #buttons>
-                <router-link v-if="isLoggedIn && isAdmin" :to="`/admin/books/${book.id}`">
+                <router-link
+                  v-if="isLoggedIn && hasPermission('books.edit')"
+                  :to="`/admin/books/${book.id}`"
+                >
                   <el-button type="default" size="large">
                     <span class="material-symbols-outlined mr-2">edit</span>
                     编辑本书
@@ -252,14 +255,16 @@ import { useLoading } from '@/composables/useLoading'
 import { useBookActions } from '@/composables/useBookActions'
 
 const { handleError } = useErrorHandler()
+import { usePermission } from '@/composables/usePermission'
+
 const { toggleReadMark } = useBookActions()
+const { hasPermission } = usePermission()
 const route = useRoute()
 const router = useRouter()
 const id = Number(route.params.id)
 
 const authStore = useAuthStore()
 const isLoggedIn = computed(() => authStore.isLoggedIn)
-const isAdmin = computed(() => authStore.isAdmin)
 
 const { isLoadingKey, startLoading, stopLoading } = useLoading()
 const loading = computed(() => isLoadingKey('book'))

@@ -8,6 +8,9 @@
     :extra-fields="extraFields"
     search-placeholder="搜索标签"
     create-placeholder="新建标签名称"
+    create-permission="tags.create"
+    edit-permission="tags.edit"
+    delete-permission="tags.delete"
   />
 </template>
 <script setup lang="ts">

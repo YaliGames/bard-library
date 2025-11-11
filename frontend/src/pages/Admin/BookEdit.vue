@@ -7,7 +7,11 @@
           <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span>
           返回
         </el-button>
-        <el-button type="primary" @click="save">
+        <el-button
+          v-permission="isNew ? 'books.create' : 'books.edit'"
+          type="primary"
+          @click="save"
+        >
           <span class="material-symbols-outlined mr-1 text-lg">save</span>
           保存
         </el-button>

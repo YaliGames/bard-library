@@ -7,6 +7,9 @@
     :delete-item="deleteItem"
     search-placeholder="搜索丛书"
     create-placeholder="新建丛书名称"
+    create-permission="series.create"
+    edit-permission="series.edit"
+    delete-permission="series.delete"
   />
 </template>
 <script setup lang="ts">

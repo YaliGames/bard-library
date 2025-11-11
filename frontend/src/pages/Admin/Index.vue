@@ -8,7 +8,12 @@
         <h3 class="text-lg font-medium">常用功能</h3>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <router-link v-for="action in quickActions" :key="action.key" class="block" :to="action.to">
+        <router-link
+          v-for="action in visibleQuickActions"
+          :key="action.key"
+          class="block"
+          :to="action.to"
+        >
           <el-card shadow="hover" class="h-full">
             <div class="flex items-start gap-3">
               <span class="material-symbols-outlined text-3xl text-primary">{{ action.icon }}</span>
@@ -27,7 +32,7 @@
         <h3 class="text-lg font-medium">所有页面</h3>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <router-link v-for="card in allPages" :key="card.key" class="block" :to="card.to">
+        <router-link v-for="card in visiblePages" :key="card.key" class="block" :to="card.to">
           <el-card shadow="hover" class="h-full">
             <div class="flex items-start gap-3">
               <span class="material-symbols-outlined text-3xl text-primary">{{ card.icon }}</span>
@@ -43,7 +48,11 @@
   </section>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
+import { usePermission } from '@/composables/usePermission'
+
+const { hasPermission } = usePermission()
 
 interface AdminCard {
   key: string
@@ -51,6 +60,7 @@ interface AdminCard {
   desc: string
   icon: string
   to: RouteLocationRaw
+  permission?: string
 }
 
 const quickActions: AdminCard[] = [
@@ -60,6 +70,7 @@ const quickActions: AdminCard[] = [
     desc: '上传文件并直接导入为新的图书',
     icon: 'upload',
     to: { name: 'admin-upload' },
+    permission: 'books.create',
   },
   {
     key: 'create-book',
@@ -67,6 +78,7 @@ const quickActions: AdminCard[] = [
     desc: '从空白开始新建图书',
     icon: 'note_add',
     to: { name: 'admin-book-edit', params: { id: 'new' } },
+    permission: 'books.create',
   },
 ]
 
@@ -77,13 +89,15 @@ const allPages: AdminCard[] = [
     desc: '新增、编辑、删除图书，支持筛选查看',
     icon: 'menu_book',
     to: { name: 'admin-book-list' },
+    permission: 'books.view',
   },
   {
     key: 'files-all',
     title: '文件管理',
-    desc: '浏览数据库中保存的文件列表，支持文件清理',
+    desc: '浏览数据库中保存的文件列表,支持文件清理',
     icon: 'folder_open',
     to: { name: 'admin-file-manager' },
+    permission: 'files.view',
   },
   {
     key: 'authors',
@@ -91,6 +105,7 @@ const allPages: AdminCard[] = [
     desc: '维护作者列表',
     icon: 'person_edit',
     to: { name: 'admin-author-list' },
+    permission: 'authors.view',
   },
   {
     key: 'tags',
@@ -98,13 +113,7 @@ const allPages: AdminCard[] = [
     desc: '维护标签列表',
     icon: 'sell',
     to: { name: 'admin-tag-list' },
-  },
-  {
-    key: 'shelves',
-    title: '书架管理',
-    desc: '按书架对图书进行归类',
-    icon: 'newsstand',
-    to: { name: 'admin-shelf-list' },
+    permission: 'tags.view',
   },
   {
     key: 'series',
@@ -112,6 +121,7 @@ const allPages: AdminCard[] = [
     desc: '为系列图书建模与排序',
     icon: 'collections_bookmark',
     to: { name: 'admin-series-list' },
+    permission: 'series.view',
   },
   {
     key: 'txt',
@@ -119,13 +129,44 @@ const allPages: AdminCard[] = [
     desc: '解析 TXT 并调整章节结构',
     icon: 'subject',
     to: { name: 'admin-txt-chapters' },
+    permission: 'books.edit',
+  },
+  {
+    key: 'users',
+    title: '用户管理',
+    desc: '管理系统用户,分配角色和权限',
+    icon: 'people',
+    to: { name: 'admin-user-list' },
+    permission: 'users.view',
+  },
+  {
+    key: 'roles',
+    title: '角色管理',
+    desc: '管理角色和权限配置',
+    icon: 'admin_panel_settings',
+    to: { name: 'admin-role-list' },
+    permission: 'roles.view',
   },
   {
     key: 'sys',
     title: '系统设置',
-    desc: '系统级参数配置，仅管理员可用',
+    desc: '系统级参数配置,仅管理员可用',
     icon: 'settings',
     to: { name: 'system-settings' },
+    permission: 'settings.view',
   },
 ]
+
+// 过滤出有权限的卡片
+const visibleQuickActions = computed(() => {
+  return quickActions.filter(action => {
+    return action.permission ? hasPermission(action.permission) : true
+  })
+})
+
+const visiblePages = computed(() => {
+  return allPages.filter(page => {
+    return page.permission ? hasPermission(page.permission) : true
+  })
+})
 </script>

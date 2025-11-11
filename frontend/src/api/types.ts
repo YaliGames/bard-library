@@ -1,11 +1,34 @@
+export interface Permission {
+  id: number
+  name: string
+  display_name: string
+  group: string
+  description?: string
+  is_system: boolean
+}
+
+export interface Role {
+  id: number
+  name: string
+  display_name: string
+  description?: string
+  is_system: boolean
+  priority: number
+  permissions?: Permission[]
+  users_count?: number
+}
+
 export interface User {
   id: number
   name: string
   email: string
   role?: string
+  roles?: Role[]
   location?: string
   website?: string
   bio?: string
+  email_verified_at?: string
+  created_at?: string
 }
 
 export interface Author {
@@ -78,4 +101,15 @@ export interface Shelf {
   user_id?: number | null
   cover?: string
   books?: Book[]
+}
+
+// 分页响应
+export interface PaginatedResponse<T> {
+  data: T[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+  from?: number
+  to?: number
 }

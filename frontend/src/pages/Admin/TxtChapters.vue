@@ -74,9 +74,18 @@
             <el-table-column label="长度" prop="length" width="120" />
             <el-table-column v-if="!isPreviewMode" label="操作" width="220" align="center">
               <template #default="{ row }">
-                <el-button class="mr-3" size="small" @click="promptRename(row)">重命名</el-button>
+                <el-button
+                  v-permission="'books.edit'"
+                  class="mr-3"
+                  size="small"
+                  @click="promptRename(row)"
+                >
+                  重命名
+                </el-button>
                 <el-dropdown @command="(cmd: string) => onDeleteMerge(row, cmd as any)">
-                  <el-button size="small" type="danger" plain>删除并合并</el-button>
+                  <el-button v-permission="'books.edit'" size="small" type="danger" plain>
+                    删除并合并
+                  </el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="prev">合并到上一个</el-dropdown-item>

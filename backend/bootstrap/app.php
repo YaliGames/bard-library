@@ -18,11 +18,25 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\AdminOnly::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+            'role' => \App\Http\Middleware\CheckRole::class,
             'wrap' => \App\Http\Middleware\FormatJsonResponse::class,
             'enforce_guest' => \App\Http\Middleware\EnforceGuestAccess::class,
         ]);
+        
+        // 创建一个 session 中间件组,用于需要认证的路由
+        $middleware->group('session', [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+        ]);
+        
+        // API 路由添加基础中间件
+        // 注意: 为了让 EnforceGuestAccess 能够读取 Session,必须先启动 Session
         $middleware->appendToGroup('api', [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
             \App\Http\Middleware\FormatJsonResponse::class,
             \App\Http\Middleware\EnforceGuestAccess::class,
         ]);

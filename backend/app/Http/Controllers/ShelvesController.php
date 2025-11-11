@@ -16,9 +16,12 @@ class ShelvesController extends Controller
     {
         $s = Shelf::with(['books.authors', 'user:id,name,email'])->findOrFail($id);
         $user = $this->userResolver->user($request);
-        $isAdmin = $user && (($user->role ?? 'user') === 'admin');
+        
+        // 权限检查:公开书架任何人可见,私有书架只有所有者或有管理权限的人可见
+        $hasManageAll = $user && $user->can('shelves.manage_all');
         $isOwner = $user && ((int)$s->user_id === (int)$user->id);
-        if (!$isAdmin && !$isOwner && !$s->is_public) {
+        
+        if (!$s->is_public && !$isOwner && !$hasManageAll) {
             return response()->json(['message' => 'Permission denied'], 403);
         }
         return $s;
@@ -27,12 +30,11 @@ class ShelvesController extends Controller
     {
         $q = Shelf::query()->with(['user:id,name,email']);
         $user = $this->userResolver->user($request);
-        $isAdmin = $user && (($user->role ?? 'user') === 'admin');
+        $hasManageAll = $user && $user->can('shelves.manage_all');
 
-        // owner=admin 时（且当前用户为管理员）返回所有书架；
-        // 否则（包括管理员未指定 owner=admin 的默认情况）仅返回公开 + 自己的书架
+        // owner=admin 时（且当前用户有 manage_all 权限）返回所有书架
         $owner = (string)$request->query('owner', '');
-        if (!($isAdmin && $owner === 'admin')) {
+        if (!($hasManageAll && $owner === 'admin')) {
             if ($user) {
                 $q->where(function($qq) use ($user) {
                     $qq->where('is_public', true)->orWhere('user_id', $user->id);
@@ -54,7 +56,7 @@ class ShelvesController extends Controller
             $q->where('is_public', true);
         } elseif ($visibility === 'private') {
             $q->where('is_public', false);
-            if (!$isAdmin && $user) {
+            if (!$hasManageAll && $user) {
                 // 非管理员仅能看到自己的私有
                 $q->where('user_id', $user->id);
             }
@@ -78,10 +80,11 @@ class ShelvesController extends Controller
     {
         $q = Shelf::query()->with(['user:id,name,email']);
         $user = $this->userResolver->user($request);
-        $isAdmin = $user && (($user->role ?? 'user') === 'admin');
+        $hasManageAll = $user && $user->can('shelves.manage_all');
+        
         // 与 index 一致的默认权限：除非明确 owner=admin，否则默认返回公开+自己的
         $owner = (string)$request->query('owner', '');
-        if (!($isAdmin && $owner === 'admin')) {
+        if (!($hasManageAll && $owner === 'admin')) {
             if ($user) {
                 $q->where(function($qq) use ($user) {
                     $qq->where('is_public', true)->orWhere('user_id', $user->id);
@@ -102,32 +105,50 @@ class ShelvesController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-        $isAdmin = ($user->role ?? 'user') === 'admin';
+
+        // 权限检查
+        $canCreatePublic = $user->can('shelves.create_public');
+        $canCreateGlobal = $user->can('shelves.create_global');
+        $hasManageAll = $user->can('shelves.manage_all');
 
         $rules = [
             'name' => ['required','string','max:190'],
             'description' => ['nullable','string','max:500'],
         ];
-        if ($isAdmin) {
+        
+        // 只有特定权限才能设置这些字段
+        if ($canCreatePublic || $hasManageAll) {
             $rules['is_public'] = ['sometimes','boolean'];
-            $rules['user_id'] = ['sometimes','nullable','integer'];
+        }
+        if ($canCreateGlobal || $hasManageAll) {
             $rules['global'] = ['sometimes','boolean'];
         }
+        if ($hasManageAll) {
+            $rules['user_id'] = ['sometimes','nullable','integer'];
+        }
+        
         $data = $request->validate($rules);
 
-        if ($isAdmin) {
-            $data['is_public'] = (bool)($data['is_public'] ?? false);
-            $isGlobal = (bool)($data['global'] ?? false);
-            if ($isGlobal) {
-                $data['user_id'] = null;
-            } else {
-                $data['user_id'] = $data['user_id'] ?? $user->id;
-            }
-            unset($data['global']);
+        // 处理 is_public 字段
+        if (isset($data['is_public']) && ($canCreatePublic || $hasManageAll)) {
+            $data['is_public'] = (bool)$data['is_public'];
         } else {
-            $data['user_id'] = $user->id;
-            $data['is_public'] = false;
+            $data['is_public'] = false; // 默认私有
         }
+
+        // 处理全局书架
+        $isGlobal = isset($data['global']) && (bool)$data['global'] && ($canCreateGlobal || $hasManageAll);
+        if ($isGlobal) {
+            $data['user_id'] = null;
+        } else {
+            // 只有 manage_all 权限才能指定其他用户
+            if ($hasManageAll && isset($data['user_id'])) {
+                $data['user_id'] = $data['user_id'];
+            } else {
+                $data['user_id'] = $user->id;
+            }
+        }
+        unset($data['global']);
 
         $s = Shelf::create($data);
         return response()->json($s, 201);
@@ -140,8 +161,12 @@ class ShelvesController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-        $isAdmin = ($user->role ?? 'user') === 'admin';
-        if (!$isAdmin && (int)$s->user_id !== (int)$user->id) {
+        
+        // 权限检查:所有者可以编辑(需要 shelves.edit),或有 manage_all 权限
+        $hasManageAll = $user->can('shelves.manage_all');
+        $isOwner = (int)$s->user_id === (int)$user->id;
+        
+        if (!$hasManageAll && !$isOwner) {
             return response()->json(['message' => 'Permission denied'], 403);
         }
 
@@ -149,18 +174,34 @@ class ShelvesController extends Controller
             'name' => ['sometimes','string','max:190'],
             'description' => ['sometimes','nullable','string','max:500'],
         ];
-        if ($isAdmin) {
+        
+        // 权限字段检查
+        $canSetPublic = $user->can('shelves.create_public') || $hasManageAll;
+        $canSetGlobal = $user->can('shelves.create_global') || $hasManageAll;
+        
+        if ($canSetPublic) {
             $rules['is_public'] = ['sometimes','boolean'];
-            $rules['user_id'] = ['sometimes','nullable','integer'];
+        }
+        if ($canSetGlobal) {
             $rules['global'] = ['sometimes','boolean'];
         }
+        if ($hasManageAll) {
+            $rules['user_id'] = ['sometimes','nullable','integer'];
+        }
+        
         $data = $request->validate($rules);
 
-        if (!$isAdmin) {
-            // prevent non-admin from altering owner or visibility
-            unset($data['user_id'], $data['is_public']);
-        } else {
-            if (isset($data['global'])) {
+        // 普通用户不能修改所有者和可见性(除非有特定权限)
+        if (!$canSetPublic) {
+            unset($data['is_public']);
+        }
+        if (!$hasManageAll) {
+            unset($data['user_id']);
+        }
+        
+        // 处理全局书架
+        if (isset($data['global'])) {
+            if ($canSetGlobal) {
                 $isGlobal = (bool)$data['global'];
                 if ($isGlobal) {
                     $data['user_id'] = null;
@@ -169,8 +210,8 @@ class ShelvesController extends Controller
                         $data['user_id'] = $s->user_id ?? $user->id;
                     }
                 }
-                unset($data['global']);
             }
+            unset($data['global']);
         }
 
         $s->fill($data)->save();
@@ -184,10 +225,15 @@ class ShelvesController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-        $isAdmin = ($user->role ?? 'user') === 'admin';
-        if (!$isAdmin && (int)$s->user_id !== (int)$user->id) {
+        
+        // 权限检查:所有者可以删除(需要 shelves.delete),或有 manage_all 权限
+        $hasManageAll = $user->can('shelves.manage_all');
+        $isOwner = (int)$s->user_id === (int)$user->id;
+        
+        if (!$hasManageAll && !$isOwner) {
             return response()->json(['message' => 'Permission denied'], 403);
         }
+        
         $s->books()->detach();
         $s->delete();
         return response()->noContent();
@@ -200,8 +246,12 @@ class ShelvesController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-        $isAdmin = ($user->role ?? 'user') === 'admin';
-        if (!$isAdmin && (int)$s->user_id !== (int)$user->id) {
+        
+        // 权限检查:所有者可以编辑(需要 shelves.edit),或有 manage_all 权限
+        $hasManageAll = $user->can('shelves.manage_all');
+        $isOwner = (int)$s->user_id === (int)$user->id;
+        
+        if (!$hasManageAll && !$isOwner) {
             return response()->json(['message' => 'Permission denied'], 403);
         }
         $payload = $request->validate([
@@ -219,14 +269,17 @@ class ShelvesController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-        $isAdmin = ($user->role ?? 'user') === 'admin';
+        
+        $hasManageAll = $user->can('shelves.manage_all');
+        
         $payload = $request->validate([
             'shelf_ids' => ['present','array'],
             'shelf_ids.*' => ['integer'],
         ]);
         $ids = $payload['shelf_ids'];
 
-        if ($isAdmin) {
+        // 有 manage_all 权限可以操作所有书架
+        if ($hasManageAll) {
             $b->shelves()->sync($ids);
             return $b->load('shelves');
         }

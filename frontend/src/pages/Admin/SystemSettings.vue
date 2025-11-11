@@ -89,7 +89,13 @@
               </template>
             </SettingsItem>
             <div class="flex gap-2 mt-4 items-center justify-end">
-              <el-button type="primary" :loading="saving" :disabled="loading" @click="save">
+              <el-button
+                v-permission="'settings.edit'"
+                type="primary"
+                :loading="saving"
+                :disabled="loading"
+                @click="save"
+              >
                 保存
               </el-button>
             </div>

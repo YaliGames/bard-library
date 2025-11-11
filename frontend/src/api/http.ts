@@ -16,16 +16,13 @@ type ApiEnvelope<T> = { code: number; data: T; message: string }
 function createClient(): AxiosInstance {
   const instance = axios.create({
     // baseURL 可留空，项目内大多传入绝对路径（/api/...）
-    withCredentials: false,
+    withCredentials: true, // 启用 Cookie 携带,支持 Sanctum 的 Cookie 认证
   })
 
-  // 请求拦截：注入 token 与默认头
+  // 请求拦截：注入默认头
   instance.interceptors.request.use(config => {
-    const token = localStorage.getItem('token') || ''
     config.headers = config.headers || {}
     config.headers['Accept'] = 'application/json'
-    if (token) config.headers['Authorization'] = `Bearer ${token}`
-    // 让 axios 自动处理 FormData 的 Content-Type
     return config
   })
 
@@ -39,9 +36,7 @@ function createClient(): AxiosInstance {
           if (env.code === 401) {
             const redirectTo =
               window.location.pathname + window.location.search + window.location.hash
-            window.dispatchEvent(
-              new CustomEvent('app:unauthorized', { detail: { redirectTo } }),
-            )
+            window.dispatchEvent(new CustomEvent('app:unauthorized', { detail: { redirectTo } }))
             return Promise.reject(
               Object.assign(new Error('Unauthorized'), {
                 code: 401,

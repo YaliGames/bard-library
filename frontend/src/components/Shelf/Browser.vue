@@ -55,10 +55,10 @@
         <el-form-item label="描述">
           <el-input v-model="form.description" type="textarea" maxlength="500" />
         </el-form-item>
-        <el-form-item v-if="admin" label="公开">
+        <el-form-item v-if="showPublicOption" label="公开">
           <el-switch v-model="form.is_public" />
         </el-form-item>
-        <el-form-item v-if="admin" label="全局书架">
+        <el-form-item v-if="showGlobalOption" label="全局书架">
           <div>
             <el-switch v-model="form.global" />
             <div class="text-xs text-red-500 mt-1" v-if="form?.global && !form?.is_public">
@@ -79,14 +79,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import ShelfCardList from '@/components/Shelf/CardList.vue'
 import type { Shelf } from '@/api/types'
 import { shelvesApi } from '@/api/shelves'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { usePagination } from '@/composables/usePagination'
+import { usePermission } from '@/composables/usePermission'
 
 const { handleError, handleSuccess } = useErrorHandler()
+const { hasPermission } = usePermission()
 
 const props = withDefaults(
   defineProps<{
@@ -113,6 +115,15 @@ const props = withDefaults(
 
 const q = ref('')
 const visibility = ref<'all' | 'public' | 'private'>('all')
+
+// 根据权限控制创建书架表单的选项
+const showPublicOption = computed(() => {
+  return props.admin || hasPermission('shelves.create_public')
+})
+
+const showGlobalOption = computed(() => {
+  return props.admin || hasPermission('shelves.create_global')
+})
 
 const {
   data: list,
@@ -168,8 +179,8 @@ function openCreate() {
   form.value = {
     name: '',
     description: '',
-    is_public: props.admin ? true : undefined,
-    global: props.admin ? false : undefined,
+    is_public: showPublicOption.value ? false : undefined,
+    global: showGlobalOption.value ? false : undefined,
   }
   createVisible.value = true
 }
@@ -183,9 +194,12 @@ async function createShelf() {
       name: form.value.name.trim(),
       description: form.value.description || '',
     }
-    if (props.admin) {
+    // 根据权限决定是否发送 is_public 和 global
+    if (showPublicOption.value) {
       payload.is_public = !!form.value.is_public
-      payload.global = !!form.value.global // 传递全局书架标识
+    }
+    if (showGlobalOption.value) {
+      payload.global = !!form.value.global
     }
     await shelvesApi.createRaw(payload)
     createVisible.value = false

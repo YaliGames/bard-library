@@ -144,7 +144,7 @@ async function onSubmit() {
       if (redirect) {
         router.replace(redirect)
       } else {
-        router.replace({ name: 'admin-book-list' })
+        router.replace({ name: 'books' })
       }
     } catch (e: any) {
       if (e?.status === 403) {

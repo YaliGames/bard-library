@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->string('title');
             $table->string('subtitle')->nullable();
             $table->text('description')->nullable();
+            $table->decimal('rating', 3, 1)->nullable()->comment('评分 0-5');
             $table->string('language', 16)->nullable();
             $table->string('publisher')->nullable();
             $table->date('published_at')->nullable();
