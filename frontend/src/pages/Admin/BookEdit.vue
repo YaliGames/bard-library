@@ -37,7 +37,85 @@
           <template #header>
             <div class="font-medium">文件</div>
           </template>
-          <div class="border border-dashed rounded p-4" v-if="hasPermission('files.upload')">
+          <!-- 文件列表 -->
+          <div v-if="files.length > 0" class="space-y-2">
+            <div
+              v-for="file in files"
+              :key="file.id"
+              class="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+            >
+              <!-- 左侧：文件类型图标和文件名 -->
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <!-- 文件类型标签 -->
+                <div
+                  class="flex-shrink-0 px-2 py-1 rounded text-xs font-medium uppercase"
+                  :class="getFileTypeClass(file.format)"
+                >
+                  {{ file.format || 'file' }}
+                </div>
+
+                <!-- 文件名 -->
+                <div class="flex-1 min-w-0">
+                  <el-tooltip :content="getFileName(file)" placement="top">
+                    <div class="text-sm font-medium text-gray-900 truncate">
+                      {{ getFileName(file) }}
+                    </div>
+                  </el-tooltip>
+                  <div v-if="file.mime" class="text-xs text-gray-500 mt-0.5">
+                    {{ file.mime }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <el-button-group>
+                  <el-tooltip content="下载文件" placement="top">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      v-if="hasPermission('books.download')"
+                      @click="downloadFile(file.id)"
+                    >
+                      <span class="material-symbols-outlined text-lg">download</span>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="编辑章节" placement="top">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      v-if="
+                        hasPermission('books.edit') && (file.format || '').toLowerCase() === 'txt'
+                      "
+                      @click="editChapters(file.id)"
+                    >
+                      <span class="material-symbols-outlined text-lg">edit_note</span>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="删除文件" placement="top">
+                    <el-button
+                      type="danger"
+                      size="small"
+                      v-if="hasPermission('files.delete')"
+                      @click="removeFile(file.id)"
+                    >
+                      <span class="material-symbols-outlined text-lg">delete</span>
+                    </el-button>
+                  </el-tooltip>
+                </el-button-group>
+              </div>
+            </div>
+          </div>
+
+          <!-- 空状态提示 -->
+          <div
+            v-else-if="!hasPermission('files.upload')"
+            class="text-center py-8 text-gray-400 text-sm"
+          >
+            <span class="material-symbols-outlined text-4xl mb-2">description</span>
+            <p>暂无文件</p>
+          </div>
+
+          <div class="border border-dashed rounded p-4 mt-4" v-if="hasPermission('files.upload')">
             <div class="mb-2 text-gray-600">追加文件到当前书</div>
             <el-upload
               drag
@@ -69,39 +147,6 @@
               </el-button>
             </div>
           </div>
-          <el-table :data="files" class="mt-3" border>
-            <el-table-column label="#" width="40" prop="id" align="center" />
-            <el-table-column label="格式" align="center">
-              <template #default="{ row }">{{ (row.format || 'file').toUpperCase() }}</template>
-            </el-table-column>
-            <el-table-column label="操作" width="240" align="center">
-              <template #default="{ row }">
-                <el-button
-                  size="small"
-                  v-if="hasPermission('books.download')"
-                  @click="downloadFile(row.id)"
-                >
-                  下载
-                </el-button>
-                <el-button
-                  size="small"
-                  v-if="hasPermission('books.edit') && (row.format || '').toLowerCase() === 'txt'"
-                  @click="editChapters(row.id)"
-                >
-                  编辑章节
-                </el-button>
-                <el-button
-                  size="small"
-                  type="danger"
-                  plain
-                  v-if="hasPermission('files.delete')"
-                  @click="removeFile(row.id)"
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
         </el-card>
       </div>
       <!-- 基本信息 -->
@@ -433,6 +478,28 @@ async function downloadFile(fid: number) {
 }
 function editChapters(fileId: number) {
   router.push({ name: 'admin-txt-chapters', params: { id: String(fileId) } })
+}
+
+// 获取文件类型样式类
+function getFileTypeClass(format?: string): string {
+  const fmt = (format || 'file').toLowerCase()
+  const typeMap: Record<string, string> = {
+    epub: 'bg-blue-100 text-blue-700',
+    pdf: 'bg-red-100 text-red-700',
+    txt: 'bg-green-100 text-green-700',
+    zip: 'bg-yellow-100 text-yellow-700',
+    cover: 'bg-purple-100 text-purple-700',
+  }
+  return typeMap[fmt] || 'bg-gray-100 text-gray-700'
+}
+
+// 获取文件名
+function getFileName(file: FileRec): string {
+  if (file.path) {
+    const parts = file.path.split('/')
+    return parts[parts.length - 1] || '未知文件'
+  }
+  return `${file.format || 'file'}.${file.id}`
 }
 
 function openMetaDialog() {
