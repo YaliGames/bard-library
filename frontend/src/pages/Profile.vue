@@ -34,7 +34,16 @@
             <el-avatar :size="48">{{ avatarLetter }}</el-avatar>
             <div>
               <div class="font-medium">{{ profile.email || '—' }}</div>
-              <div class="text-xs text-gray-500">角色：{{ profile.role || 'user' }}</div>
+              <div class="text-xs text-gray-500">
+                角色：
+                <span
+                  v-for="role in profile.roles"
+                  :key="(role && (role.id || role.name)) || role"
+                  class="inline-block mr-2"
+                >
+                  {{ role?.display_name }}
+                </span>
+              </div>
             </div>
           </div>
           <p class="text-sm text-gray-600">
@@ -161,7 +170,7 @@ const { setUser } = useAuthStore()
 
 const profileRef = ref()
 const pwdRef = ref()
-const profile = reactive<User>({ id: 0, name: '', email: '' })
+const profile = reactive<User & { roles?: Array<any> }>({ id: 0, name: '', email: '', roles: [] })
 const savingProfile = ref(false)
 const { loading: loadingProfile, setLoading: setLoadingProfile } = useSimpleLoading(true)
 
@@ -218,7 +227,10 @@ onMounted(async () => {
     const me = await authApi.me()
     profile.name = me.name
     profile.email = me.email
-    profile.role = me.role
+    const rawRoles = Array.isArray(me.roles) ? me.roles : me.role ? [me.role] : []
+    profile.roles = rawRoles.map((r: any) =>
+      typeof r === 'string' ? { id: 0, name: r } : r,
+    ) as any[]
     profile.location = me.location || ''
     profile.website = me.website || ''
     profile.bio = me.bio || ''
