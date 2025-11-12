@@ -54,8 +54,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/{id}', [BooksController::class, 'show']);
         Route::get('/{id}/files', [FilesController::class, 'listByBook']);
 
-        // 导入（需登录 + books.create 权限）
-        Route::middleware(['session', 'auth', 'permission:books.create'])->group(function () {
+        // 导入（需登录 + files.upload 权限）
+        Route::middleware(['session', 'auth', 'permission:files.upload'])->group(function () {
             Route::post('/import', [ImportController::class, 'upload']);
         });
 

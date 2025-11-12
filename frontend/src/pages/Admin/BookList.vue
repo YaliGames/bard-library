@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold">图书管理</h2>
       <div class="flex items-center">
-        <el-button v-permission="'books.create'" type="primary" plain @click="goQuickUpload">
+        <el-button v-permission="'files.upload'" type="primary" plain @click="goQuickUpload">
           <span class="material-symbols-outlined mr-1 text-lg">upload</span>
           快速上传
         </el-button>

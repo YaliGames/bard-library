@@ -37,7 +37,7 @@
           <template #header>
             <div class="font-medium">文件</div>
           </template>
-          <div class="border border-dashed rounded p-4">
+          <div class="border border-dashed rounded p-4" v-if="hasPermission('files.upload')">
             <div class="mb-2 text-gray-600">追加文件到当前书</div>
             <el-upload
               drag
@@ -76,15 +76,27 @@
             </el-table-column>
             <el-table-column label="操作" width="240" align="center">
               <template #default="{ row }">
-                <el-button size="small" @click="downloadFile(row.id)">下载</el-button>
                 <el-button
                   size="small"
-                  v-if="(row.format || '').toLowerCase() === 'txt'"
+                  v-if="hasPermission('books.download')"
+                  @click="downloadFile(row.id)"
+                >
+                  下载
+                </el-button>
+                <el-button
+                  size="small"
+                  v-if="hasPermission('books.edit') && (row.format || '').toLowerCase() === 'txt'"
                   @click="editChapters(row.id)"
                 >
                   编辑章节
                 </el-button>
-                <el-button size="small" type="danger" plain @click="removeFile(row.id)">
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  v-if="hasPermission('files.delete')"
+                  @click="removeFile(row.id)"
+                >
                   删除
                 </el-button>
               </template>
@@ -225,9 +237,11 @@ import { coversApi } from '@/api/covers'
 import { getDownloadUrl } from '@/utils/signedUrls'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSimpleLoading } from '@/composables/useLoading'
+import { usePermission } from '@/composables/usePermission'
 
 const { handleError, handleSuccess } = useErrorHandler()
 const { loading: uploading, setLoading: setUploading } = useSimpleLoading(false)
+const { hasPermission } = usePermission()
 
 const route = useRoute()
 const router = useRouter()

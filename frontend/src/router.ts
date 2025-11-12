@@ -110,7 +110,7 @@ const routes: RouteRecordRaw[] = [
         path: 'upload',
         name: 'admin-upload',
         component: () => import('./pages/Admin/BookUpload.vue'),
-        meta: { permission: 'books.create', requireAllPermissions: true },
+        meta: { permission: 'files.upload', requireAllPermissions: true },
       },
       {
         path: 'books',

@@ -70,7 +70,7 @@ const quickActions: AdminCard[] = [
     desc: '上传文件并直接导入为新的图书',
     icon: 'upload',
     to: { name: 'admin-upload' },
-    permission: 'books.create',
+    permission: 'files.upload',
   },
   {
     key: 'create-book',
