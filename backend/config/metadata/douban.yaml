@@ -19,24 +19,28 @@ detail:
       attr: href
     rating:
       xpath: //strong[@property='v:average']
-      filter: 'floatval($v)/2'
+      filter: '$floatval($v)/2'
     authors:
       xpath: //span[@class="pl" and contains(text(),"作者")]/../a
       attr: text
       multi: true
     publisher:
       xpath: //span[@class="pl" and contains(text(),"出版社")]/following-sibling::text()[1]
-      filter: 'trim($v)'
+      filter: '$trim($v)'
     publishedDate:
       xpath: //span[@class="pl" and contains(text(),"出版年")]/following-sibling::text()[1]
-      filter: 'normalizePublishDate($v)'
+      filter: '$normalizeDate($v)'
     isbn:
       xpath: //span[@class="pl" and contains(text(),"ISBN")]/following-sibling::text()[1]
-      filter: 'trim($v)'
+      filter: '$trim($v)'
     tags:
-      xpath: //a[contains(concat(" ", normalize-space(@class), " "), " tag ")]
-      attr: text
-      multi: true
+      regex: '/criteria\s*=\s*[''"]([^''"]+)[''"]/i'
+      regex_index: 1
+      filter: |
+        $arrayValues($arrayUnique($arrayFilter(
+          fn($t) => strpos($t, '/') === false,
+          $arrayMap('trim', $regexMatchAll('/\d+:([^|]+)/', $v, 1))
+        )))
     description:
       xpath: (//div[@id='link-report']//div[contains(@class,'intro')])[last()]/p
       attr: text

@@ -53,14 +53,34 @@ class MetadataScraper
     public function searchItems(string $query, int $limit = 5): array
     {
         $urls = $this->searchDetailUrls($query, $limit);
+        if (empty($urls)) {
+            return [];
+        }
+        
+        $promises = [];
+        foreach ($urls as $idx => $url) {
+            $promises[$idx] = $this->client->getAsync($url);
+        }
+        
         $items = [];
-        foreach ($urls as $u) {
-            try {
-                $items[] = $this->fetchDetail($u);
-            } catch (\Throwable $e) {
-                // 跳过失败项
+        $responses = \GuzzleHttp\Promise\Utils::settle($promises)->wait();
+        
+        foreach ($responses as $idx => $result) {
+            if ($result['state'] === 'fulfilled') {
+                try {
+                    $rawHtml = $result['value']->getBody()->getContents();
+                    $html = $this->convertToUtf8($rawHtml);
+                    $item = $this->parseDetail($urls[$idx], $html);
+                    if ($item) {
+                        $items[] = $item;
+                    }
+                } catch (\Throwable $e) {
+                    // 跳过失败项
+                    Log::debug("[MetadataScraper] 解析详情失败: {$urls[$idx]}", ['error' => $e->getMessage()]);
+                }
             }
         }
+        
         return $items;
     }
 
@@ -154,39 +174,59 @@ class MetadataScraper
         // 检测并转换编码
         $html = $this->convertToUtf8($rawHtml);
         
+        return $this->parseDetail($url, $html);
+    }
+
+    /**
+     * 解析详情页 HTML
+     */
+    protected function parseDetail(string $url, string $html): array
+    {
         $crawler = new Crawler($html);
         $fields = $this->config['detail']['fields'] ?? [];
         $result = [];
         foreach ($fields as $field => $rule) {
             $value = null;
-            $xpath = $rule['xpath'] ?? null;
-            if ($xpath) {
-                $nodes = $crawler->filterXPath($xpath);
-                $isMulti = !empty($rule['multi']);
-                if ($nodes->count() > 0) {
-                    if ($isMulti) {
-                        $vals = [];
-                        foreach ($nodes as $n) {
-                            $node = new Crawler($n);
-                            $attr = $rule['attr'] ?? 'text';
-                            $vals[] = ($attr !== 'text') ? $node->attr($attr) : trim($node->text());
-                        }
-                        $vals = array_values(array_unique(array_filter($vals, fn($v) => ($v !== null && $v !== ''))));
-                        // 允许 pick=last 选取最后一个
-                        $pick = $rule['pick'] ?? null; // 'last' | 'first'
-                        if ($pick === 'last' && count($vals) > 0) {
-                            $value = $vals[count($vals) - 1];
+            
+            // 支持正则表达式提取（直接从原始 HTML 中提取）
+            $regex = $rule['regex'] ?? null;
+            if ($regex) {
+                if (preg_match($regex, $html, $matches)) {
+                    $regexIndex = $rule['regex_index'] ?? 0;
+                    $value = $matches[$regexIndex] ?? null;
+                }
+            } else {
+                // 原有的 XPath 提取逻辑
+                $xpath = $rule['xpath'] ?? null;
+                if ($xpath) {
+                    $nodes = $crawler->filterXPath($xpath);
+                    $isMulti = !empty($rule['multi']);
+                    if ($nodes->count() > 0) {
+                        if ($isMulti) {
+                            $vals = [];
+                            foreach ($nodes as $n) {
+                                $node = new Crawler($n);
+                                $attr = $rule['attr'] ?? 'text';
+                                $vals[] = ($attr !== 'text') ? $node->attr($attr) : trim($node->text());
+                            }
+                            $vals = array_values(array_unique(array_filter($vals, fn($v) => ($v !== null && $v !== ''))));
+                            // 允许 pick=last 选取最后一个
+                            $pick = $rule['pick'] ?? null; // 'last' | 'first'
+                            if ($pick === 'last' && count($vals) > 0) {
+                                $value = $vals[count($vals) - 1];
+                            } else {
+                                // 允许 join 指定分隔符拼接
+                                $join = $rule['join'] ?? null;
+                                $value = $join !== null ? implode((string)$join, $vals) : $vals;
+                            }
                         } else {
-                            // 允许 join 指定分隔符拼接
-                            $join = $rule['join'] ?? null;
-                            $value = $join !== null ? implode((string)$join, $vals) : $vals;
+                            $attr = $rule['attr'] ?? 'text';
+                            $value = ($attr !== 'text') ? $nodes->first()->attr($attr) : trim($nodes->first()->text());
                         }
-                    } else {
-                        $attr = $rule['attr'] ?? 'text';
-                        $value = ($attr !== 'text') ? $nodes->first()->attr($attr) : trim($nodes->first()->text());
                     }
                 }
             }
+            
             if (isset($rule['filter'])) {
                 $value = $this->applyFilter($rule['filter'], $value);
             }
@@ -276,22 +316,59 @@ class MetadataScraper
             return $value;
         }
         
-        if (strpos($filter, 'floatval') !== false) {
-            $value = floatval($value);
-        }
+        // 使用 eval 执行 filter 表达式
+        $v = $value;
         
-        if (strpos($filter, '/2') !== false && is_numeric($value)) {
-            $value = $value / 2;
+        try {
+            // 注册辅助函数到当前作用域
+            $trim = fn($str) => is_string($str) ? trim($str) : $str;
+            $floatval = fn($val) => floatval($val);
+            $intval = fn($val) => intval($val);
+            $strval = fn($val) => strval($val);
+            $normalizeDate = fn($str) => is_string($str) ? preg_replace('/[^0-9\-]/', '', $str) : $str;
+            
+            // 正则匹配辅助函数
+            $regexMatch = function($pattern, $subject, $index = 0) {
+                if (preg_match($pattern, $subject, $matches)) {
+                    return $matches[$index] ?? null;
+                }
+                return null;
+            };
+            
+            $regexMatchAll = function($pattern, $subject, $index = 1) {
+                if (preg_match_all($pattern, $subject, $matches)) {
+                    return $matches[$index] ?? [];
+                }
+                return [];
+            };
+            
+            $regexReplace = function($pattern, $replacement, $subject) {
+                return preg_replace($pattern, $replacement, $subject);
+            };
+            
+            // 数组处理辅助函数
+            $arrayMap = fn($callback, $array) => is_array($array) ? array_map($callback, $array) : $array;
+            $arrayFilter = fn($callback, $array) => is_array($array) ? array_filter($array, $callback) : $array;
+            $arrayUnique = fn($array) => is_array($array) ? array_values(array_unique($array)) : $array;
+            $arrayValues = fn($array) => is_array($array) ? array_values($array) : $array;
+            $arrayKeys = fn($array) => is_array($array) ? array_keys($array) : $array;
+            $arrayFirst = fn($array) => is_array($array) && !empty($array) ? reset($array) : null;
+            $arrayLast = fn($array) => is_array($array) && !empty($array) ? end($array) : null;
+            
+            // 字符串处理辅助函数
+            $strContains = fn($haystack, $needle) => is_string($haystack) && strpos($haystack, $needle) !== false;
+            $strSplit = fn($delimiter, $string) => is_string($string) ? explode($delimiter, $string) : $string;
+            $strJoin = fn($glue, $array) => is_array($array) ? implode($glue, $array) : $array;
+            
+            // 执行 filter 表达式
+            $result = eval("return $filter;");
+            return $result;
+        } catch (\Throwable $e) {
+            Log::warning("[MetadataScraper] Filter 执行失败: $filter", [
+                'error' => $e->getMessage(),
+                'value' => $value
+            ]);
+            return $value;
         }
-        
-        if (strpos($filter, 'trim') !== false && is_string($value)) {
-            $value = trim($value);
-        }
-        
-        if (strpos($filter, 'normalizePublishDate') !== false && is_string($value)) {
-            $value = preg_replace('/[^0-9\-]/', '', $value);
-        }
-        
-        return $value;
     }
 }

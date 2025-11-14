@@ -33,7 +33,7 @@ class FilesController extends Controller
             ], 401);
         }
         
-        $user = \Illuminate\Support\Facades\Auth::user();
+        $user = $request->user();
         
         // 检查是否有下载权限
         if (!$user->hasPermission('books.download')) {
@@ -92,7 +92,7 @@ class FilesController extends Controller
                 ], 401);
             }
             
-            $user = \Illuminate\Support\Facades\Auth::user();
+            $user = $request->user();
             
             // 检查是否有下载权限
             if (!$user->hasPermission('books.download')) {

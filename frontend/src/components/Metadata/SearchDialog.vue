@@ -24,6 +24,14 @@
 
     <el-alert v-if="error" type="error" :title="error" :closable="false" class="mb-3" />
 
+    <el-alert
+      v-if="loading"
+      type="info"
+      title="正在从网络获取书籍信息，请稍候..."
+      :closable="false"
+      class="mb-3"
+    />
+
     <el-empty
       v-if="items.length === 0 && !loading && hasSearched"
       description="未找到相关内容"
