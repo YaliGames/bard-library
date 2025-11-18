@@ -20,6 +20,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('system_settings')) {
+                return;
+            }
+        } catch (\Throwable $e) {
+            return;
+        }
+
         // 确保系统设置的默认值存在
         $categories = SystemSetting::categories();
         if (!empty($categories)) {
