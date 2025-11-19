@@ -103,15 +103,20 @@
                 </el-checkbox>
               </div>
               <div class="flex flex-wrap gap-2 pl-6">
-                <el-checkbox
+                <el-tooltip
                   v-for="permission in group.permissions"
                   :key="permission.id"
-                  v-model="selectedPermissions"
-                  :label="permission.id"
-                  :disabled="isSuperAdmin"
+                  :content="permission.description || permission.display_name"
+                  placement="top"
                 >
-                  {{ permission.display_name }}
-                </el-checkbox>
+                  <el-checkbox
+                    v-model="selectedPermissions"
+                    :label="permission.id"
+                    :disabled="isSuperAdmin"
+                  >
+                    {{ permission.display_name }}
+                  </el-checkbox>
+                </el-tooltip>
               </div>
             </div>
           </div>

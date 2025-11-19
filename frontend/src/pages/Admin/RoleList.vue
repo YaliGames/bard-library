@@ -96,12 +96,38 @@
         <h3>{{ currentRole.display_name }}</h3>
         <el-divider />
 
-        <div v-if="rolePermissions.length > 0">
+        <div v-if="loadingPermissions">
+          <div v-for="i in 4" :key="i" class="mb-4">
+            <el-skeleton animated>
+              <template #template>
+                <div class="my-2">
+                  <el-skeleton-item variant="text" style="width: 120px; height: 18px" />
+                </div>
+                <div class="flex flex-wrap">
+                  <el-skeleton-item
+                    v-for="j in 4"
+                    :key="j"
+                    variant="text"
+                    style="width: 80px; height: 16px; border-radius: 4px"
+                    class="m-1"
+                  />
+                </div>
+              </template>
+            </el-skeleton>
+          </div>
+        </div>
+
+        <div v-else-if="rolePermissions.length > 0">
           <div v-for="[group, permissions] in groupedPermissions" :key="group" class="mb-4">
             <h4 class="my-2 text-sm text-gray-700">{{ getGroupDisplayName(group) }}</h4>
-            <el-tag v-for="permission in permissions" :key="permission.id" size="small" class="m-1">
-              {{ permission.display_name }}
-            </el-tag>
+            <el-tooltip
+              v-for="permission in permissions"
+              :key="permission.id"
+              :content="permission.description || permission.display_name"
+              placement="top"
+            >
+              <el-tag size="small" class="m-1">{{ permission.display_name }}</el-tag>
+            </el-tooltip>
           </div>
         </div>
         <el-empty v-else description="该角色还没有分配任何权限" />
@@ -131,6 +157,7 @@ const dialogVisible = ref(false)
 const permissionsDialogVisible = ref(false)
 const currentRole = ref<Role>()
 const rolePermissions = ref<Permission[]>([])
+const loadingPermissions = ref(false)
 
 function back() {
   router.back()
@@ -192,12 +219,17 @@ const handleDelete = async (role: Role) => {
 // 查看权限
 const handleViewPermissions = async (role: Role) => {
   currentRole.value = role
+  // 清空之前的权限数据，避免显示上一个角色的内容
+  rolePermissions.value = []
   permissionsDialogVisible.value = true
+  loadingPermissions.value = true
 
   try {
     rolePermissions.value = await rolesApi.getPermissions(role.id)
   } catch (error) {
     handleError(error, { context: 'RoleList.handleViewPermissions' })
+  } finally {
+    loadingPermissions.value = false
   }
 }
 

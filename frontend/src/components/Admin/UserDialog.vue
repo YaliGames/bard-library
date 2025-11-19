@@ -36,7 +36,7 @@
         <el-input v-model="formData.bio" type="textarea" :rows="3" placeholder="请输入个人简介" />
       </el-form-item>
 
-      <el-form-item label="角色">
+      <el-form-item label="角色" prop="role_ids">
         <el-select v-model="formData.role_ids" multiple placeholder="选择角色" style="width: 100%">
           <el-option
             v-for="role in roles"
@@ -114,6 +114,7 @@ const rules: FormRules = {
     { required: !isEdit.value, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码至少 6 个字符', trigger: 'blur' },
   ],
+  role_ids: [{ required: true, message: '请选择角色', trigger: 'blur' }],
 }
 
 // 加载角色列表
