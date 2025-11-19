@@ -18,7 +18,7 @@ class PermissionsSeeder extends Seeder
             ['name' => 'books.create', 'display_name' => '创建图书', 'group' => 'books', 'description' => '创建新图书'],
             ['name' => 'books.edit', 'display_name' => '编辑图书', 'group' => 'books', 'description' => '编辑图书信息'],
             ['name' => 'books.delete', 'display_name' => '删除图书', 'group' => 'books', 'description' => '删除图书'],
-            ['name' => 'books.upload', 'display_name' => '上传图书文件', 'group' => 'books', 'description' => '上传图书文件'],
+            ['name' => 'books.upload', 'display_name' => '上传图书文件', 'group' => 'books', 'description' => '上传图书文件（暂不适用，请使用files.upload）'],
             ['name' => 'books.download', 'display_name' => '下载图书文件', 'group' => 'books', 'description' => '下载图书附件'],
 
             // 作者管理
@@ -52,7 +52,7 @@ class PermissionsSeeder extends Seeder
             ['name' => 'files.view', 'display_name' => '查看文件列表', 'group' => 'files', 'description' => '查看所有文件列表'],
             ['name' => 'files.upload', 'display_name' => '上传文件', 'group' => 'files', 'description' => '上传文件'],
             ['name' => 'files.delete', 'display_name' => '删除文件', 'group' => 'files', 'description' => '删除文件'],
-            ['name' => 'files.manage_all', 'display_name' => '管理所有文件', 'group' => 'files', 'description' => '管理所有文件'],
+            ['name' => 'files.manage_all', 'display_name' => '管理所有文件', 'group' => 'files', 'description' => '管理所有文件（暂不适用，当前文件管理请使用files.view）'],
             ['name' => 'files.cleanup', 'display_name' => '清理未使用文件', 'group' => 'files', 'description' => '清理未使用的文件'],
 
             // 用户管理
@@ -61,7 +61,7 @@ class PermissionsSeeder extends Seeder
             ['name' => 'users.edit', 'display_name' => '编辑用户', 'group' => 'users', 'description' => '编辑用户信息'],
             ['name' => 'users.delete', 'display_name' => '删除用户', 'group' => 'users', 'description' => '删除用户'],
             ['name' => 'users.assign_roles', 'display_name' => '分配角色', 'group' => 'users', 'description' => '给用户分配角色'],
-            ['name' => 'users.manage_all', 'display_name' => '管理所有用户', 'group' => 'users', 'description' => '管理所有用户'],
+            ['name' => 'users.manage_all', 'display_name' => '管理所有用户', 'group' => 'users', 'description' => '管理所有用户（暂不适用，请根据具体需求分配权限，当前可管理的为优先级不高于自身的用户）'],
 
             // 角色管理
             ['name' => 'roles.view', 'display_name' => '查看角色列表', 'group' => 'roles', 'description' => '查看角色列表'],
@@ -75,8 +75,8 @@ class PermissionsSeeder extends Seeder
             ['name' => 'settings.edit', 'display_name' => '修改系统设置', 'group' => 'settings', 'description' => '修改系统设置'],
 
             // 元数据
-            ['name' => 'metadata.search', 'display_name' => '搜索元数据', 'group' => 'metadata', 'description' => '搜索元数据'],
-            ['name' => 'metadata.fetch', 'display_name' => '获取元数据', 'group' => 'metadata', 'description' => '获取元数据详情'],
+            ['name' => 'metadata.search', 'display_name' => '搜索元数据', 'group' => 'metadata', 'description' => '搜索元数据（暂不适用）'],
+            ['name' => 'metadata.fetch', 'display_name' => '获取元数据', 'group' => 'metadata', 'description' => '获取元数据详情（暂不适用）'],
         ];
 
         foreach ($permissions as $permission) {
