@@ -111,7 +111,9 @@
             </div>
           </div>
           <template #tip>
-            <div class="el-upload__tip text-center">支持 EPUB、PDF、TXT、ZIP 格式，单次限 1 个文件</div>
+            <div class="el-upload__tip text-center">
+              支持 EPUB、PDF、TXT、ZIP 格式，单次限 1 个文件
+            </div>
           </template>
         </el-upload>
       </div>
@@ -119,7 +121,12 @@
       <template #footer>
         <div class="flex justify-end gap-2">
           <el-button @click="uploadDialogVisible = false">取消</el-button>
-          <el-button type="primary" :disabled="!pickedFile" :loading="uploading" @click="handleUpload">
+          <el-button
+            type="primary"
+            :disabled="!pickedFile"
+            :loading="uploading"
+            @click="handleUpload"
+          >
             <span class="material-symbols-outlined mr-1 text-lg">cloud_upload</span>
             上传
           </el-button>
@@ -182,7 +189,7 @@ async function handleUpload() {
     fd.append('file', pickedFile.value)
     fd.append('book_id', String(props.bookId))
     await importsApi.upload(fd)
-    
+
     handleSuccess('上传成功')
     uploadDialogVisible.value = false
     emit('refresh')
