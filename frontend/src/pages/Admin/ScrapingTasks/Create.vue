@@ -125,7 +125,7 @@
                 v-if="selectedItems.length > 0"
                 type="text"
                 size="small"
-                @click="selectedItems = []"
+                @click="confirmClearSelected"
               >
                 清空
               </el-button>
@@ -193,7 +193,7 @@
         >
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium">已选 {{ selectedItems.length }} 本图书</span>
-            <el-button type="text" size="small" @click="selectedItems = []">清空</el-button>
+            <el-button type="text" size="small" @click="confirmClearSelected">清空</el-button>
           </div>
           <el-button type="primary" class="w-full" @click="currentStep = 1">
             下一步
@@ -211,7 +211,7 @@
               <p class="text-sm text-gray-500 mt-1">共 {{ selectedItems.length }} 本图书</p>
             </div>
             <div class="flex">
-              <el-button type="text" size="small" @click="selectedItems = []">清空列表</el-button>
+              <el-button type="text" size="small" @click="confirmClearSelected">清空列表</el-button>
             </div>
           </div>
 
@@ -312,10 +312,10 @@
       <!-- 步骤 3: 编辑任务信息 -->
       <div v-show="currentStep === 2">
         <div class="max-w-2xl mx-auto">
-          <el-card shadow="never">
-            <template #header>
-              <span class="font-medium">设置任务信息</span>
-            </template>
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-medium text-lg">编辑任务信息</div>
+            </div>
 
             <el-alert
               type="success"
@@ -369,7 +369,6 @@
                   </el-button>
                   <el-button
                     type="primary"
-                    size="large"
                     :disabled="!canSubmit"
                     :loading="submitting"
                     @click="handleSubmit"
@@ -380,7 +379,7 @@
                 </div>
               </div>
             </el-form>
-          </el-card>
+          </div>
         </div>
       </div>
     </div>
@@ -390,7 +389,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { metadataApi, scrapingTasksApi } from '@/api'
 import type { MetadataProvider } from '@/api/metadata'
 
@@ -445,7 +444,7 @@ onMounted(async () => {
     if (providers.value.length > 0 && !provider.value) {
       provider.value = providers.value[0].id
     }
-  } catch (error: any) {
+  } catch {
     ElMessage.error('加载提供商列表失败')
   }
 })
@@ -509,6 +508,21 @@ const handleRemove = (index: number) => {
   selectedItems.value.splice(index, 1)
 }
 
+const confirmClearSelected = async () => {
+  if (!selectedItems.value.length) return
+  try {
+    await ElMessageBox.confirm('确认清空已选图书？此操作不可撤销。', '清空确认', {
+      type: 'warning',
+      confirmButtonText: '清空',
+      cancelButtonText: '取消',
+    })
+    selectedItems.value = []
+    ElMessage.success('已清空已选图书')
+  } catch {
+    // 用户取消，不做处理
+  }
+}
+
 // 提交任务
 const handleSubmit = async () => {
   if (!canSubmit.value) return
@@ -531,7 +545,7 @@ const handleSubmit = async () => {
       },
     }
 
-    const task = await scrapingTasksApi.create(payload)
+    await scrapingTasksApi.create(payload)
 
     ElMessage.success('任务创建成功')
     router.push({ name: 'admin-scraping-tasks' })
