@@ -41,20 +41,20 @@
     <div class="bg-white rounded-lg shadow-sm p-4">
       <el-empty description="暂无数据" v-if="!loading && (!rows || rows.length === 0)" />
       <template v-else>
-        <el-table :data="rows" v-loading="loading" border>
-          <el-table-column label="图书信息" prop="title" min-width="220">
+        <el-table :data="rows" v-loading="loading" border stripe>
+          <el-table-column label="图书信息" prop="title" min-width="200" fixed>
             <template #default="{ row }">
               <div class="flex items-center gap-3">
-                <div class="w-16">
+                <div class="w-14 flex-shrink-0">
                   <CoverImage
                     :file-id="row.cover_file_id || null"
                     :title="row.title"
                     :authors="(row.authors || []).map((a: any) => a.name)"
-                    fontSize="12px"
+                    fontSize="11px"
                   />
                 </div>
-                <div class="min-w-0">
-                  <div class="font-medium truncate">{{ row.title || '#' + row.id }}</div>
+                <div class="min-w-0 flex-1">
+                  <div class="font-medium truncate text-sm">{{ row.title || '#' + row.id }}</div>
                   <div class="text-xs text-gray-500 truncate" v-if="row.authors?.length">
                     {{ row.authors.map((a: any) => a.name).join(' / ') }}
                   </div>
@@ -62,48 +62,121 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="简介" min-width="260">
+
+          <el-table-column label="简介" min-width="220">
             <template #default="{ row }">
-              <div class="text-sm text-gray-700" :title="row.description || '暂无简介'">
-                <div v-if="row.description" class="desc-clamp font-medium">
-                  {{ truncate(row.description, MAX_DESC_CHARS) }}
-                </div>
-                <div v-else class="text-gray-500">暂无简介</div>
+              <div v-if="row.description" class="text-xs text-gray-700">
+                <el-tooltip placement="top" :show-after="300" popper-class="max-w-md">
+                  <template #content>
+                    <div class="max-w-md whitespace-pre-wrap break-words">
+                      {{ row.description }}
+                    </div>
+                  </template>
+                  <div class="desc-clamp cursor-help">
+                    {{ truncate(row.description, 150) }}
+                  </div>
+                </el-tooltip>
+              </div>
+              <div v-else class="text-xs text-gray-400">暂无简介</div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="出版信息" min-width="150">
+            <template #default="{ row }">
+              <div class="text-xs">
+                <span v-if="row.publisher" class="text-gray-600">
+                  {{ row.publisher }}
+                </span>
+                <span v-else class="text-gray-400">-</span>
+              </div>
+              <div class="text-xs">
+                <span v-if="row.published_at" class="text-gray-600">
+                  {{ formatDate(row.published_at) }}
+                </span>
+                <span v-else class="text-gray-400">-</span>
               </div>
             </template>
           </el-table-column>
 
-          <el-table-column label="标签" width="160" align="center">
+          <el-table-column label="ISBN" width="135">
             <template #default="{ row }">
-              <div class="text-sm text-gray-600" v-if="row.tags?.length">
-                {{ row.tags.map((t: any) => t.name).join(', ') }}
+              <div class="text-xs text-gray-600" v-if="row.isbn13 || row.isbn10">
+                <div v-if="row.isbn13">{{ row.isbn13 }}</div>
+                <div v-else-if="row.isbn10">{{ row.isbn10 }}</div>
               </div>
-              <div v-else class="text-gray-400">-</div>
+              <div v-else class="text-gray-400 text-center">-</div>
             </template>
           </el-table-column>
 
-          <el-table-column label="系列" width="140" align="center">
+          <el-table-column label="附件" width="80" align="center">
             <template #default="{ row }">
-              <div class="text-sm text-gray-600">{{ row.series?.title || '-' }}</div>
+              <div class="flex items-center justify-center gap-1">
+                <span
+                  class="material-symbols-outlined text-lg"
+                  :class="getAttachmentCount(row) > 0 ? 'text-primary' : 'text-gray-400'"
+                >
+                  {{ getAttachmentCount(row) > 0 ? 'attach_file' : 'attach_file_off' }}
+                </span>
+                <span
+                  class="text-xs font-medium"
+                  :class="getAttachmentCount(row) > 0 ? 'text-primary' : 'text-gray-400'"
+                >
+                  {{ getAttachmentCount(row) }}
+                </span>
+              </div>
             </template>
           </el-table-column>
 
-          <el-table-column label="出版" width="140" align="center">
+          <el-table-column label="标签" width="140">
             <template #default="{ row }">
-              <div class="text-sm text-gray-600">{{ formatDate(row.published_at) }}</div>
+              <div v-if="row.tags?.length">
+                <el-tooltip
+                  :content="row.tags.map((t: any) => t.name).join('、')"
+                  placement="top"
+                  :show-after="300"
+                >
+                  <div class="text-xs text-gray-600">
+                    {{
+                      row.tags
+                        .slice(0, 3)
+                        .map((t: any) => t.name)
+                        .join('、')
+                    }}
+                    <span v-if="row.tags.length > 3" class="text-gray-400">
+                      等{{ row.tags.length }}个
+                    </span>
+                  </div>
+                </el-tooltip>
+              </div>
+              <div v-else class="text-xs text-gray-400 text-center">-</div>
             </template>
           </el-table-column>
 
-          <el-table-column label="页数" width="80" align="center">
+          <el-table-column label="系列" width="110">
             <template #default="{ row }">
-              <div>{{ row.pages ?? '-' }}</div>
+              <div class="text-xs text-gray-600">{{ row.series?.title || '-' }}</div>
             </template>
           </el-table-column>
-          <el-table-column label="评分" width="160" align="center">
+
+          <el-table-column label="页数" width="70" align="center">
             <template #default="{ row }">
-              <el-rate v-model="row.rating" :max="5" disabled show-score score-template="{value}" />
+              <div class="text-xs text-gray-600">{{ row.pages ?? '-' }}</div>
             </template>
           </el-table-column>
+
+          <el-table-column label="评分" width="130" align="center">
+            <template #default="{ row }">
+              <el-rate
+                v-model="row.rating"
+                :max="5"
+                disabled
+                show-score
+                score-template="{value}"
+                size="small"
+              />
+            </template>
+          </el-table-column>
+
           <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
               <el-button
@@ -179,6 +252,12 @@ function formatDate(dateStr: string | null | undefined) {
   } catch {
     return dateStr as any
   }
+}
+
+// 计算附件数量（排除封面文件）
+function getAttachmentCount(book: Book) {
+  if (!book.files || book.files.length === 0) return 0
+  return book.files.filter((f: any) => f.format !== 'cover').length
 }
 
 const {

@@ -17,7 +17,7 @@ class BooksController extends Controller
     ) {}
     public function index(Request $request)
     {
-        $q = Book::query()->with(['authors', 'tags']);
+        $q = Book::query()->with(['authors', 'tags', 'files', 'series']);
         $q->select('books.*');
         $userId = $this->userResolver->id($request);
         $user = $this->userResolver->user($request);
