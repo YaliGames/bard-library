@@ -45,13 +45,34 @@
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span>列表</span>
-          <el-button text @click="reload">刷新</el-button>
+          <div class="flex items-center gap-2">
+            <span>列表</span>
+            <el-tag v-if="selectedIds.length > 0" type="primary" size="small">
+              已选 {{ selectedIds.length }} 项
+            </el-tag>
+          </div>
+          <div class="flex items-center gap-2">
+            <el-button
+              v-if="selectedIds.length > 0 && canDelete"
+              type="danger"
+              size="small"
+              @click="confirmBatchDelete"
+              :loading="batchDeleting"
+            >
+              <span class="material-symbols-outlined mr-1 text-sm">delete</span>
+              批量删除
+            </el-button>
+            <el-button v-if="selectedIds.length > 0" text size="small" @click="clearSelection">
+              清空选择
+            </el-button>
+            <el-button text @click="reload">刷新</el-button>
+          </div>
         </div>
       </template>
       <el-empty v-if="!loading && items.length === 0" description="暂无数据" />
       <div v-else class="overflow-x-auto">
         <el-table
+          ref="tableRef"
           :data="items"
           border
           stripe
@@ -60,7 +81,9 @@
           class="min-w-[640px]"
           :default-sort="defaultSort"
           @sort-change="onSortChange"
+          @selection-change="handleSelectionChange"
         >
+          <el-table-column v-if="canDelete" type="selection" width="45" />
           <el-table-column label="#" prop="id" width="100" :sortable="sortableMode" />
           <el-table-column label="名称" prop="name" :sortable="sortableMode">
             <template #default="{ row }">
@@ -112,6 +135,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
+import type { ElTable } from 'element-plus'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useLoading } from '@/composables/useLoading'
 import { usePermission } from '@/composables/usePermission'
@@ -136,6 +161,8 @@ const props = defineProps<{
   createItem?: (name: string) => Promise<any>
   updateItem?: (id: number, name: string) => Promise<any>
   deleteItem: (id: number) => Promise<any>
+  // 可选：批量删除 API，若提供则使用，否则循环调用单个删除
+  batchDeleteItems?: (ids: number[]) => Promise<any>
   createItemRaw?: (payload: Record<string, any>) => Promise<any>
   updateItemRaw?: (id: number, payload: Record<string, any>) => Promise<any>
   extraFields?: Array<{ key: string; label: string; placeholder?: string }>
@@ -156,6 +183,7 @@ const { hasPermission } = usePermission()
 const loading = computed(() => isLoadingKey('loading'))
 const creating = computed(() => isLoadingKey('creating'))
 const updating = computed(() => isLoadingKey('updating'))
+const batchDeleting = computed(() => isLoadingKey('batchDeleting'))
 const router = useRouter()
 const q = ref('')
 const newName = ref('')
@@ -166,6 +194,19 @@ const editingId = ref<number | null>(null)
 const editingName = ref('')
 const newExtras = ref<Record<string, any>>({})
 const editingExtras = ref<Record<string, any>>({})
+
+// 批量选择相关
+const tableRef = ref<InstanceType<typeof ElTable>>()
+const selectedIds = ref<number[]>([])
+
+function handleSelectionChange(selection: Item[]) {
+  selectedIds.value = selection.map(item => item.id)
+}
+
+function clearSelection() {
+  tableRef.value?.clearSelection()
+  selectedIds.value = []
+}
 
 const tableHeight = computed(() => props.tableHeight ?? 520)
 
@@ -310,6 +351,65 @@ async function remove(id: number) {
     handleError(e, { context: 'AdminCrudList.remove' })
   } finally {
     removingId.value = null
+  }
+}
+
+async function confirmBatchDelete() {
+  if (selectedIds.value.length === 0) return
+
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${selectedIds.value.length} 项？此操作不可撤销。`,
+      '批量删除确认',
+      {
+        type: 'warning',
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+      },
+    )
+  } catch {
+    return
+  }
+
+  startLoading('batchDeleting')
+  try {
+    if (props.batchDeleteItems) {
+      // 使用批量删除 API
+      await props.batchDeleteItems(selectedIds.value)
+      handleSuccess(`已删除 ${selectedIds.value.length} 项`)
+    } else {
+      // 循环调用单个删除
+      let successCount = 0
+      let failCount = 0
+      const errors: string[] = []
+
+      for (const id of selectedIds.value) {
+        try {
+          await props.deleteItem(id)
+          successCount++
+        } catch (e: any) {
+          failCount++
+          errors.push(`ID ${id}: ${e.message || '删除失败'}`)
+        }
+      }
+
+      if (failCount === 0) {
+        handleSuccess(`已删除 ${successCount} 项`)
+      } else if (successCount === 0) {
+        handleError(new Error(`删除失败：\n${errors.join('\n')}`), {
+          context: 'AdminCrudList.batchDelete',
+        })
+      } else {
+        handleSuccess(`成功删除 ${successCount} 项，失败 ${failCount} 项`)
+      }
+    }
+
+    clearSelection()
+    await reload()
+  } catch (e: any) {
+    handleError(e, { context: 'AdminCrudList.batchDelete' })
+  } finally {
+    stopLoading('batchDeleting')
   }
 }
 
