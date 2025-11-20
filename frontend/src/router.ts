@@ -172,6 +172,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('./pages/Admin/TxtChapters.vue'),
         meta: { permission: 'books.edit' },
       },
+      {
+        path: 'scraping-tasks',
+        name: 'admin-scraping-tasks',
+        component: () => import('./pages/Admin/ScrapingTasks/Index.vue'),
+        meta: { permission: 'metadata.batch_scrape' },
+      },
+      {
+        path: 'scraping-tasks/create',
+        name: 'admin-scraping-tasks-create',
+        component: () => import('./pages/Admin/ScrapingTasks/Create.vue'),
+        meta: { permission: 'metadata.batch_scrape' },
+      },
     ],
   },
 ]

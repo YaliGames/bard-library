@@ -7,10 +7,14 @@ use App\Models\Shelf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\OptionalUserResolver;
+use App\Services\BookCreationService;
 
 class BooksController extends Controller
 {
-    public function __construct(private OptionalUserResolver $userResolver) {}
+    public function __construct(
+        private OptionalUserResolver $userResolver,
+        private BookCreationService $bookService
+    ) {}
     public function index(Request $request)
     {
         $q = Book::query()->with(['authors', 'tags']);
@@ -277,26 +281,13 @@ class BooksController extends Controller
                 $fail('The '.$attr.' field must be an integer id or a non-empty string.');
             }],
         ]);
-        // 解析 series_value -> series_id
-        $seriesId = null;
-        $sv = $request->input('series_value', null);
-        if ($sv !== null) {
-            if (is_numeric($sv)) {
-                $seriesId = (int)$sv;
-            } else {
-                $name = trim((string)$sv);
-                if ($name !== '') {
-                    $model = \App\Models\Series::firstOrCreate(['name' => $name]);
-                    $seriesId = $model->id;
-                }
-            }
-        }
-        if ($seriesId !== null) $data['series_id'] = $seriesId; else $data['series_id'] = null;
-
         $book = Book::create($data);
-        // 处理作者/标签（同时支持传入ID或名称字符串）
+        
+        // 使用 BookCreationService 处理作者/标签/丛书
         $this->syncAuthorsAndTags($book, $request);
-        return response()->json($book->load(['authors','tags']), 201);
+        $this->syncSeriesFromRequest($book, $request);
+        
+        return response()->json($book->load(['authors','tags','series']), 201);
     }
 
     public function update(Request $request, int $id)
@@ -332,64 +323,63 @@ class BooksController extends Controller
                 $fail('The '.$attr.' field must be an integer id or a non-empty string.');
             }],
         ]);
-        // 解析 series_value -> series_id
-        $sv = $request->input('series_value', null);
-        if ($sv !== null) {
-            if (is_numeric($sv)) {
-                $data['series_id'] = (int)$sv;
-            } else {
-                $name = trim((string)$sv);
-                if ($name !== '') {
-                    $model = \App\Models\Series::firstOrCreate(['name' => $name]);
-                    $data['series_id'] = $model->id;
-                } else {
-                    $data['series_id'] = null;
-                }
-            }
-        }
+        
         $book->fill($data)->save();
-        // 处理作者/标签
+        
+        // 使用 BookCreationService 处理作者/标签/丛书
         $this->syncAuthorsAndTags($book, $request);
-        return $book->refresh()->load(['authors','tags']);
+        $this->syncSeriesFromRequest($book, $request);
+        
+        return $book->refresh()->load(['authors','tags','series']);
     }
 
+    /**
+     * 同步作者和标签（使用 BookCreationService）
+     */
     private function syncAuthorsAndTags(Book $book, Request $request): void
     {
         $authorValues = $request->input('author_values', null);
         $tagValues = $request->input('tag_values', null);
-        // 作者
+        
+        // 使用 BookCreationService 处理作者
         if (is_array($authorValues)) {
-            $authorIds = [];
-            foreach ($authorValues as $v) {
+            $filteredAuthors = array_filter($authorValues, function($v) {
                 $v = is_string($v) ? trim($v) : $v;
-                if ($v === '' || $v === null) continue;
-                if (is_numeric($v)) {
-                    $authorIds[] = (int)$v;
-                } else {
-                    $name = (string)$v;
-                    $model = \App\Models\Author::firstOrCreate(['name' => $name], ['sort_name' => $name]);
-                    $authorIds[] = $model->id;
-                }
+                return $v !== '' && $v !== null;
+            });
+            
+            if (!empty($filteredAuthors)) {
+                $this->bookService->syncAuthors($book, $filteredAuthors);
+            } else {
+                $book->authors()->detach();
             }
-            if ($authorIds) $book->authors()->sync($authorIds);
-            else $book->authors()->detach();
         }
-        // 标签
+        
+        // 使用 BookCreationService 处理标签
         if (is_array($tagValues)) {
-            $tagIds = [];
-            foreach ($tagValues as $v) {
+            $filteredTags = array_filter($tagValues, function($v) {
                 $v = is_string($v) ? trim($v) : $v;
-                if ($v === '' || $v === null) continue;
-                if (is_numeric($v)) {
-                    $tagIds[] = (int)$v;
-                } else {
-                    $name = (string)$v;
-                    $model = \App\Models\Tag::firstOrCreate(['name' => $name], ['type' => null]);
-                    $tagIds[] = $model->id;
-                }
+                return $v !== '' && $v !== null;
+            });
+            
+            if (!empty($filteredTags)) {
+                $this->bookService->syncTags($book, $filteredTags);
+            } else {
+                $book->tags()->detach();
             }
-            if ($tagIds) $book->tags()->sync($tagIds);
-            else $book->tags()->detach();
+        }
+    }
+    
+    /**
+     * 从请求中同步丛书信息（使用 BookCreationService）
+     */
+    private function syncSeriesFromRequest(Book $book, Request $request): void
+    {
+        $seriesValue = $request->input('series_value', null);
+        $seriesIndex = $request->input('series_index', null);
+        
+        if ($seriesValue !== null) {
+            $this->bookService->syncSeries($book, $seriesValue, $seriesIndex);
         }
     }
 

@@ -9,6 +9,21 @@ search:
     kw: $query
   result_list_xpath: //div[@id='search_result']//div[not(contains(div[@class='info'], '文章类型：评论'))]//h3[@class='title']/a
   detail_url_attr: href
+  # 搜索页预览字段
+  preview_fields:
+    title:
+      xpath: .
+      attr: text
+    authors:
+      xpath: ./ancestor::div[contains(@class, 'bookbox')]//div[@class='author']//a
+      attr: text
+    cover:
+      xpath: ./ancestor::div[contains(@class, 'bookbox')]//img
+      attr: src
+    status:
+      xpath: ./ancestor::div[contains(@class, 'bookbox')]//div[@class='info']
+      attr: text
+      filter: '$regexMatch("/文章状态：([^\s]+)/u", $v, 1)'
 detail:
   fields:
     title:

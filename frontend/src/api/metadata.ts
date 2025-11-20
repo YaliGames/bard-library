@@ -28,15 +28,45 @@ export const metadataApi = {
   },
 
   /**
-   * 搜索书籍元数据
+   * 搜索书籍元数据（完整模式，立即获取详情页数据）
    * @param provider - 提供商 ID
    * @param q - 搜索关键词
    * @param limit - 返回结果数量限制
-   * @returns 元数据记录列表
+   * @returns 完整元数据记录列表
    */
   search: async (provider: string, q: string, limit = 5): Promise<MetaRecord[]> => {
-    const data = await http.get<any>(`${BASE}/${provider}/search`, { params: { q, limit } })
+    const data = await http.get<any>(`${BASE}/${provider}/search`, {
+      params: { q, limit, full: true },
+    })
     return Array.isArray(data?.items) ? (data.items as MetaRecord[]) : []
+  },
+
+  /**
+   * 搜索书籍元数据（预览模式，仅返回搜索页信息，不请求详情页）
+   * @param provider - 提供商 ID
+   * @param q - 搜索关键词
+   * @param limit - 返回结果数量限制
+   * @returns 预览信息列表
+   */
+  searchPreview: async (provider: string, q: string, limit = 10): Promise<any[]> => {
+    const data = await http.get<any>(`${BASE}/${provider}/search`, {
+      params: { q, limit, full: false },
+    })
+    return Array.isArray(data?.items) ? data.items : []
+  },
+
+  /**
+   * 批量获取详情页数据
+   * @param provider - 提供商 ID
+   * @param urls - 详情页 URL 列表
+   * @returns 详情数据映射
+   */
+  batchDetails: async (
+    provider: string,
+    urls: string[],
+  ): Promise<Array<{ url: string; success: boolean; data?: MetaRecord; error?: string }>> => {
+    const response = await http.post<any>(`${BASE}/${provider}/batch-details`, { urls })
+    return response.results || []
   },
 
   /**

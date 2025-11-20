@@ -77,6 +77,7 @@ class PermissionsSeeder extends Seeder
             // 元数据
             ['name' => 'metadata.search', 'display_name' => '搜索元数据', 'group' => 'metadata', 'description' => '搜索元数据（暂不适用）'],
             ['name' => 'metadata.fetch', 'display_name' => '获取元数据', 'group' => 'metadata', 'description' => '获取元数据详情（暂不适用）'],
+            ['name' => 'metadata.batch_scrape', 'display_name' => '批量元数据刮削', 'group' => 'metadata', 'description' => '创建和管理批量元数据刮削任务'],
         ];
 
         foreach ($permissions as $permission) {

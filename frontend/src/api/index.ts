@@ -33,6 +33,7 @@ export { progressApi } from './progress'
 export { metadataApi } from './metadata'
 export { importsApi } from './imports'
 export { systemSettingsApi } from './systemSettings'
+export { scrapingTasksApi } from './scrapingTasks'
 
 // 类型导出
 export type * from './types'
@@ -41,3 +42,4 @@ export type { UserSettings } from './settings'
 export type { AdminFileItem } from './adminFiles'
 export type { SettingDef, CategoryDef, SettingsResponse } from './systemSettings'
 export type { Chapter } from './txt'
+export type { ScrapingTask, ScrapingResult, CreateScrapingTaskParams } from './scrapingTasks'

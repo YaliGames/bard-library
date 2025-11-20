@@ -7,6 +7,15 @@
           <span class="material-symbols-outlined mr-1 text-lg">upload</span>
           快速上传
         </el-button>
+        <el-button
+          v-permission="'metadata.batch_scrape'"
+          type="primary"
+          plain
+          @click="goScrapingTasks"
+        >
+          <span class="material-symbols-outlined mr-1 text-lg">cloud_download</span>
+          快速刮削
+        </el-button>
         <el-button v-permission="'books.create'" type="primary" @click="goCreateNew">
           <span class="material-symbols-outlined mr-1 text-lg">add</span>
           新建
@@ -266,6 +275,9 @@ function goCreateNew() {
 }
 function goQuickUpload() {
   router.push({ name: 'admin-upload' })
+}
+function goScrapingTasks() {
+  router.push({ name: 'admin-scraping-tasks-create' })
 }
 
 onMounted(() => loadPage(1))

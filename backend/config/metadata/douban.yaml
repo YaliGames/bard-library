@@ -7,9 +7,57 @@ search:
   params:
     cat: 1001
     q: $query
-  result_list_xpath: //a[contains(@class, 'nbg')]
+  result_list_xpath: //div[@class='result']
   detail_url_attr: href
   detail_url_parse: extract_redirect_target
+  # 搜索页预览字段（仅从搜索结果页提取，不请求详情页）
+  preview_fields:
+    url:
+      xpath: .//div[@class='title']//h3/a
+      attr: href
+    title:
+      xpath: .//div[@class='title']//h3/a
+      attr: text
+      filter: '$trim($v)'
+    cover:
+      xpath: .//div[@class='pic']//img
+      attr: src
+    rating:
+      xpath: .//div[@class='rating-info']//span[@class='rating_nums']
+      attr: text
+      filter: '$floatval($v)/2'
+    # 从 subject-cast 提取作者、出版社、出版年等信息
+    authors:
+      xpath: .//span[@class='subject-cast']
+      attr: text
+      filter: |
+        $parts = array_map('trim', array_filter(explode('/', $v ?? ''), fn($p) => !empty($p)));
+        $count = count($parts);
+        if ($count < 3) return null;
+        // 前 n-2 项为作者（至少要有 3 项才能分出作者、出版社、年份）
+        return array_slice($parts, 0, -2);
+    publisher:
+      xpath: .//span[@class='subject-cast']
+      attr: text
+      filter: |
+        $parts = array_map('trim', array_filter(explode('/', $v ?? ''), fn($p) => !empty($p)));
+        $count = count($parts);
+        if ($count < 2) return null;
+        // 倒数第 2 项为出版社
+        return $parts[$count - 2];
+    published_at:
+      xpath: .//span[@class='subject-cast']
+      attr: text
+      filter: |
+        $parts = array_map('trim', array_filter(explode('/', $v ?? ''), fn($p) => !empty($p)));
+        $count = count($parts);
+        if ($count < 1) return null;
+        // 最后一项为出版年份，提取年份数字
+        $last = $parts[$count - 1];
+        if (preg_match('/(\d{4})/', $last, $m)) {
+          return $m[1];
+        }
+        return $last;
 detail:
   fields:
     title:
@@ -21,15 +69,16 @@ detail:
       xpath: //strong[@property='v:average']
       filter: '$floatval($v)/2'
     authors:
-      xpath: //span[@class="pl" and contains(text(),"作者")]/../a
+      xpath: //span[@class="pl" and contains(text(),"作者")]/following-sibling::a
       attr: text
       multi: true
     publisher:
-      xpath: //span[@class="pl" and contains(text(),"出版社")]/following-sibling::text()[1]
+      xpath: //span[@class="pl" and contains(text(),"出版社")]/following-sibling::*[1]
+      attr: text
       filter: '$trim($v)'
-    publishedDate:
+    published_at:
       xpath: //span[@class="pl" and contains(text(),"出版年")]/following-sibling::text()[1]
-      filter: '$normalizeDate($v)'
+      filter: '$trim($v)'
     isbn:
       xpath: //span[@class="pl" and contains(text(),"ISBN")]/following-sibling::text()[1]
       filter: '$trim($v)'

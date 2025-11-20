@@ -73,6 +73,14 @@ const quickActions: AdminCard[] = [
     permission: 'files.upload',
   },
   {
+    key: 'quick-scrape',
+    title: '快速刮削',
+    desc: '批量从豆瓣等平台搜索并导入图书元数据',
+    icon: 'cloud_download',
+    to: { name: 'admin-scraping-tasks-create' },
+    permission: 'metadata.batch_scrape',
+  },
+  {
     key: 'create-book',
     title: '新建图书',
     desc: '从空白开始新建图书',

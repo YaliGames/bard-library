@@ -55,8 +55,8 @@
             <div class="text-xs text-gray-500" v-if="b.rating">
               评分：{{ (b.rating || 0).toFixed(1) }} / 5
             </div>
-            <div class="text-xs text-gray-500 truncate" v-if="b.publishedDate">
-              出版：{{ b.publishedDate }}
+            <div class="text-xs text-gray-500 truncate" v-if="b.published_at">
+              出版：{{ b.published_at }}
             </div>
             <div class="text-xs text-gray-400 truncate" v-if="b.url">
               <a :href="b.url" target="_blank">来源</a>

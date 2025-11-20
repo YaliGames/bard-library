@@ -29,21 +29,78 @@ class MetadataController extends Controller
     }
 
     /**
-     * 搜索（返回若干候选，当前基础实现返回首个详情作为 items[0]）
+     * 搜索（返回若干候选）
+     * @param Request $request 请求对象，支持参数 full（是否立即获取完整详情，默认false）
+     * @param string $provider 提供商ID
      */
     public function search(Request $request, string $provider)
     {
         $q = trim((string)$request->query('q', ''));
-        $limit = (int)$request->query('limit', 5);
+        $limit = (int)$request->query('limit', 10);
+        $full = filter_var($request->query('full', false), FILTER_VALIDATE_BOOLEAN);
+        
         if ($q === '') return response()->json(['error' => 'Missing q'], 422);
 
         $loader = new MetadataConfigLoader();
         $cfg = $loader->load($provider);
         if (!$cfg) return response()->json(['error' => 'Provider not found'], 404);
 
-    $scraper = new MetadataScraper($cfg);
-    $items = $scraper->searchItems($q, $limit);
-        return response()->json(['query' => $q, 'count' => count($items), 'items' => $items]);
+        $scraper = new MetadataScraper($cfg);
+        
+        if ($full) {
+            // 完整模式：立即获取详情页数据（向后兼容）
+            $items = $scraper->searchItems($q, $limit);
+        } else {
+            // 预览模式：仅返回搜索页信息（推荐，减少请求）
+            $items = $scraper->searchItemsWithPreview($q, $limit);
+        }
+        
+        return response()->json([
+            'query' => $q,
+            'count' => count($items),
+            'items' => $items,
+            'preview_only' => !$full,
+        ]);
+    }
+
+    /**
+     * 批量获取详情页数据
+     */
+    public function batchDetails(Request $request, string $provider)
+    {
+        $validated = $request->validate([
+            'urls' => 'required|array|min:1|max:50',
+            'urls.*' => 'required|url',
+        ]);
+
+        $loader = new MetadataConfigLoader();
+        $cfg = $loader->load($provider);
+        if (!$cfg) return response()->json(['error' => 'Provider not found'], 404);
+
+        $scraper = new MetadataScraper($cfg);
+        $results = [];
+
+        foreach ($validated['urls'] as $url) {
+            try {
+                $detail = $scraper->fetchDetail($url);
+                $results[] = [
+                    'url' => $url,
+                    'success' => true,
+                    'data' => $detail,
+                ];
+            } catch (\Throwable $e) {
+                $results[] = [
+                    'url' => $url,
+                    'success' => false,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'total' => count($validated['urls']),
+            'results' => $results,
+        ]);
     }
 
     /**

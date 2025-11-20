@@ -341,9 +341,9 @@ async function onMetaApply(payload: { item: MetaRecord; provider: string }) {
     form.value.rating = Math.max(0, Math.min(5, Math.round(item.rating * 10) / 10))
   }
   // 出版日期
-  if (item.publishedDate) {
-    const d = parseYmdToDate(item.publishedDate)
-    form.value.published_at = (d || item.publishedDate) as any
+  if (item.published_at) {
+    const d = parseYmdToDate(item.published_at)
+    form.value.published_at = (d || item.published_at) as any
   }
   // 丛书
   if (item.series) {

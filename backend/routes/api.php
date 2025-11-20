@@ -16,6 +16,7 @@ use App\Http\Controllers\MarkController;
 use App\Http\Controllers\CoversController;
 use App\Http\Controllers\MetadataController;
 use App\Http\Controllers\FilesAdminController;
+use App\Http\Controllers\ScrapingTaskController;
 
 // API v1
 Route::prefix('v1')->group(function () {
@@ -299,7 +300,26 @@ Route::prefix('v1')->group(function () {
     Route::prefix('metadata')->group(function () {
         Route::get('/providers', [MetadataController::class, 'providers']);
         Route::get('/{provider}/search', [MetadataController::class, 'search']);
+        Route::post('/{provider}/batch-details', [MetadataController::class, 'batchDetails']);
         Route::get('/{provider}/book', [MetadataController::class, 'book']);
         Route::get('/{provider}/cover', [MetadataController::class, 'cover']);
+    });
+
+    // ============================
+    // Scraping Tasks 批量刮削任务
+    // ============================
+    Route::middleware(['session', 'auth'])->prefix('admin/scraping-tasks')->group(function () {
+        Route::get('/', [ScrapingTaskController::class, 'index'])
+            ->middleware('permission:metadata.batch_scrape');
+        Route::post('/', [ScrapingTaskController::class, 'store'])
+            ->middleware('permission:metadata.batch_scrape');
+        Route::get('/{id}', [ScrapingTaskController::class, 'show'])
+            ->middleware('permission:metadata.batch_scrape');
+        Route::post('/{id}/cancel', [ScrapingTaskController::class, 'cancel'])
+            ->middleware('permission:metadata.batch_scrape');
+        Route::delete('/{id}', [ScrapingTaskController::class, 'destroy'])
+            ->middleware('permission:metadata.batch_scrape');
+        Route::get('/{id}/results', [ScrapingTaskController::class, 'results'])
+            ->middleware('permission:metadata.batch_scrape');
     });
 });

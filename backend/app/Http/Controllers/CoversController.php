@@ -9,9 +9,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\QueryException;
+use App\Services\BookCreationService;
 
 class CoversController extends Controller
 {
+    public function __construct(private BookCreationService $bookService) {}
     // 上传图片作为封面
     public function upload(Request $request, int $bookId)
     {
@@ -58,6 +60,8 @@ class CoversController extends Controller
         $book = Book::findOrFail($bookId);
         $data = $request->validate(['url' => ['required','url']]);
         $url = $data['url'];
+        
+        // 处理元数据 API 代理 URL（解析实际封面 URL）
         try {
             $appHost = parse_url(config('app.url') ?: $request->getSchemeAndHttpHost(), PHP_URL_HOST);
             $target = parse_url($url);
@@ -71,79 +75,17 @@ class CoversController extends Controller
             }
         } catch (\Throwable $e) {}
 
-        // 设置常用请求头
-        $headers = [
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-            'Accept' => 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
-        ];
-        if (str_contains($url, 'doubanio.com') || str_contains($url, 'book.douban.com')) {
-            $headers['Referer'] = 'https://book.douban.com/';
+        // 使用 BookCreationService 下载并附加封面
+        $success = $this->bookService->downloadAndAttachCover($book, $url);
+        
+        if (!$success) {
+            return response()->json(['message' => '下载或保存封面失败'], 422);
         }
 
-        try {
-            $resp = Http::withHeaders($headers)->get($url);
-            if (!$resp->ok()) {
-                return response()->json(['message' => '下载图片失败'], 422);
-            }
-            $bin = $resp->body();
-            if (!$bin) return response()->json(['message' => '图片内容为空'], 422);
-            $contentType = strtolower($resp->header('Content-Type', 'image/jpeg'));
-        } catch (\Throwable $e) {
-            return response()->json(['message' => '下载图片失败'], 422);
-        }
-
-        $sha = hash('sha256', $bin);
-        // 如果已有相同 sha 的封面文件，直接复用
-        $existing = BookFile::where('sha256', $sha)->where('format', 'cover')->first();
-
-        $ext = 'jpg';
-        if (str_contains($contentType ?? '', 'png') || str_contains(strtolower($url), '.png')) $ext = 'png';
-        elseif (str_contains($contentType ?? '', 'webp') || str_contains(strtolower($url), '.webp')) $ext = 'webp';
-
-        if ($existing) {
-            $file = $existing;
-        } else {
-            $a = Str::substr($sha, 0, 2);
-            $b = Str::substr($sha, 2, 2);
-            $safe = $sha.'.'.$ext;
-            $relPath = "covers/{$a}/{$b}/{$sha}/{$safe}";
-            $disk = Storage::disk('library');
-            if (!$disk->exists($relPath)) {
-                $disk->put($relPath, $bin);
-            }
-
-            try {
-                $file = BookFile::create([
-                    'book_id' => $book->id,
-                    'format' => 'cover',
-                    'size' => strlen($bin),
-                    'mime' => match ($ext) {
-                        'png' => 'image/png',
-                        'webp' => 'image/webp',
-                        default => 'image/jpeg'
-                    },
-                    'sha256' => $sha,
-                    'path' => $relPath,
-                    'storage' => 'library',
-                    'pages' => null,
-                ]);
-            } catch (QueryException $qe) {
-                // 并发唯一约束冲突：复用已存在记录
-                if ((int) $qe->getCode() === 23000) {
-                    $file = BookFile::where('sha256', $sha)->first();
-                } else {
-                    throw $qe;
-                }
-            }
-        }
-
-        if (!$file) {
-            return response()->json(['message' => '保存失败'], 500);
-        }
-
-        $book->cover_file_id = $file->id;
-        $book->save();
-        return response()->json(['file_id' => $file->id], 201);
+        // 刷新图书以获取最新的 cover_file_id
+        $book->refresh();
+        
+        return response()->json(['file_id' => $book->cover_file_id], 201);
     }
 
     // 清除书籍封面关联（不删除底层文件记录，避免影响其他书籍复用）

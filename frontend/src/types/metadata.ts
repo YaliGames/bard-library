@@ -17,7 +17,7 @@ export interface MetaRecord {
   url: string
   cover?: string
   rating?: number // 0-5
-  publishedDate?: string // e.g., YYYY-MM-DD
+  published_at?: string // e.g., YYYY-MM-DD
   series?: string
   tags?: string[]
   identifiers?: MetaIdentifiers
