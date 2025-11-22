@@ -10,132 +10,182 @@
       </div>
     </div>
 
-    <el-card v-if="!hasRouteFileId" shadow="never" class="mb-4">
-      <template #header>
-        <div class="font-medium">选择 TXT 文件</div>
-      </template>
-      <div class="flex gap-2 items-start">
-        <el-select
-          v-model="selectedFileId"
-          filterable
-          remote
-          reserve-keyword
-          placeholder="输入关键字搜索 TXT 文件"
-          :remote-method="searchFiles"
-          :loading="filesLoading"
-          clearable
-          style="flex: 1; max-width: 500px"
-          @change="onFileSelected"
-        >
-          <el-option
-            v-for="file in txtFiles"
-            :key="file.id"
-            :label="`[${file.id}] ${file.book?.title || '未关联图书'} - ${file.filename}`"
-            :value="file.id"
-          >
-            <div class="flex items-center justify-between h-full">
-              <span class="text-sm">{{ file.book?.title || '未关联图书' }}</span>
-              <span class="text-xs text-gray-400 ml-2">{{ file.filename }}</span>
-            </div>
-          </el-option>
-        </el-select>
-        <el-button type="primary" :disabled="!selectedFileId" @click="load">加载目录</el-button>
-      </div>
-      <div class="text-xs text-gray-500 mt-2">
-        也可从图书编辑页的文件列表点击"编辑章节"直接跳转。
-      </div>
-    </el-card>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <el-card class="lg:col-span-2" shadow="never">
-        <template #header>
-          <div class="font-medium">目录</div>
-        </template>
-        <div v-if="chaptersLoading" class="text-gray-500">加载中…</div>
-        <el-empty v-else-if="chapters.length === 0" description="暂无目录，尝试右侧使用规则预览" />
-        <div v-else>
-          <div
-            v-if="isPreviewMode"
-            class="mb-2 text-sm text-orange-600 flex items-center justify-between bg-orange-50 border border-orange-200 rounded px-3 py-2"
-          >
-            <div class="flex items-center">
-              <span class="material-symbols-outlined mr-1 text-base">visibility</span>
-              <span>预览模式：当前显示的是使用规则生成的预览结果，不会影响现有目录</span>
-            </div>
-            <el-button size="small" @click="exitPreviewMode">
-              <span class="material-symbols-outlined mr-1 text-sm">close</span>
-              退出预览
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow-sm p-4">
+          <div class="flex items-center justify-between mb-4">
+            <span class="font-medium text-lg">目录</span>
+            <el-button
+              v-if="fileId"
+              type="primary"
+              size="small"
+              plain
+              @click="showFileSelectDialog"
+            >
+              <span class="material-symbols-outlined mr-1 text-sm">swap_horiz</span>
+              切换文件
+            </el-button>
+            <el-button v-else type="primary" size="small" @click="showFileSelectDialog">
+              <span class="material-symbols-outlined mr-1 text-sm">folder_open</span>
+              选择文件
             </el-button>
           </div>
-          <el-table :data="chapters" border height="520">
-            <el-table-column label="#" prop="index" width="80" />
-            <el-table-column label="标题" prop="title" />
-            <el-table-column label="偏移" prop="offset" width="120" />
-            <el-table-column label="长度" prop="length" width="120" />
-            <el-table-column v-if="!isPreviewMode" label="操作" width="220" align="center">
-              <template #default="{ row }">
-                <el-button
-                  v-permission="'books.edit'"
-                  class="mr-3"
-                  size="small"
-                  @click="promptRename(row)"
-                >
-                  重命名
-                </el-button>
-                <el-dropdown @command="(cmd: string) => onDeleteMerge(row, cmd as any)">
-                  <el-button v-permission="'books.edit'" size="small" type="danger" plain>
-                    删除并合并
+          <el-empty
+            v-if="!fileId && !chaptersLoading"
+            description="请先打开 TXT 文件"
+            :image-size="100"
+          >
+            <el-button type="primary" @click="showFileSelectDialog">
+              <span class="material-symbols-outlined mr-1">folder_open</span>
+              选择 TXT 文件
+            </el-button>
+          </el-empty>
+          <el-empty
+            v-else-if="fileId && !chaptersLoading && chapters.length === 0"
+            description="暂无目录，尝试右侧使用规则预览"
+          />
+          <div v-else>
+            <div
+              v-if="isPreviewMode"
+              class="mb-2 text-sm text-orange-600 flex items-center justify-between bg-orange-50 border border-orange-200 rounded px-3 py-2"
+            >
+              <div class="flex items-center">
+                <span class="material-symbols-outlined mr-1 text-base">visibility</span>
+                <span>预览模式：当前显示的是使用规则生成的预览结果，不会影响现有目录</span>
+              </div>
+              <el-button size="small" @click="exitPreviewMode">
+                <span class="material-symbols-outlined mr-1 text-sm">close</span>
+                退出预览
+              </el-button>
+            </div>
+            <el-table :data="chapters" border height="520" v-loading="chaptersLoading">
+              <el-table-column label="#" prop="index" width="80" />
+              <el-table-column label="标题" prop="title" />
+              <el-table-column label="偏移" prop="offset" width="120" />
+              <el-table-column label="长度" prop="length" width="120" />
+              <el-table-column v-if="!isPreviewMode" label="操作" width="220" align="center">
+                <template #default="{ row }">
+                  <el-button
+                    v-permission="'books.edit'"
+                    class="mr-3"
+                    size="small"
+                    @click="promptRename(row)"
+                  >
+                    重命名
                   </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="prev">合并到上一个</el-dropdown-item>
-                      <el-dropdown-item command="next">合并到下一个</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </el-card>
-      <el-card shadow="never">
-        <template #header>
-          <div class="font-medium">规则与操作</div>
-        </template>
-        <div class="flex flex-col gap-3">
-          <div>
-            <div class="text-sm text-gray-600 mb-1">规则类型</div>
-            <el-radio-group v-model="ruleType">
-              <el-radio value="builtin">内置规则</el-radio>
-              <el-radio value="custom">自定义规则</el-radio>
-            </el-radio-group>
+                  <el-dropdown @command="(cmd: string) => onDeleteMerge(row, cmd as any)">
+                    <el-button v-permission="'books.edit'" size="small" type="danger" plain>
+                      删除并合并
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="prev">合并到上一个</el-dropdown-item>
+                        <el-dropdown-item command="next">合并到下一个</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </template>
+              </el-table-column>
+            </el-table>
           </div>
+        </div>
+      </div>
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow-sm p-4">
+          <div class="flex items-center justify-between mb-4">
+            <span class="font-medium text-lg">规则与操作</span>
+          </div>
+          <div class="flex flex-col gap-3">
+            <div>
+              <div class="text-sm text-gray-600 mb-1">规则类型</div>
+              <el-radio-group v-model="ruleType">
+                <el-radio value="builtin">内置规则</el-radio>
+                <el-radio value="custom">自定义规则</el-radio>
+              </el-radio-group>
+            </div>
 
-          <!-- 内置规则选择 -->
-          <div v-if="ruleType === 'builtin'">
-            <div class="text-sm text-gray-600 mb-1">选择内置规则</div>
-            <el-select v-model="selectedPresetId" placeholder="选择一个内置规则" filterable>
-              <el-option v-for="p in allPresets" :key="p.id" :label="p.name" :value="p.id" />
-            </el-select>
-            <div v-if="currentPresetPattern" class="mt-2 p-2 bg-gray-50 rounded text-xs">
-              <div class="text-gray-600 mb-1">正则表达式:</div>
-              <code class="text-primary break-all">{{ currentPresetPattern }}</code>
+            <!-- 内置规则选择 -->
+            <div v-if="ruleType === 'builtin'">
+              <div class="text-sm text-gray-600 mb-1">选择内置规则</div>
+              <el-select v-model="selectedPresetId" placeholder="选择一个内置规则" filterable>
+                <el-option v-for="p in allPresets" :key="p.id" :label="p.name" :value="p.id" />
+              </el-select>
+              <div v-if="currentPresetPattern" class="mt-2 p-2 bg-gray-50 rounded text-xs">
+                <div class="text-gray-600 mb-1">正则表达式:</div>
+                <code class="text-primary break-all">{{ currentPresetPattern }}</code>
+              </div>
+            </div>
+
+            <!-- 自定义规则输入 -->
+            <div v-else>
+              <div class="text-sm text-gray-600 mb-1">自定义正则表达式</div>
+              <el-input v-model="pattern" placeholder="输入正则表达式" type="textarea" :rows="3" />
+            </div>
+
+            <div class="flex">
+              <el-button @click="preview" :loading="chaptersLoading">预览</el-button>
+              <el-button type="primary" @click="save" :loading="saving">保存</el-button>
             </div>
           </div>
-
-          <!-- 自定义规则输入 -->
-          <div v-else>
-            <div class="text-sm text-gray-600 mb-1">自定义正则表达式</div>
-            <el-input v-model="pattern" placeholder="输入正则表达式" type="textarea" :rows="3" />
-          </div>
-
-          <div class="flex gap-2">
-            <el-button @click="preview" :loading="chaptersLoading">预览</el-button>
-            <el-button type="primary" @click="save" :loading="saving">保存</el-button>
-          </div>
         </div>
-      </el-card>
+      </div>
     </div>
+
+    <!-- 选择文件弹窗 -->
+    <el-dialog
+      v-model="fileSelectDialogVisible"
+      title="选择 TXT 文件"
+      width="800px"
+      :close-on-click-modal="false"
+    >
+      <div class="mb-3">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索图书标题或文件名..."
+          clearable
+          @input="handleSearchInput"
+        >
+          <template #prefix>
+            <span class="material-symbols-outlined text-gray-400">search</span>
+          </template>
+        </el-input>
+      </div>
+
+      <div v-loading="filesLoading" style="min-height: 200px">
+        <el-empty v-if="!filesLoading && txtFiles.length === 0" description="未找到 TXT 文件" />
+        <el-table
+          v-else
+          :data="txtFiles"
+          border
+          stripe
+          height="400"
+          highlight-current-row
+          @row-click="selectFile"
+        >
+          <el-table-column label="ID" prop="id" width="80" />
+          <el-table-column label="图书" prop="book.title" min-width="200">
+            <template #default="{ row }">
+              <span v-if="row.book?.title">{{ row.book.title }}</span>
+              <span v-else class="text-gray-400">未关联图书</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="文件名" prop="filename" min-width="180">
+            <template #default="{ row }">
+              <span class="text-xs text-gray-600">{{ row.filename }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" align="center">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" @click.stop="selectFile(row)">选择</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <template #footer>
+        <el-button @click="fileSelectDialogVisible = false">取消</el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 <script setup lang="ts">
@@ -157,7 +207,6 @@ const chaptersLoading = computed(() => isLoadingKey('chapters'))
 const router = useRouter()
 const route = useRoute()
 const fileId = ref<number | undefined>(undefined)
-const selectedFileId = ref<number | undefined>(undefined)
 const txtFiles = ref<AdminFileItem[]>([])
 const chapters = ref<Chapter[]>([])
 const pattern = ref('')
@@ -166,6 +215,9 @@ const ruleType = ref<'builtin' | 'custom'>('builtin') // 规则类型
 const selectedPresetId = ref<string>('')
 const allPresets = computed(() => builtinRegexPresets)
 const isPreviewMode = ref(false) // 标记是否为预览模式
+const fileSelectDialogVisible = ref(false)
+const searchQuery = ref('')
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 // 当前选中的内置规则的正则表达式
 const currentPresetPattern = computed(() => {
@@ -182,13 +234,6 @@ watch(ruleType, newType => {
   }
 })
 
-// 检查是否有路由参数(从其他页面跳转过来)
-const hasRouteFileId = computed(() => {
-  const fidParam = Number(route.params.id || 0)
-  const fidQuery = Number(route.query.fileId || 0)
-  return (Number.isFinite(fidParam) && fidParam > 0) || (Number.isFinite(fidQuery) && fidQuery > 0)
-})
-
 function back() {
   router.back()
 }
@@ -199,42 +244,46 @@ function exitPreviewMode() {
   fetchChapters()
 }
 
-// 搜索 TXT 文件
-async function searchFiles(query: string) {
-  if (!query) {
-    txtFiles.value = []
-    return
-  }
+// 显示文件选择弹窗
+async function showFileSelectDialog() {
+  fileSelectDialogVisible.value = true
+  searchQuery.value = ''
+  await loadFiles()
+}
+
+// 加载文件列表
+async function loadFiles(query?: string) {
   startLoading('files')
   try {
-    const res = await adminFilesApi.list({ q: query, format: 'txt' })
+    const res = await adminFilesApi.list({
+      q: query || undefined,
+      format: 'txt',
+    })
     txtFiles.value = res.items
   } catch (e: any) {
-    handleError(e, { context: 'Admin.TxtChapters.searchFiles' })
+    handleError(e, { context: 'Admin.TxtChapters.loadFiles' })
     txtFiles.value = []
   } finally {
     stopLoading('files')
   }
 }
 
-// 文件选择变化
-function onFileSelected(id: number | undefined) {
-  if (id) {
-    fileId.value = id
+// 搜索输入防抖
+function handleSearchInput() {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
   }
+  searchTimeout = setTimeout(() => {
+    loadFiles(searchQuery.value.trim())
+  }, 300)
 }
 
-async function load() {
-  if (!selectedFileId.value) {
-    handleError(new Error('No file selected'), {
-      context: 'Admin.TxtChapters.load',
-      message: '请先选择一个 TXT 文件',
-    })
-    return
-  }
-  fileId.value = selectedFileId.value
+// 选择文件
+function selectFile(row: AdminFileItem) {
+  fileId.value = row.id
+  fileSelectDialogVisible.value = false
   isPreviewMode.value = false
-  await fetchChapters()
+  fetchChapters()
 }
 
 async function fetchChapters() {
@@ -388,7 +437,6 @@ const initId =
       ? fidQuery
       : 0
 if (initId > 0) {
-  selectedFileId.value = initId
   fileId.value = initId
   fetchChapters()
 }
