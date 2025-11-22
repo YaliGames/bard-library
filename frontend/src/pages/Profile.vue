@@ -14,7 +14,7 @@
             :class="[
               'flex items-center px-3 py-2 rounded-md cursor-pointer',
               active === m.id
-                ? 'bg-gray-200 text-blue-700 font-medium'
+                ? 'bg-gray-200 text-primary font-medium'
                 : 'hover:bg-gray-200 text-gray-700',
             ]"
           >

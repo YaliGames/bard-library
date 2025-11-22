@@ -58,7 +58,7 @@
           <div class="p-3">
             <router-link
               :to="`/books/${book.id}`"
-              class="block font-medium text-sm truncate mb-1 hover:text-blue-600"
+              class="block font-medium text-sm truncate mb-1 hover:text-primary"
             >
               {{ book.title }}
             </router-link>

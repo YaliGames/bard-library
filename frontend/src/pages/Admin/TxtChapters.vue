@@ -119,7 +119,7 @@
             </el-select>
             <div v-if="currentPresetPattern" class="mt-2 p-2 bg-gray-50 rounded text-xs">
               <div class="text-gray-600 mb-1">正则表达式:</div>
-              <code class="text-blue-600 break-all">{{ currentPresetPattern }}</code>
+              <code class="text-primary break-all">{{ currentPresetPattern }}</code>
             </div>
           </div>
 
