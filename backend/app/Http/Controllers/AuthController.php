@@ -24,18 +24,57 @@ class AuthController extends Controller
             'password' => ['required', 'string']
         ]);
         
+        $identifier = $data['email'];
+        $ipAddress = $request->ip();
+        
+        // 检查是否被锁定
+        if (\App\Support\LoginThrottler::isLocked($identifier)) {
+            // 记录失败尝试
+            $this->logLoginAttempt($identifier, $ipAddress, $request->userAgent(), false, 'account_locked');
+            
+            return response()->json([
+                'message' => \App\Support\LoginThrottler::getErrorMessage($identifier)
+            ], 429);
+        }
+        
         $user = User::where('email', $data['email'])->first();
         if (!$user || !Hash::check($data['password'], $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 422);
+            // 记录失败尝试
+            \App\Support\LoginThrottler::recordFailedAttempt($identifier);
+            $this->logLoginAttempt($identifier, $ipAddress, $request->userAgent(), false, 'invalid_credentials');
+            
+            // 获取剩余尝试次数
+            $remaining = \App\Support\LoginThrottler::getRemainingAttempts($identifier);
+            $maxAttempts = \App\Models\SystemSetting::value('security.max_login_attempts', 5);
+            
+            // 构建错误消息
+            $message = '登录失败，账号或密码错误';
+            if ($remaining > 0) {
+                $message .= "。剩余尝试次数: {$remaining}";
+            } else {
+                // 已达到最大次数，账户被锁定
+                $lockoutMinutes = \App\Models\SystemSetting::value('security.lockout_duration', 15);
+                $message = "登录失败次数过多，账户已被锁定 {$lockoutMinutes} 分钟";
+            }
+            
+            return response()->json(['message' => $message], 422);
         }
         
         if (method_exists($user, 'hasVerifiedEmail') && !$user->hasVerifiedEmail()) {
+            $this->logLoginAttempt($identifier, $ipAddress, $request->userAgent(), false, 'email_not_verified');
             return response()->json(['message' => 'Email not verified'], 403);
         }
+        
+        // 登录成功，清除失败记录
+        \App\Support\LoginThrottler::clearAttempts($identifier);
+        $this->logLoginAttempt($identifier, $ipAddress, $request->userAgent(), true);
         
         // Laravel 标准 Session 认证
         \Illuminate\Support\Facades\Auth::login($user, true);
         $request->session()->regenerate();
+        
+        // 设置最后活动时间
+        $request->session()->put('last_activity', time());
         
         $user->load(['roles.permissions']);
         
@@ -43,16 +82,44 @@ class AuthController extends Controller
             'user' => $user
         ]);
     }
+    
+    /**
+     * 记录登录尝试
+     */
+    private function logLoginAttempt(string $identifier, ?string $ipAddress, ?string $userAgent, bool $success, ?string $failureReason = null): void
+    {
+        try {
+            DB::table('login_attempts')->insert([
+                'identifier' => $identifier,
+                'ip_address' => $ipAddress,
+                'user_agent' => $userAgent ? substr($userAgent, 0, 500) : null,
+                'success' => $success,
+                'failure_reason' => $failureReason,
+                'attempted_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // 记录失败不影响登录流程
+            \Illuminate\Support\Facades\Log::error('Failed to log login attempt: ' . $e->getMessage());
+        }
+    }
 
     public function register(Request $request)
     {
         if (!\App\Models\SystemSetting::value('permissions.allow_user_registration', true)) {
             return response()->json(['message' => 'Registration disabled'], 403);
         }
+        
+        // 使用动态密码验证规则
+        $passwordRules = \App\Support\PasswordValidator::getLaravelRules();
+        
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => $passwordRules,
+        ], [
+            'password.regex' => '密码必须包含大小写字母、数字和特殊字符',
         ]);
         $user = new User();
         $user->name = $data['name'];
@@ -117,10 +184,16 @@ class AuthController extends Controller
         if (!\App\Models\SystemSetting::value('permissions.allow_recover_password', true)) {
             return response()->json(['message' => 'Password recovery disabled'], 403);
         }
+        
+        // 使用动态密码验证规则
+        $passwordRules = \App\Support\PasswordValidator::getLaravelRules();
+        
         $data = $request->validate([
             'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => $passwordRules,
             'token' => ['required', 'string']
+        ], [
+            'password.regex' => '密码必须包含大小写字母、数字和特殊字符',
         ]);
         $user = User::where('email', $data['email'])->first();
         if (!$user) {

@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class,
             'wrap' => \App\Http\Middleware\FormatJsonResponse::class,
             'enforce_guest' => \App\Http\Middleware\EnforceGuestAccess::class,
+            // 'session_timeout' => \App\Http\Middleware\CheckSessionTimeout::class,
         ]);
         
         // 创建一个 session 中间件组,用于需要认证的路由
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Session\Middleware\StartSession::class,
             \App\Http\Middleware\FormatJsonResponse::class,
             \App\Http\Middleware\EnforceGuestAccess::class,
+            // \App\Http\Middleware\CheckSessionTimeout::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

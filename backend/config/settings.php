@@ -181,13 +181,13 @@ return [
             'label' => '安全设置',
             'icon' => 'shield',
             'items' => [
-                'security.password_min_length' => [ // 未生效
+                'security.password_min_length' => [
                     'type' => 'int',
                     'default' => 6,
                     'label' => '密码最小长度',
                     'description' => '用户密码的最小长度要求',
                 ],
-                'security.require_strong_password' => [ // 未生效
+                'security.require_strong_password' => [
                     'type' => 'bool',
                     'default' => false,
                     'label' => '强制强密码',
@@ -199,13 +199,13 @@ return [
                     'label' => '会话超时时间',
                     'description' => '用户无操作后自动登出的时间（分钟）',
                 ],
-                'security.max_login_attempts' => [ // 未生效
+                'security.max_login_attempts' => [
                     'type' => 'int',
                     'default' => 5,
                     'label' => '最大登录尝试次数',
                     'description' => '连续登录失败多少次后锁定账户',
                 ],
-                'security.lockout_duration' => [ // 未生效
+                'security.lockout_duration' => [
                     'type' => 'int',
                     'default' => 15,
                     'label' => '账户锁定时长',

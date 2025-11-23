@@ -116,6 +116,20 @@ Route::prefix('v1')->group(function () {
         Route::post('/admin/settings/reset', [\App\Http\Controllers\SystemSettingsController::class, 'reset'])
             ->middleware('permission:settings.edit');
     });
+    
+    // 管理：安全管理（需相应权限）
+    Route::middleware(['session', 'auth', 'permission:settings.view'])->group(function () {
+        Route::get('/admin/security/login-attempts', [\App\Http\Controllers\SecurityController::class, 'getLoginAttempts']);
+        Route::get('/admin/security/login-stats', [\App\Http\Controllers\SecurityController::class, 'getLoginStats']);
+        Route::delete('/admin/security/login-attempts', [\App\Http\Controllers\SecurityController::class, 'clearLoginAttempts'])
+            ->middleware('permission:settings.edit');
+        Route::post('/admin/security/unlock-account', [\App\Http\Controllers\SecurityController::class, 'unlockAccount'])
+            ->middleware('permission:settings.edit');
+        Route::get('/admin/security/password-policy', [\App\Http\Controllers\SecurityController::class, 'getPasswordPolicy']);
+    });
+    
+    // 公开：密码验证（注册时前端验证用）
+    Route::post('/security/validate-password', [\App\Http\Controllers\SecurityController::class, 'validatePassword']);
 
     // ============================
     // RBAC 权限管理系统
