@@ -27,12 +27,15 @@ class VerifyEmailMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('验证您的 Bard Library 邮箱')
+        $systemName = \App\Models\SystemSetting::value('system.system_name', 'Bard Library');
+        
+        return $this->subject("验证您的 {$systemName} 邮箱")
             ->view('emails.verify_email')
             ->text('emails.verify_email_plain')
             ->with([
                 'verificationUrl' => $this->verificationUrl,
                 'username' => $this->username,
+                'systemName' => $systemName,
             ]);
     }
 }

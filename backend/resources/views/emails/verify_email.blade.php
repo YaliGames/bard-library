@@ -6,7 +6,7 @@
   <p class="email-greeting">您好，{{ $username }}！</p>
   
   <div class="email-content">
-    <p>欢迎加入 <strong>Bard Library</strong>！</p>
+    <p>欢迎加入 <strong>{{ $systemName }}</strong>！</p>
     <p>为了确保账户安全，请点击下方按钮验证您的邮箱地址：</p>
   </div>
 
@@ -24,7 +24,7 @@
   <div class="email-note">
     <strong>⏱️ 重要提示：</strong><br>
     • 该验证链接在 <strong>60 分钟</strong>内有效<br>
-    • 验证成功后即可开始使用 Bard Library 的全部功能<br>
+    • 验证成功后即可开始使用 {{ $systemName }} 的全部功能<br>
     • 如果这不是您注册的账户，请忽略此邮件
   </div>
 

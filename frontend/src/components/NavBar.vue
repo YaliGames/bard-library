@@ -2,7 +2,7 @@
   <nav class="flex items-center gap-4 px-4 py-3 bg-blue-900 text-white shadow">
     <div class="flex items-center gap-2">
       <img src="/src/images/logo-white.svg" alt="Logo" class="h-8 w-8" />
-      <span class="font-bold text-lg">Bard Library</span>
+      <span class="font-bold text-lg">{{ systemName }}</span>
     </div>
 
     <div class="hidden md:flex items-center gap-4 ml-4">
@@ -87,7 +87,7 @@
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
           <img src="/src/images/logo.svg" alt="Logo" class="h-7 w-7" />
-          <span class="font-semibold">Bard Library</span>
+          <span class="font-semibold">{{ systemName }}</span>
         </div>
         <button
           class="inline-flex items-center justify-center w-10 h-10 rounded hover:bg-gray-100"
@@ -167,8 +167,10 @@ import { navMenu, userMenu } from '@/config/navMenu'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSimpleLoading } from '@/composables/useLoading'
 import { usePermission } from '@/composables/usePermission'
+import { useSystemName } from '@/composables/useSystemName'
 
 const { handleError } = useErrorHandler()
+const { systemName } = useSystemName()
 const router = useRouter()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()

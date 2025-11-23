@@ -5,7 +5,7 @@
     >
       <div class="lg:w-1/2 xl:w-5/12 p-6 sm:p-12">
         <div class="flex flex-col items-center">
-          <h1 class="text-2xl xl:text-3xl font-extrabold">加入 Bard Library</h1>
+          <h1 class="text-2xl xl:text-3xl font-extrabold">加入 {{ systemName }}</h1>
           <div class="w-full flex-1 mt-8">
             <div v-if="canRegister" class="mx-auto max-w-xs">
               <input
@@ -130,7 +130,9 @@ import { reactive, ref, onMounted } from 'vue'
 import { authApi } from '@/api/auth'
 import { getPublicPermissions } from '@/utils/publicSettings'
 import { useSimpleLoading } from '@/composables/useLoading'
+import { useSystemName } from '@/composables/useSystemName'
 
+const { systemName } = useSystemName()
 const form = reactive({ name: '', email: '', password: '', password2: '' })
 const { loading, withLoading } = useSimpleLoading(false)
 const err = ref('')

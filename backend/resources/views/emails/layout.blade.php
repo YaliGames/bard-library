@@ -124,7 +124,7 @@
     <div class="email-header">
       <h1 class="email-logo">
         <span class="email-logo-icon">📚</span>
-        Bard Library
+        {{ $systemName ?? 'Bard Library' }}
       </h1>
     </div>
 
@@ -136,7 +136,7 @@
     <!-- Footer -->
     <div class="email-footer">
       <p class="email-footer-text">
-        此邮件由 <span class="email-footer-brand">Bard Library</span> 自动发送，请勿直接回复
+        此邮件由 <span class="email-footer-brand">{{ $systemName ?? 'Bard Library' }}</span> 自动发送，请勿直接回复
       </p>
       <p class="email-footer-text">
         Bard Library 是一个开源电子书管理系统，您可以访问
@@ -144,7 +144,7 @@
         了解更多信息。
       </p>
       <p class="email-footer-text">
-        © {{ date('Y') }} Bard Library. All rights reserved.
+        © {{ date('Y') }} {{ $systemName ?? 'Bard Library' }}. All rights reserved.
       </p>
     </div>
   </div>

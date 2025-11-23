@@ -5,7 +5,7 @@
     >
       <div class="lg:w-1/2 xl:w-5/12 p-6 sm:p-12">
         <div class="flex flex-col items-center">
-          <h1 class="text-2xl xl:text-3xl font-extrabold">登录 Bard Library</h1>
+          <h1 class="text-2xl xl:text-3xl font-extrabold">登录 {{ systemName }}</h1>
           <div class="w-full flex-1 mt-8">
             <div class="mx-auto max-w-xs">
               <input
@@ -105,9 +105,11 @@ import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { getPublicPermissions } from '@/utils/publicSettings'
 import { useSimpleLoading } from '@/composables/useLoading'
+import { useSystemName } from '@/composables/useSystemName'
 
 const router = useRouter()
 const { setUser } = useAuthStore()
+const { systemName } = useSystemName()
 const email = ref('')
 const password = ref('')
 const { loading, withLoading } = useSimpleLoading(false)

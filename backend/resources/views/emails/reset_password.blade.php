@@ -5,8 +5,8 @@
 @section('content')
   <p class="email-greeting">您好，{{ $username }}！</p>
   
-  <div class="email-content">
-    <p>我们收到了您在 <strong>Bard Library</strong> 的密码重置请求。</p>
+  <parameter name="email-content">
+    <p>我们收到了您在 <strong>{{ $systemName }}</strong> 的密码重置请求。</p>
     <p>如果是您本人操作，请点击下方按钮重置密码：</p>
   </div>
 

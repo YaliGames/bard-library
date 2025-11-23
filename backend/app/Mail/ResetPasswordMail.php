@@ -27,12 +27,15 @@ class ResetPasswordMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('重置您的 Bard Library 密码')
+        $systemName = \App\Models\SystemSetting::value('system.system_name', 'Bard Library');
+        
+        return $this->subject("重置您的 {$systemName} 密码")
             ->view('emails.reset_password')
             ->text('emails.reset_password_plain')
             ->with([
                 'resetLink' => $this->resetLink,
                 'username' => $this->username,
+                'systemName' => $systemName,
             ]);
     }
 }

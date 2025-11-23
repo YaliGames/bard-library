@@ -80,7 +80,7 @@ class SystemSettingsController extends Controller
         ]);
     }
 
-    // 公开：仅返回前端路由守卫所需的权限类配置
+    // 公开：仅返回前端路由守卫所需的权限类配置和系统基本信息
     public function public(Request $request)
     {
         $all = SystemSetting::getAll();
@@ -88,10 +88,14 @@ class SystemSettingsController extends Controller
             return array_key_exists($key, $all) ? $all[$key] : $default;
         };
         return response()->json([
+            'system_name' => (string) $pick('system.system_name', 'Bard Library'),
             'permissions' => [
                 'allow_guest_access' => (bool) $pick('permissions.allow_guest_access', true),
                 'allow_user_registration' => (bool) $pick('permissions.allow_user_registration', true),
                 'allow_recover_password' => (bool) $pick('permissions.allow_recover_password', true),
+            ],
+            'ui' => [
+                'placeholder_cover' => (bool) $pick('ui.book.placeholder_cover', true),
             ],
         ]);
     }

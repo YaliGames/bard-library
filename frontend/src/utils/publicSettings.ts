@@ -1,32 +1,52 @@
 import { http } from '@/api/http'
 
-export type PublicPermissions = {
-  allow_guest_access: boolean
-  allow_user_registration: boolean
-  allow_recover_password: boolean
+export type PublicSettings = {
+  system_name: string
+  permissions: {
+    allow_guest_access: boolean
+    allow_user_registration: boolean
+    allow_recover_password: boolean
+  }
+  ui: {
+    placeholder_cover: boolean
+  }
 }
 
-let cache: PublicPermissions | null = null
-let inflight: Promise<PublicPermissions> | null = null
+export type PublicPermissions = PublicSettings['permissions']
 
-export async function getPublicPermissions(): Promise<PublicPermissions> {
+let cache: PublicSettings | null = null
+let inflight: Promise<PublicSettings> | null = null
+
+export async function getPublicSettings(): Promise<PublicSettings> {
   if (cache) return cache
   if (!inflight) {
     inflight = http
-      .get<{ permissions: PublicPermissions }>('/api/v1/settings/public')
+      .get<PublicSettings>('/api/v1/settings/public')
       .then((res: any) => {
-        cache = (res?.permissions as PublicPermissions) || {
-          allow_guest_access: true,
-          allow_user_registration: true,
-          allow_recover_password: true,
+        cache = res || {
+          system_name: 'Bard Library',
+          permissions: {
+            allow_guest_access: true,
+            allow_user_registration: true,
+            allow_recover_password: true,
+          },
+          ui: {
+            placeholder_cover: true,
+          },
         }
         return cache
       })
       .catch(() => {
         cache = {
-          allow_guest_access: true,
-          allow_user_registration: true,
-          allow_recover_password: true,
+          system_name: 'Bard Library',
+          permissions: {
+            allow_guest_access: true,
+            allow_user_registration: true,
+            allow_recover_password: true,
+          },
+          ui: {
+            placeholder_cover: true,
+          },
         }
         return cache
       })
@@ -37,6 +57,21 @@ export async function getPublicPermissions(): Promise<PublicPermissions> {
   return inflight!
 }
 
-export function _resetPublicPermissionsCache() {
+// 向后兼容的函数
+export async function getPublicPermissions(): Promise<PublicPermissions> {
+  const settings = await getPublicSettings()
+  return settings.permissions
+}
+
+// 获取系统名称
+export async function getSystemName(): Promise<string> {
+  const settings = await getPublicSettings()
+  return settings.system_name
+}
+
+export function _resetPublicSettingsCache() {
   cache = null
 }
+
+// 向后兼容
+export const _resetPublicPermissionsCache = _resetPublicSettingsCache

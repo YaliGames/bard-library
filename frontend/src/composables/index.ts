@@ -20,3 +20,5 @@ export type { UseLoadingReturn, UseSimpleLoadingReturn } from './useLoading'
 
 export { useBookActions } from './useBookActions'
 export type { UseBookActionsReturn } from './useBookActions'
+
+export { useSystemName } from './useSystemName'
