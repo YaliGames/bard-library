@@ -29,7 +29,6 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 a:visited {
-  color: inherit;
   text-decoration: none;
 }
 a:hover {
