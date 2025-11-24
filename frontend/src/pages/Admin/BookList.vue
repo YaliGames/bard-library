@@ -1,9 +1,19 @@
 <template>
   <section class="container mx-auto px-4 py-4 max-w-7xl">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <h2 class="text-xl font-semibold">图书管理</h2>
-      <div class="flex items-center">
-        <el-button v-permission="'files.upload'" type="primary" plain @click="goQuickUpload">
+      <div class="flex items-center gap-2 flex-wrap">
+        <el-button class="hidden sm:inline-flex" @click="goLibrary">
+          <span class="material-symbols-outlined mr-1 text-lg">library_books</span>
+          前往书库
+        </el-button>
+        <el-button
+          v-permission="'files.upload'"
+          type="primary"
+          plain
+          class="hidden sm:inline-flex"
+          @click="goQuickUpload"
+        >
           <span class="material-symbols-outlined mr-1 text-lg">upload</span>
           快速上传
         </el-button>
@@ -11,14 +21,56 @@
           v-permission="'metadata.batch_scrape'"
           type="primary"
           plain
+          class="hidden sm:inline-flex"
           @click="goScrapingTasks"
         >
           <span class="material-symbols-outlined mr-1 text-lg">cloud_download</span>
           快速刮削
         </el-button>
-        <el-button v-permission="'books.create'" type="primary" @click="goCreateNew">
+        <el-button
+          v-permission="'books.create'"
+          type="primary"
+          class="hidden sm:inline-flex"
+          @click="goCreateNew"
+        >
           <span class="material-symbols-outlined mr-1 text-lg">add</span>
           新建
+        </el-button>
+
+        <el-button circle class="sm:hidden" @click="goLibrary" title="前往书库">
+          <span class="material-symbols-outlined text-lg">library_books</span>
+        </el-button>
+        <el-button
+          v-permission="'files.upload'"
+          type="primary"
+          plain
+          circle
+          class="sm:hidden"
+          @click="goQuickUpload"
+          title="快速上传"
+        >
+          <span class="material-symbols-outlined text-lg">upload</span>
+        </el-button>
+        <el-button
+          v-permission="'metadata.batch_scrape'"
+          type="primary"
+          plain
+          circle
+          class="sm:hidden"
+          @click="goScrapingTasks"
+          title="快速刮削"
+        >
+          <span class="material-symbols-outlined text-lg">cloud_download</span>
+        </el-button>
+        <el-button
+          v-permission="'books.create'"
+          type="primary"
+          circle
+          class="sm:hidden"
+          @click="goCreateNew"
+          title="新建"
+        >
+          <span class="material-symbols-outlined text-lg">add</span>
         </el-button>
       </div>
     </div>
@@ -357,6 +409,9 @@ function goQuickUpload() {
 }
 function goScrapingTasks() {
   router.push({ name: 'admin-scraping-tasks-create' })
+}
+function goLibrary() {
+  router.push({ name: 'books' })
 }
 
 onMounted(() => loadPage(1))
