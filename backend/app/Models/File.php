@@ -9,4 +9,9 @@ class File extends Model
 {
     use HasFactory;
     protected $fillable = ['book_id','format','size','mime','sha256','path','storage','pages'];
+
+    public function book()
+    {
+        return $this->belongsTo(Book::class);
+    }
 }

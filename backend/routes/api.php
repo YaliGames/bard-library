@@ -218,6 +218,8 @@ Route::prefix('v1')->group(function () {
         // 支持 ?pattern=...&dry=true 预览
         Route::get('/{fileId}/chapters', [TxtController::class, 'chapters']);
         Route::get('/{fileId}/chapters/{index}', [TxtController::class, 'chapterContent']);
+        // 获取整本书的所有章节内容
+        Route::get('/{fileId}/full-content', [TxtController::class, 'fullContent']);
 
         // 保存目录：pattern 或 chapters[]，需 books.edit 权限
         Route::middleware(['session', 'auth', 'permission:books.edit'])->group(function () {

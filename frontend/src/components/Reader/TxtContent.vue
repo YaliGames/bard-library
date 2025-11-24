@@ -70,14 +70,20 @@ const selectionTextBuffer = ref<string | null>(null)
 
 function getSentenceHtml(i: number, s: string): string {
   const ranges = props.markRanges.get(i)
-  
+
   // 处理搜索高亮
-  let allRanges: Array<{ start: number; end: number; bookmarkId?: number; color?: string | null; isSearch?: boolean }> = []
-  
+  let allRanges: Array<{
+    start: number
+    end: number
+    bookmarkId?: number
+    color?: string | null
+    isSearch?: boolean
+  }> = []
+
   if (ranges && ranges.length > 0) {
     allRanges.push(...ranges)
   }
-  
+
   // 添加搜索高亮范围
   if (props.searchHighlight) {
     try {
@@ -89,21 +95,21 @@ function getSentenceHtml(i: number, s: string): string {
       }
       const flags = caseSensitive ? 'g' : 'gi'
       const regex = new RegExp(pattern, flags)
-      
+
       let match
       while ((match = regex.exec(s)) !== null) {
         allRanges.push({
           start: match.index,
           end: match.index + match[0].length,
           isSearch: true,
-          color: 'rgba(255,235,59,0.6)' // 黄色高亮
+          color: 'rgba(255,235,59,0.6)', // 黄色高亮
         })
       }
     } catch {}
   }
-  
+
   if (allRanges.length === 0) return escapeHtml(s)
-  
+
   const merged = mergeRanges(clampRanges(allRanges as any, s.length) as any) as Array<{
     start: number
     end: number
@@ -111,7 +117,7 @@ function getSentenceHtml(i: number, s: string): string {
     color?: string | null
     isSearch?: boolean
   }>
-  
+
   let html = ''
   let pos = 0
   for (const r of merged) {
@@ -318,7 +324,12 @@ function flashMarksInRange(startSid: number, endSid: number): boolean {
   return found
 }
 
-function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionText?: string; isSearchJump?: boolean }) {
+function scrollToTarget(opts: {
+  startSid?: number
+  endSid?: number
+  selectionText?: string
+  isSearchJump?: boolean
+}) {
   // Prefer precise by startSid
   if (typeof opts.startSid === 'number') {
     const el = articleEl.value?.querySelector(
@@ -326,7 +337,7 @@ function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionTex
     ) as HTMLElement | null
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      
+
       // 如果是搜索跳转，只闪烁搜索高亮的 mark
       if (opts.isSearchJump) {
         setTimeout(() => {
@@ -373,7 +384,9 @@ function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionTex
               try {
                 if (opts.isSearchJump) {
                   // 搜索跳转：只闪烁搜索高亮的 mark
-                  const marks = el.querySelectorAll('mark.search-hl-mark') as NodeListOf<HTMLElement>
+                  const marks = el.querySelectorAll(
+                    'mark.search-hl-mark',
+                  ) as NodeListOf<HTMLElement>
                   marks.forEach(mark => {
                     mark.classList.add('ring-2', 'ring-primary', 'bg-yellow-200')
                     setTimeout(() => {
@@ -384,7 +397,7 @@ function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionTex
                   // 书签跳转：闪烁书签或整个句子
                   const marks = el.querySelectorAll('mark.hl-mark') as NodeListOf<HTMLElement>
                   let foundMark = false
-                  
+
                   marks.forEach(mark => {
                     if (mark.textContent?.includes(trimmedSub)) {
                       mark.classList.add('ring-2', 'ring-primary')
@@ -394,7 +407,7 @@ function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionTex
                       foundMark = true
                     }
                   })
-                  
+
                   if (!foundMark) {
                     flashElement(el)
                   }

@@ -3,7 +3,9 @@
     v-if="visible"
     class="fixed top-20 right-6 z-50 w-80 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg"
   >
-    <div class="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+    <div
+      class="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700"
+    >
       <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
         {{ mode === 'chapter' ? '章节搜索' : '全文搜索' }}
       </h3>
@@ -14,14 +16,14 @@
         <span class="material-symbols-outlined text-xl">close</span>
       </button>
     </div>
-    
+
     <div class="p-3">
       <!-- 搜索模式切换 -->
       <el-radio-group v-model="mode" size="small" class="mb-3 w-full">
         <el-radio-button label="chapter">当前章节</el-radio-button>
         <el-radio-button label="global">全文搜索</el-radio-button>
       </el-radio-group>
-      
+
       <!-- 搜索输入框 -->
       <div class="relative mb-3">
         <el-input
@@ -41,13 +43,13 @@
           </template>
         </el-input>
       </div>
-      
+
       <!-- 搜索选项 -->
       <div class="flex items-center gap-3 mb-3 text-sm">
         <el-checkbox v-model="caseSensitive" size="small">区分大小写</el-checkbox>
         <el-checkbox v-model="wholeWord" size="small">全字匹配</el-checkbox>
       </div>
-      
+
       <!-- 搜索按钮 -->
       <div class="flex mb-3">
         <el-button
@@ -60,27 +62,17 @@
           <span class="material-symbols-outlined text-base mr-1">search</span>
           搜索
         </el-button>
-        <el-button
-          size="small"
-          :disabled="results.length === 0"
-          @click="prevResult"
-        >
+        <el-button size="small" :disabled="results.length === 0" @click="prevResult">
           <span class="material-symbols-outlined text-base">arrow_upward</span>
         </el-button>
-        <el-button
-          size="small"
-          :disabled="results.length === 0"
-          @click="nextResult"
-        >
+        <el-button size="small" :disabled="results.length === 0" @click="nextResult">
           <span class="material-symbols-outlined text-base">arrow_downward</span>
         </el-button>
       </div>
-      
+
       <!-- 搜索结果列表 -->
       <div v-if="results.length > 0" class="max-h-96 overflow-y-auto">
-        <div class="text-xs text-gray-500 mb-2">
-          找到 {{ results.length }} 处结果
-        </div>
+        <div class="text-xs text-gray-500 mb-2">找到 {{ results.length }} 处结果</div>
         <div
           v-for="(result, index) in results"
           :key="index"
@@ -88,7 +80,7 @@
           :class="[
             'px-2 py-2 mb-1 rounded cursor-pointer text-sm',
             'hover:bg-gray-100 dark:hover:bg-gray-700',
-            currentIndex === index ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-750'
+            currentIndex === index ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-50 dark:bg-gray-750',
           ]"
         >
           <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -97,7 +89,7 @@
           <div class="text-gray-700 dark:text-gray-300 line-clamp-2" v-html="result.preview"></div>
         </div>
       </div>
-      
+
       <!-- 无结果提示 -->
       <div v-else-if="keyword && searched && !searching" class="text-center py-6 text-gray-400">
         <span class="material-symbols-outlined text-4xl mb-2">search_off</span>
@@ -146,19 +138,22 @@ const results = ref<SearchResult[]>([])
 const currentIndex = ref(0)
 
 // 监听显示状态，自动聚焦
-watch(() => props.visible, (visible) => {
-  if (visible) {
-    nextTick(() => {
-      searchInputRef.value?.focus()
-    })
-  } else {
-    // 关闭时清空状态并通知父组件清除高亮
-    results.value = []
-    searched.value = false
-    currentIndex.value = 0
-    emit('close')
-  }
-})
+watch(
+  () => props.visible,
+  visible => {
+    if (visible) {
+      nextTick(() => {
+        searchInputRef.value?.focus()
+      })
+    } else {
+      // 关闭时清空状态并通知父组件清除高亮
+      results.value = []
+      searched.value = false
+      currentIndex.value = 0
+      emit('close')
+    }
+  },
+)
 
 // 监听模式切换，清空结果
 watch(mode, () => {
@@ -168,12 +163,15 @@ watch(mode, () => {
 })
 
 // 监听章节变化，在章节搜索模式下自动重新搜索
-watch(() => props.currentChapterIndex, () => {
-  if (mode.value === 'chapter' && searched.value && keyword.value) {
-    // 自动重新搜索当前章节
-    searchInChapter()
-  }
-})
+watch(
+  () => props.currentChapterIndex,
+  () => {
+    if (mode.value === 'chapter' && searched.value && keyword.value) {
+      // 自动重新搜索当前章节
+      searchInChapter()
+    }
+  },
+)
 
 function onInputChange() {
   if (!keyword.value) {
@@ -187,30 +185,30 @@ function buildRegex(kw: string): RegExp {
   let pattern = kw
   // 转义特殊字符
   pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  
+
   if (wholeWord.value) {
     pattern = `\\b${pattern}\\b`
   }
-  
+
   const flags = caseSensitive.value ? 'g' : 'gi'
   return new RegExp(pattern, flags)
 }
 
 function extractPreview(content: string, position: number, matchedText: string): string {
-  const contextLength = 20
+  const contextLength = 10
   const matchLength = matchedText.length
   const start = Math.max(0, position - contextLength)
   const end = Math.min(content.length, position + matchLength + contextLength)
-  
+
   let preview = content.substring(start, end)
-  
+
   // 添加省略号
   if (start > 0) preview = '...' + preview
   if (end < content.length) preview = preview + '...'
-  
+
   // 清理换行符
   preview = preview.replace(/\n/g, ' ')
-  
+
   // HTML 转义
   const escapeHtml = (str: string) => {
     return str
@@ -220,21 +218,25 @@ function extractPreview(content: string, position: number, matchedText: string):
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;')
   }
-  
+
   // 转义整个预览
   const escapedPreview = escapeHtml(preview)
-  
+
   // 转义匹配的文本(使用原始匹配结果,不是搜索关键词)
   const escapedKeyword = escapeHtml(matchedText)
-  
+
   // 在转义后的文本中查找转义后的关键字
   const keywordIndex = escapedPreview.indexOf(escapedKeyword)
   if (keywordIndex >= 0) {
-    return escapedPreview.substring(0, keywordIndex) +
-           '<strong class="text-yellow-600 dark:text-yellow-400">' + escapedKeyword + '</strong>' +
-           escapedPreview.substring(keywordIndex + escapedKeyword.length)
+    return (
+      escapedPreview.substring(0, keywordIndex) +
+      '<strong class="text-yellow-600 dark:text-yellow-400">' +
+      escapedKeyword +
+      '</strong>' +
+      escapedPreview.substring(keywordIndex + escapedKeyword.length)
+    )
   }
-  
+
   // 如果找不到(不应该发生),返回原样
   return escapedPreview
 }
@@ -242,18 +244,18 @@ function extractPreview(content: string, position: number, matchedText: string):
 function searchInChapter() {
   results.value = []
   currentIndex.value = 0
-  
+
   if (!keyword.value || props.currentChapterIndex == null) {
     return
   }
-  
+
   const content = props.currentChapterContent
   if (!content) return
-  
+
   const regex = buildRegex(keyword.value)
   const matches = [...content.matchAll(regex)]
-  
-  results.value = matches.map((match) => {
+
+  results.value = matches.map(match => {
     const position = match.index!
     // 尝试定位到句子索引
     let sentenceIndex: number | undefined
@@ -268,23 +270,23 @@ function searchInChapter() {
         offset += len
       }
     }
-    
+
     return {
       chapterIndex: props.currentChapterIndex!,
       chapterTitle: props.chapters[props.currentChapterIndex!]?.title,
       position,
       sentenceIndex,
-      preview: extractPreview(content, position, match[0])
+      preview: extractPreview(content, position, match[0]),
     }
   })
 }
 
 async function handleSearch() {
   if (!keyword.value) return
-  
+
   searching.value = true
   searched.value = false
-  
+
   try {
     if (mode.value === 'chapter') {
       // 通知父组件章节搜索的配置
@@ -333,7 +335,7 @@ function setSearching(value: boolean) {
 
 defineExpose({
   setGlobalResults,
-  setSearching
+  setSearching,
 })
 </script>
 

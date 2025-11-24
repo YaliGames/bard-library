@@ -157,6 +157,64 @@ class TxtController extends Controller
         ];
     }
 
+    // 获取整本书的所有章节内容
+    public function fullContent(int $fileId)
+    {
+        $file = File::with('book')->findOrFail($fileId);
+        if (strtolower($file->format) !== 'txt') {
+            return response()->json(['message' => 'Not a TXT file'], 422);
+        }
+
+        // 获取所有章节
+        $chapters = TxtChapter::where('file_id', $fileId)->orderBy('index')->get();
+        if ($chapters->isEmpty()) {
+            return response()->json(['message' => 'No chapters found'], 404);
+        }
+
+        // 读取完整文件内容
+        $disk = Storage::disk($file->storage ?: config('filesystems.default'));
+        if (!$disk->exists($file->path)) {
+            return response()->json(['message' => 'File missing'], 404);
+        }
+        $utf8 = $this->ensureUtf8($disk->get($file->path));
+
+        // 构建章节列表和内容
+        $chaptersData = [];
+        $contents = [];
+
+        foreach ($chapters as $chapter) {
+            $start = (int)$chapter->offset;
+            $len = (int)$chapter->length;
+            if ($start < 0) $start = 0;
+            if ($len < 0) $len = 0;
+            if ($start > strlen($utf8)) $start = strlen($utf8);
+            
+            $slice = substr($utf8, $start, $len);
+            
+            $chaptersData[] = [
+                'index' => $chapter->index,
+                'title' => $chapter->title,
+                'offset' => $start,
+                'length' => $len,
+            ];
+            
+            $contents[$chapter->index] = $slice;
+        }
+
+        // 获取书籍标题和文件名
+        $bookTitle = $file->book?->title;
+        $fileName = basename($file->path);
+
+        return [
+            'book_id' => $file->book_id,
+            'file_id' => $fileId,
+            'book_title' => $bookTitle,
+            'file_name' => $fileName,
+            'chapters' => $chaptersData,
+            'contents' => $contents,
+        ];
+    }
+
     // 重命名章节标题
     public function renameChapter(Request $request, int $fileId, int $index)
     {

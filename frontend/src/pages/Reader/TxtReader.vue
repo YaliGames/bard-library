@@ -9,9 +9,17 @@
           class="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700"
         >
           <h3 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">导览</h3>
-          <el-button type="primary" v-permission="'books.edit'" @click="goEditChapters">
-            编辑章节
-          </el-button>
+          <div class="flex">
+            <el-button @click="showCacheManager = true">
+              <span class="material-symbols-outlined text-base">
+                {{ cachedBook ? 'check' : 'download' }}
+              </span>
+              {{ cachedBook ? '已缓存' : '缓存' }}
+            </el-button>
+            <el-button type="primary" v-permission="'books.edit'" @click="goEditChapters">
+              编辑章节
+            </el-button>
+          </div>
         </div>
         <div class="p-2">
           <TxtNavTabs
@@ -175,7 +183,7 @@
         </el-button>
       </div>
     </main>
-    
+
     <!-- 搜索面板 -->
     <SearchPanel
       ref="searchPanelRef"
@@ -216,12 +224,21 @@
       />
     </div>
   </el-drawer>
+
+  <!-- 缓存管理对话框 -->
+  <CacheManager
+    v-model="showCacheManager"
+    :file-id="fileId"
+    :book-title="'title' in book && book.title ? book.title : `文件 ${fileId}`"
+    :chapters="chapters"
+    @cache-complete="loadCacheStatus"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { txtApi } from '@/api/txt'
 import { progressApi, type ProgressPayload } from '@/api/progress'
 import { bookmarksApi } from '@/api/bookmarks'
@@ -233,9 +250,11 @@ import TxtNavTabs from '@/components/Reader/TxtNavTabs.vue'
 import TxtChapterNav from '@/components/Reader/TxtChapterNav.vue'
 import TxtReaderContent from '@/components/Reader/TxtContent.vue'
 import SearchPanel from '@/components/Reader/SearchPanel.vue'
+import CacheManager from '@/components/Reader/CacheManager.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/utils/reader'
 import { useSimpleLoading } from '@/composables/useLoading'
+import { getCachedBook, type CachedBook } from '@/utils/txtCache'
 
 const route = useRoute()
 const router = useRouter()
@@ -305,7 +324,12 @@ const currentChapterIndex = ref<number | null>(null)
 const settingsVisible = ref(false)
 const leftDrawerVisible = ref(false)
 const contentRef = ref<{
-  scrollToTarget: (opts: { startSid?: number; endSid?: number; selectionText?: string; isSearchJump?: boolean }) => void
+  scrollToTarget: (opts: {
+    startSid?: number
+    endSid?: number
+    selectionText?: string
+    isSearchJump?: boolean
+  }) => void
 } | null>(null)
 const searchPanelRef = ref<{
   setGlobalResults: (results: any[]) => void
@@ -313,7 +337,11 @@ const searchPanelRef = ref<{
 } | null>(null)
 const leftTab = ref<'chapters' | 'bookmarks'>('chapters')
 const searchVisible = ref(false)
-const searchHighlight = ref<{ keyword: string; caseSensitive: boolean; wholeWord: boolean } | null>(null) // 当前搜索配置
+const searchHighlight = ref<{ keyword: string; caseSensitive: boolean; wholeWord: boolean } | null>(
+  null,
+) // 当前搜索配置
+const showCacheManager = ref(false)
+const cachedBook = ref<CachedBook | null>(null)
 const hasPrevChapter = computed(
   () => typeof currentChapterIndex.value === 'number' && currentChapterIndex.value > 0,
 )
@@ -330,8 +358,8 @@ const selectionMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 const showHighlightMenu = ref(false)
 const highlightMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 const currentHitBookmarkId = ref<number | null>(null)
-const currentHitBookmark = computed(
-  () => bookmarks.value.find(b => b.id === currentHitBookmarkId.value)
+const currentHitBookmark = computed(() =>
+  bookmarks.value.find(b => b.id === currentHitBookmarkId.value),
 )
 const currentHitNote = computed(() => currentHitBookmark.value?.note || '')
 const currentHitColor = computed(() => currentHitBookmark.value?.color || null)
@@ -498,6 +526,16 @@ async function loadBookmarksForChapter() {
   } catch {}
 }
 
+// 加载缓存状态
+async function loadCacheStatus() {
+  try {
+    cachedBook.value = await getCachedBook(fileId)
+  } catch (error) {
+    console.error('Failed to load cache status:', error)
+    cachedBook.value = null
+  }
+}
+
 async function loadChapters() {
   err.value = ''
   setLoading(true)
@@ -552,16 +590,30 @@ async function loadChapters() {
 async function openChapter(index: number) {
   setLoading(true)
   try {
-    const data = await txtApi.getChapterContent(fileId, index)
-    // 若章节内容接口也返回了 book_id，则以其为准
-    try {
-      const b = Number((data as any).book_id || 0)
-      if (Number.isFinite(b) && b > 0) {
-        bookId.value = b
+    let chapterContent: string
+
+    // 优先使用缓存
+    if (cachedBook.value && cachedBook.value.contents.has(index)) {
+      chapterContent = cachedBook.value.contents.get(index)!
+      // 从缓存中获取 bookId
+      if (cachedBook.value.bookId && !bookId.value) {
+        bookId.value = cachedBook.value.bookId
       }
-    } catch {}
-    content.value = data.content
-    sentences.value = splitIntoSentences(data.content)
+    } else {
+      // 从API加载
+      const data = await txtApi.getChapterContent(fileId, index)
+      // 若章节内容接口也返回了 book_id，则以其为准
+      try {
+        const b = Number((data as any).book_id || 0)
+        if (Number.isFinite(b) && b > 0) {
+          bookId.value = b
+        }
+      } catch {}
+      chapterContent = data.content
+    }
+
+    content.value = chapterContent
+    sentences.value = splitIntoSentences(chapterContent)
     sentenceOffsets = buildSentenceOffsets(sentences.value)
     currentChapterIndex.value = index
     selectionRange.value = null
@@ -576,9 +628,16 @@ async function openChapter(index: number) {
         typeof pendingScroll.value.startSid === 'number' ? pendingScroll.value.startSid : undefined
       const isSearchJump = pendingScroll.value.isSearchJump || false
       if (typeof sid === 'number') {
-        contentRef.value?.scrollToTarget({ startSid: sid, isSearchJump, selectionText: pendingScroll.value.selectionText })
+        contentRef.value?.scrollToTarget({
+          startSid: sid,
+          isSearchJump,
+          selectionText: pendingScroll.value.selectionText,
+        })
       } else if (pendingScroll.value.selectionText) {
-        contentRef.value?.scrollToTarget({ selectionText: pendingScroll.value.selectionText, isSearchJump })
+        contentRef.value?.scrollToTarget({
+          selectionText: pendingScroll.value.selectionText,
+          isSearchJump,
+        })
       }
       pendingScroll.value = null
     }
@@ -608,6 +667,7 @@ onMounted(loadSettings)
 onMounted(async () => {
   resolveInitialContext()
   await loadChapters()
+  await loadCacheStatus() // 加载缓存状态
 })
 
 function goEditChapters() {
@@ -782,7 +842,7 @@ async function jumpToBookmark(b: Bookmark) {
   try {
     const loc = JSON.parse(b.location || '{}')
     const text = typeof loc.selectionText === 'string' ? loc.selectionText : undefined
-    
+
     // 优先使用绝对偏移锚点
     if (typeof loc?.absStart === 'number' && chapters.value.length > 0) {
       const abs = Number(loc.absStart)
@@ -795,7 +855,7 @@ async function jumpToBookmark(b: Bookmark) {
           break
         }
       }
-      
+
       // 如果跳转到非当前章节，需要先加载章节内容
       if (currentChapterIndex.value !== targetChapter) {
         pendingScroll.value = {
@@ -805,11 +865,11 @@ async function jumpToBookmark(b: Bookmark) {
         await openChapter(targetChapter)
         return
       }
-      
+
       // 当前章节，计算句子索引
       const base = chapters.value[targetChapter]?.offset ?? 0
       const localPos = Math.max(0, abs - base)
-      
+
       let targetSid: number | undefined = undefined
       for (let i = 0; i < sentenceOffsets.length; i++) {
         const seg = sentenceOffsets[i]
@@ -818,19 +878,17 @@ async function jumpToBookmark(b: Bookmark) {
           break
         }
       }
-      
-      nextTick(() =>
-        contentRef.value?.scrollToTarget({ startSid: targetSid, selectionText: text }),
-      )
+
+      nextTick(() => contentRef.value?.scrollToTarget({ startSid: targetSid, selectionText: text }))
       return
     }
-    
+
     // 兼容旧结构 chapterIndex
     if (typeof loc?.chapterIndex === 'number') {
       const targetChapter = Number(loc.chapterIndex)
       const targetSid = typeof loc.startSid === 'number' ? Number(loc.startSid) : undefined
       const endSid = typeof loc.endSid === 'number' ? Number(loc.endSid) : undefined
-      
+
       if (currentChapterIndex.value === targetChapter) {
         nextTick(() =>
           contentRef.value?.scrollToTarget({ startSid: targetSid, endSid, selectionText: text }),
@@ -980,9 +1038,9 @@ interface SearchResult {
 function handleJumpToSearchResult(result: SearchResult) {
   const scrollOptions = {
     startSid: result.sentenceIndex,
-    isSearchJump: true
+    isSearchJump: true,
   }
-  
+
   if (currentChapterIndex.value === result.chapterIndex) {
     // 在当前章节，直接滚动
     nextTick(() => contentRef.value?.scrollToTarget(scrollOptions))
@@ -990,7 +1048,7 @@ function handleJumpToSearchResult(result: SearchResult) {
     // 跳转到其他章节
     pendingScroll.value = {
       chapterIndex: result.chapterIndex,
-      ...scrollOptions
+      ...scrollOptions,
     }
     openChapter(result.chapterIndex)
   }
@@ -1001,13 +1059,68 @@ function handleChapterSearch(keyword: string, caseSensitive: boolean, wholeWord:
   searchHighlight.value = { keyword, caseSensitive, wholeWord }
 }
 
+// 提取搜索预览
+function extractSearchPreview(content: string, position: number, matchedText: string): string {
+  const contextLength = 10
+  const matchLength = matchedText.length
+  const start = Math.max(0, position - contextLength)
+  const end = Math.min(content.length, position + matchLength + contextLength)
+
+  let preview = content.substring(start, end)
+
+  // 添加省略号
+  if (start > 0) preview = '...' + preview
+  if (end < content.length) preview = preview + '...'
+
+  // 清理换行符
+  preview = preview.replace(/\n/g, ' ')
+
+  // HTML 转义
+  const escapeHtml = (str: string) => {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+  }
+
+  // 转义整个预览
+  const escapedPreview = escapeHtml(preview)
+
+  // 转义匹配的文本
+  const escapedKeyword = escapeHtml(matchedText)
+
+  // 在转义后的文本中查找转义后的关键字并高亮
+  const keywordIndex = escapedPreview.indexOf(escapedKeyword)
+  if (keywordIndex >= 0) {
+    return (
+      escapedPreview.substring(0, keywordIndex) +
+      '<strong class="text-yellow-600 dark:text-yellow-400">' +
+      escapedKeyword +
+      '</strong>' +
+      escapedPreview.substring(keywordIndex + escapedKeyword.length)
+    )
+  }
+
+  return escapedPreview
+}
+
 async function handleGlobalSearch(keyword: string, caseSensitive: boolean, wholeWord: boolean) {
   if (!keyword) return
-  
+
+  // 检查是否有缓存
+  if (!cachedBook.value) {
+    ElMessage.warning('全文搜索需要先缓存书籍内容，请先缓存后再试')
+    showCacheManager.value = true // 打开缓存管理弹窗
+    searchPanelRef.value?.setSearching(false)
+    return
+  }
+
   // 设置搜索高亮配置
   searchHighlight.value = { keyword, caseSensitive, wholeWord }
   searchPanelRef.value?.setSearching(true)
-  
+
   try {
     // 构建正则表达式
     let pattern = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -1016,41 +1129,32 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
     }
     const flags = caseSensitive ? 'g' : 'gi'
     const regex = new RegExp(pattern, flags)
-    
+
     const results: SearchResult[] = []
-    
-    // 遍历所有章节搜索
+
+    // 使用缓存内容搜索
     for (let i = 0; i < chapters.value.length; i++) {
       const chapter = chapters.value[i]
-      
+      const chapterContent = cachedBook.value.contents.get(i)
+
+      if (!chapterContent) continue
+
       try {
-        // 获取章节内容
-        const data = await txtApi.getChapterContent(fileId, i)
-        const chapterContent = data.content
-        
         // 查找所有匹配
         const matches = [...chapterContent.matchAll(regex)]
-        
+
         for (const match of matches) {
           const position = match.index!
-          const matchedText = match[0] // 实际匹配的文本
-          
-          // 提取预览文本
-          const contextLength = 50
-          const start = Math.max(0, position - contextLength)
-          const end = Math.min(chapterContent.length, position + matchedText.length + contextLength)
-          
-          let preview = chapterContent.substring(start, end)
-          if (start > 0) preview = '...' + preview
-          if (end < chapterContent.length) preview = preview + '...'
-          preview = preview.replace(/\n/g, ' ').trim()
-          
+          const matchedText = match[0]
+
+          // 提取预览文本（使用统一的函数）
+          const preview = extractSearchPreview(chapterContent, position, matchedText)
+
           // 计算句子索引
           let sentenceIndex: number | undefined
-          const chapterSentences = i === currentChapterIndex.value 
-            ? sentences.value 
-            : splitIntoSentences(chapterContent)
-          
+          const chapterSentences =
+            i === currentChapterIndex.value ? sentences.value : splitIntoSentences(chapterContent)
+
           let offset = 0
           for (let j = 0; j < chapterSentences.length; j++) {
             const len = chapterSentences[j].length
@@ -1060,7 +1164,7 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
             }
             offset += len
           }
-          
+
           results.push({
             chapterIndex: i,
             chapterTitle: chapter.title,
@@ -1073,7 +1177,7 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
         console.error(`搜索章节 ${i} 失败:`, e)
       }
     }
-    
+
     // 将结果传递给搜索面板
     searchPanelRef.value?.setGlobalResults(results)
   } catch (e) {
