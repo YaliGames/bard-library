@@ -1,7 +1,13 @@
 <template>
   <section class="book-list">
     <div class="container mx-auto px-4 py-4 max-w-7xl">
-      <h2 class="text-xl font-semibold mb-4">书库</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold">书库</h2>
+        <el-button v-permission="'books.view'" type="primary" plain @click="goAdminBooks">
+          <span class="material-symbols-outlined mr-1 text-lg">settings</span>
+          管理图书
+        </el-button>
+      </div>
 
       <BookFilters
         v-model="filters"
@@ -35,7 +41,7 @@
 </template>
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import BookFilters from '@/components/Book/Filters.vue'
 import BookGrid from '@/components/Book/BookGrid.vue'
 import SortControl from '@/components/SortControl.vue'
@@ -48,6 +54,9 @@ import { useBookActions } from '@/composables/useBookActions'
 
 const { handleError } = useErrorHandler()
 const { toggleReadMark } = useBookActions()
+
+const route = useRoute()
+const router = useRouter()
 
 // 统一的筛选模型
 const filters = ref({
@@ -67,7 +76,6 @@ const err = ref('')
 // 作者筛选：单选
 const sort = ref<'modified' | 'created' | 'rating' | 'id'>('created')
 const order = ref<'asc' | 'desc'>('desc')
-const route = useRoute()
 
 // 系统设置
 const settingsStore = useSettingsStore()
@@ -146,6 +154,10 @@ function resetFilters() {
 
 async function toggleRead(b: Book) {
   await toggleReadMark(b)
+}
+
+function goAdminBooks() {
+  router.push({ name: 'admin-book-list' })
 }
 
 // 选项数据改由 BookFilters 组件加载
