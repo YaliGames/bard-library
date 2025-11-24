@@ -4,6 +4,7 @@
     :key="'article-' + markTick"
     @mouseup="onArticleMouseUp"
     @click="onArticleClick"
+    class="reader-article"
     style="
       white-space: pre-wrap;
       line-height: var(--reader-line-height);
@@ -34,6 +35,11 @@ const props = defineProps<{
     Array<{ start: number; end: number; bookmarkId?: number; color?: string | null }>
   >
   markTick: number
+  searchHighlight?: {
+    keyword: string
+    caseSensitive: boolean
+    wholeWord: boolean
+  } | null // 新增:搜索关键词高亮配置
 }>()
 
 const emit = defineEmits<{
@@ -64,20 +70,57 @@ const selectionTextBuffer = ref<string | null>(null)
 
 function getSentenceHtml(i: number, s: string): string {
   const ranges = props.markRanges.get(i)
-  if (!ranges || ranges.length === 0) return escapeHtml(s)
-  const merged = mergeRanges(clampRanges(ranges as any, s.length) as any) as Array<{
+  
+  // 处理搜索高亮
+  let allRanges: Array<{ start: number; end: number; bookmarkId?: number; color?: string | null; isSearch?: boolean }> = []
+  
+  if (ranges && ranges.length > 0) {
+    allRanges.push(...ranges)
+  }
+  
+  // 添加搜索高亮范围
+  if (props.searchHighlight) {
+    try {
+      const { keyword, caseSensitive, wholeWord } = props.searchHighlight
+      // 构建正则表达式
+      let pattern = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      if (wholeWord) {
+        pattern = `\\b${pattern}\\b`
+      }
+      const flags = caseSensitive ? 'g' : 'gi'
+      const regex = new RegExp(pattern, flags)
+      
+      let match
+      while ((match = regex.exec(s)) !== null) {
+        allRanges.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          isSearch: true,
+          color: 'rgba(255,235,59,0.6)' // 黄色高亮
+        })
+      }
+    } catch {}
+  }
+  
+  if (allRanges.length === 0) return escapeHtml(s)
+  
+  const merged = mergeRanges(clampRanges(allRanges as any, s.length) as any) as Array<{
     start: number
     end: number
     bookmarkId?: number
     color?: string | null
+    isSearch?: boolean
   }>
+  
   let html = ''
   let pos = 0
   for (const r of merged) {
     if (r.start > pos) html += escapeHtml(s.slice(pos, r.start))
     const part = s.slice(r.start, r.end)
     const bg = r.color ? r.color : 'rgba(250,216,120,.9)'
-    html += `<mark class="hl-mark" data-bid="${r.bookmarkId ?? ''}" style="background:${bg};">${escapeHtml(part)}</mark>`
+    const className = r.isSearch ? 'search-hl-mark' : 'hl-mark'
+    const bidAttr = r.bookmarkId ? `data-bid="${r.bookmarkId}"` : ''
+    html += `<mark class="${className}" ${bidAttr} style="background:${bg};">${escapeHtml(part)}</mark>`
     pos = r.end
   }
   if (pos < s.length) html += escapeHtml(s.slice(pos))
@@ -275,7 +318,7 @@ function flashMarksInRange(startSid: number, endSid: number): boolean {
   return found
 }
 
-function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionText?: string }) {
+function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionText?: string; isSearchJump?: boolean }) {
   // Prefer precise by startSid
   if (typeof opts.startSid === 'number') {
     const el = articleEl.value?.querySelector(
@@ -283,29 +326,81 @@ function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionTex
     ) as HTMLElement | null
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      const flashed = flashMarksInRange(
-        opts.startSid,
-        typeof opts.endSid === 'number' ? opts.endSid : opts.startSid,
-      )
-      if (!flashed) flashElement(el)
+      
+      // 如果是搜索跳转，只闪烁搜索高亮的 mark
+      if (opts.isSearchJump) {
+        setTimeout(() => {
+          try {
+            const marks = el.querySelectorAll('mark.search-hl-mark') as NodeListOf<HTMLElement>
+            // 闪烁所有搜索高亮的 mark,不再检查文本内容
+            marks.forEach(mark => {
+              mark.classList.add('ring-2', 'ring-primary', 'bg-yellow-200')
+              setTimeout(() => {
+                mark.classList.remove('ring-2', 'ring-primary', 'bg-yellow-200')
+              }, 900)
+            })
+          } catch {}
+        }, 100)
+      } else {
+        // 书签跳转，闪烁所有 mark
+        const flashed = flashMarksInRange(
+          opts.startSid,
+          typeof opts.endSid === 'number' ? opts.endSid : opts.startSid,
+        )
+        if (!flashed) flashElement(el)
+      }
       return
     }
   }
-  // Fallback by selectionText approximate: find first sentence containing text
+  // Fallback by selectionText: find first occurrence and highlight precisely
   if (opts.selectionText) {
     const text = props.content
     const sub = opts.selectionText
-    const idx = text.indexOf(sub)
+    // 精确查找，去除前后空白和换行符
+    const trimmedSub = sub.trim()
+    const idx = text.indexOf(trimmedSub)
     if (idx >= 0) {
       const offsets = buildSentenceOffsets(props.sentences)
       for (let i = 0; i < offsets.length; i++) {
         const seg = offsets[i]
+        // 检查是否在这个句子范围内
         if (idx >= seg.start && idx < seg.end) {
           const el = articleEl.value?.querySelector(`span[data-sid="${i}"]`) as HTMLElement | null
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            const flashed = flashMarksInRange(i, i)
-            if (!flashed) flashElement(el)
+            // 查找并高亮具体的文本节点
+            setTimeout(() => {
+              try {
+                if (opts.isSearchJump) {
+                  // 搜索跳转：只闪烁搜索高亮的 mark
+                  const marks = el.querySelectorAll('mark.search-hl-mark') as NodeListOf<HTMLElement>
+                  marks.forEach(mark => {
+                    mark.classList.add('ring-2', 'ring-primary', 'bg-yellow-200')
+                    setTimeout(() => {
+                      mark.classList.remove('ring-2', 'ring-primary', 'bg-yellow-200')
+                    }, 900)
+                  })
+                } else {
+                  // 书签跳转：闪烁书签或整个句子
+                  const marks = el.querySelectorAll('mark.hl-mark') as NodeListOf<HTMLElement>
+                  let foundMark = false
+                  
+                  marks.forEach(mark => {
+                    if (mark.textContent?.includes(trimmedSub)) {
+                      mark.classList.add('ring-2', 'ring-primary')
+                      setTimeout(() => {
+                        mark.classList.remove('ring-2', 'ring-primary')
+                      }, 900)
+                      foundMark = true
+                    }
+                  })
+                  
+                  if (!foundMark) {
+                    flashElement(el)
+                  }
+                }
+              } catch {}
+            }, 100)
           }
           break
         }
@@ -314,12 +409,42 @@ function scrollToTarget(opts: { startSid?: number; endSid?: number; selectionTex
   }
 }
 
+// 阻止移动端和桌面端的原生上下文菜单
+function onContextMenu(e: Event) {
+  const selection = window.getSelection()
+  if (selection && selection.toString().length > 0) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+}
+
 defineExpose({ scrollToTarget })
 
 onMounted(() => {
   document.addEventListener('selectionchange', onSelectionChange, { passive: true } as any)
+  articleEl.value?.addEventListener('contextmenu', onContextMenu)
 })
 onUnmounted(() => {
   document.removeEventListener('selectionchange', onSelectionChange as any)
+  articleEl.value?.removeEventListener('contextmenu', onContextMenu)
 })
 </script>
+
+<style scoped>
+.reader-article {
+  /* 禁用移动端原生选择菜单 */
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 隐藏移动端原生的复制/粘贴等菜单 */
+.reader-article::selection {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.reader-article::-moz-selection {
+  background: rgba(59, 130, 246, 0.3);
+}
+</style>

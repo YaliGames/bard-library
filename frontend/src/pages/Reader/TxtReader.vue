@@ -48,7 +48,10 @@
                 @next="goNextChapter"
               />
             </div>
-            <div class="flex items-center">
+            <div class="flex items-center gap-2">
+              <el-button @click="toggleSearch">
+                <span class="material-symbols-outlined text-base">search</span>
+              </el-button>
               <el-button type="primary" @click="settingsVisible = true">阅读设置</el-button>
             </div>
           </div>
@@ -90,6 +93,7 @@
                 :sentences="sentences"
                 :mark-ranges="markRanges"
                 :mark-tick="markTick"
+                :search-highlight="searchHighlight"
                 @selection="onSelectionEvent"
                 @mark-click="onMarkClickEvent"
               />
@@ -155,8 +159,11 @@
           </div>
         </div>
       </el-drawer>
-      <!-- 移动端悬浮设置按钮 -->
-      <div class="fixed right-4 bottom-4 z-10 md:hidden">
+      <!-- 移动端悬浮按钮组 -->
+      <div class="fixed right-4 bottom-4 z-10 md:hidden flex flex-col gap-2">
+        <el-button type="primary" class="px-3 py-2 rounded-full" @click="toggleSearch">
+          <span class="material-symbols-outlined">search</span>
+        </el-button>
         <el-button type="primary" class="px-3 py-2 rounded-full" @click="settingsVisible = true">
           设置
         </el-button>
@@ -168,6 +175,20 @@
         </el-button>
       </div>
     </main>
+    
+    <!-- 搜索面板 -->
+    <SearchPanel
+      ref="searchPanelRef"
+      :visible="searchVisible"
+      :current-chapter-content="content"
+      :current-chapter-index="currentChapterIndex"
+      :chapters="chapters"
+      :sentences="sentences"
+      @close="handleSearchClose"
+      @jump-to-result="handleJumpToSearchResult"
+      @search-chapter="handleChapterSearch"
+      @search-global="handleGlobalSearch"
+    />
   </section>
   <!-- 移动端：左侧导览抽屉，仅小屏显示 -->
   <el-drawer v-model="leftDrawerVisible" title="导览" direction="ltr" size="80%" class="md:!hidden">
@@ -211,6 +232,7 @@ import SelectionMenu from '@/components/Reader/SelectionMenu.vue'
 import TxtNavTabs from '@/components/Reader/TxtNavTabs.vue'
 import TxtChapterNav from '@/components/Reader/TxtChapterNav.vue'
 import TxtReaderContent from '@/components/Reader/TxtContent.vue'
+import SearchPanel from '@/components/Reader/SearchPanel.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/utils/reader'
 import { useSimpleLoading } from '@/composables/useLoading'
@@ -283,9 +305,15 @@ const currentChapterIndex = ref<number | null>(null)
 const settingsVisible = ref(false)
 const leftDrawerVisible = ref(false)
 const contentRef = ref<{
-  scrollToTarget: (opts: { startSid?: number; endSid?: number; selectionText?: string }) => void
+  scrollToTarget: (opts: { startSid?: number; endSid?: number; selectionText?: string; isSearchJump?: boolean }) => void
+} | null>(null)
+const searchPanelRef = ref<{
+  setGlobalResults: (results: any[]) => void
+  setSearching: (value: boolean) => void
 } | null>(null)
 const leftTab = ref<'chapters' | 'bookmarks'>('chapters')
+const searchVisible = ref(false)
+const searchHighlight = ref<{ keyword: string; caseSensitive: boolean; wholeWord: boolean } | null>(null) // 当前搜索配置
 const hasPrevChapter = computed(
   () => typeof currentChapterIndex.value === 'number' && currentChapterIndex.value > 0,
 )
@@ -302,12 +330,11 @@ const selectionMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 const showHighlightMenu = ref(false)
 const highlightMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 const currentHitBookmarkId = ref<number | null>(null)
-const currentHitNote = computed(
-  () => bookmarks.value.find(b => b.id === currentHitBookmarkId.value)?.note || '',
+const currentHitBookmark = computed(
+  () => bookmarks.value.find(b => b.id === currentHitBookmarkId.value)
 )
-const currentHitColor = computed(
-  () => bookmarks.value.find(b => b.id === currentHitBookmarkId.value)?.color || null,
-)
+const currentHitNote = computed(() => currentHitBookmark.value?.note || '')
+const currentHitColor = computed(() => currentHitBookmark.value?.color || null)
 const selectionActions = computed(() => {
   const acts: Array<{ key: string; label: string; onClick: () => void }> = []
   if (isLoggedIn.value) {
@@ -418,6 +445,7 @@ const pendingScroll = ref<{
   chapterIndex: number
   selectionText?: string
   startSid?: number
+  isSearchJump?: boolean
 } | null>(null)
 
 async function loadBookmarksForChapter() {
@@ -546,10 +574,11 @@ async function openChapter(index: number) {
     if (pendingScroll.value && pendingScroll.value.chapterIndex === index) {
       const sid =
         typeof pendingScroll.value.startSid === 'number' ? pendingScroll.value.startSid : undefined
+      const isSearchJump = pendingScroll.value.isSearchJump || false
       if (typeof sid === 'number') {
-        contentRef.value?.scrollToTarget({ startSid: sid })
+        contentRef.value?.scrollToTarget({ startSid: sid, isSearchJump, selectionText: pendingScroll.value.selectionText })
       } else if (pendingScroll.value.selectionText) {
-        contentRef.value?.scrollToTarget({ selectionText: pendingScroll.value.selectionText })
+        contentRef.value?.scrollToTarget({ selectionText: pendingScroll.value.selectionText, isSearchJump })
       }
       pendingScroll.value = null
     }
@@ -638,14 +667,15 @@ function onMarkClickEvent(p: {
 }
 
 async function copySelection() {
-  if (sentences.value.length === 0 && !selectionTextBuffer.value) return
+  // 优先使用 selectionTextBuffer（精确的选中文本）
   let text = ''
-  if (selectionRange.value && sentences.value.length > 0) {
+  if (selectionTextBuffer.value) {
+    text = selectionTextBuffer.value
+  } else if (selectionRange.value && sentences.value.length > 0) {
+    // 回退：使用句子范围
     const s = Math.min(selectionRange.value.start, selectionRange.value.end)
     const e = Math.max(selectionRange.value.start, selectionRange.value.end)
     text = sentences.value.slice(s, e + 1).join('')
-  } else if (selectionTextBuffer.value) {
-    text = selectionTextBuffer.value
   } else {
     return
   }
@@ -748,10 +778,11 @@ async function highlightSelection() {
   }
 }
 
-function jumpToBookmark(b: Bookmark) {
+async function jumpToBookmark(b: Bookmark) {
   try {
     const loc = JSON.parse(b.location || '{}')
     const text = typeof loc.selectionText === 'string' ? loc.selectionText : undefined
+    
     // 优先使用绝对偏移锚点
     if (typeof loc?.absStart === 'number' && chapters.value.length > 0) {
       const abs = Number(loc.absStart)
@@ -764,9 +795,21 @@ function jumpToBookmark(b: Bookmark) {
           break
         }
       }
+      
+      // 如果跳转到非当前章节，需要先加载章节内容
+      if (currentChapterIndex.value !== targetChapter) {
+        pendingScroll.value = {
+          chapterIndex: targetChapter,
+          selectionText: text,
+        }
+        await openChapter(targetChapter)
+        return
+      }
+      
+      // 当前章节，计算句子索引
       const base = chapters.value[targetChapter]?.offset ?? 0
       const localPos = Math.max(0, abs - base)
-      // 映射到句子索引
+      
       let targetSid: number | undefined = undefined
       for (let i = 0; i < sentenceOffsets.length; i++) {
         const seg = sentenceOffsets[i]
@@ -775,25 +818,19 @@ function jumpToBookmark(b: Bookmark) {
           break
         }
       }
-      if (currentChapterIndex.value === targetChapter) {
-        nextTick(() =>
-          contentRef.value?.scrollToTarget({ startSid: targetSid, selectionText: text }),
-        )
-      } else {
-        pendingScroll.value = {
-          chapterIndex: targetChapter,
-          selectionText: text,
-          startSid: targetSid,
-        }
-        openChapter(targetChapter)
-      }
+      
+      nextTick(() =>
+        contentRef.value?.scrollToTarget({ startSid: targetSid, selectionText: text }),
+      )
       return
     }
+    
     // 兼容旧结构 chapterIndex
     if (typeof loc?.chapterIndex === 'number') {
       const targetChapter = Number(loc.chapterIndex)
       const targetSid = typeof loc.startSid === 'number' ? Number(loc.startSid) : undefined
       const endSid = typeof loc.endSid === 'number' ? Number(loc.endSid) : undefined
+      
       if (currentChapterIndex.value === targetChapter) {
         nextTick(() =>
           contentRef.value?.scrollToTarget({ startSid: targetSid, endSid, selectionText: text }),
@@ -804,7 +841,7 @@ function jumpToBookmark(b: Bookmark) {
           selectionText: text,
           startSid: targetSid,
         }
-        openChapter(targetChapter)
+        await openChapter(targetChapter)
       }
     }
   } catch {}
@@ -812,10 +849,8 @@ function jumpToBookmark(b: Bookmark) {
 
 function onDeleteFromMenu() {
   try {
-    if (!currentHitBookmarkId.value) return
-    const b = bookmarks.value.find((x: any) => x.id === currentHitBookmarkId.value)
-    if (!b) return
-    removeBookmarkConfirm(b)
+    if (!currentHitBookmark.value) return
+    removeBookmarkConfirm(currentHitBookmark.value)
     hideHighlightMenu()
   } catch {}
 }
@@ -849,17 +884,18 @@ function hideSelectionMenu() {
 function hideHighlightMenu() {
   showHighlightMenu.value = false
 }
+function hideAllMenus() {
+  showSelectionMenu.value = false
+  showHighlightMenu.value = false
+}
 function onWindowScroll() {
-  hideSelectionMenu()
-  hideHighlightMenu()
+  hideAllMenus()
 }
 function onWindowResize() {
-  hideSelectionMenu()
-  hideHighlightMenu()
+  hideAllMenus()
 }
 function onDocMouseDown() {
-  hideSelectionMenu()
-  hideHighlightMenu()
+  hideAllMenus()
 }
 onMounted(() => {
   window.addEventListener('scroll', onWindowScroll, { passive: true })
@@ -872,33 +908,36 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', onDocMouseDown)
 })
 
+// 更新本地书签信息
+function updateLocalBookmark(updated: Bookmark) {
+  const idx = bookmarks.value.findIndex(b => b.id === updated.id)
+  if (idx >= 0) {
+    bookmarks.value[idx] = Object.assign({}, bookmarks.value[idx], updated)
+  }
+}
+
 async function onAddNote() {
   try {
-    if (!isLoggedIn.value || !bookId.value || currentHitBookmarkId.value == null) return
-    const bm = bookmarks.value.find(b => b.id === currentHitBookmarkId.value)
-    const prev = bm?.note || ''
-    const text = window.prompt('添加/修改批注', prev || '')
+    if (!isLoggedIn.value || !bookId.value || !currentHitBookmark.value) return
+    const text = window.prompt('添加/修改批注', currentHitBookmark.value.note || '')
     if (text == null) return
-    const updated = await bookmarksApi.update(bookId.value, currentHitBookmarkId.value, {
+    const updated = await bookmarksApi.update(bookId.value, currentHitBookmark.value.id, {
       note: text,
     })
-    const idx = bookmarks.value.findIndex(b => b.id === updated.id)
-    if (idx >= 0) bookmarks.value[idx] = Object.assign({}, bookmarks.value[idx], updated)
+    updateLocalBookmark(updated)
     hideHighlightMenu()
   } catch {}
 }
 
 async function onPickColor(color: string | Event) {
   try {
-    if (!isLoggedIn.value || !bookId.value || currentHitBookmarkId.value == null) return
+    if (!isLoggedIn.value || !bookId.value || !currentHitBookmark.value) return
     const picked = typeof color === 'string' ? color : (color as any)?.target?.value
     if (!picked) return
-    const updated = await bookmarksApi.update(bookId.value, currentHitBookmarkId.value, {
+    const updated = await bookmarksApi.update(bookId.value, currentHitBookmark.value.id, {
       color: picked,
     })
-    // 更新本地 bookmarks
-    const idx = bookmarks.value.findIndex(b => b.id === updated.id)
-    if (idx >= 0) bookmarks.value[idx] = Object.assign({}, bookmarks.value[idx], updated)
+    updateLocalBookmark(updated)
     // 更新 markRanges 中颜色
     for (const [sid, arr] of markRanges.entries()) {
       let changed = false
@@ -914,4 +953,159 @@ async function onPickColor(color: string | Event) {
     hideHighlightMenu()
   } catch {}
 }
+
+// ==================== 搜索功能 ====================
+
+function toggleSearch() {
+  if (searchVisible.value) {
+    handleSearchClose()
+  } else {
+    searchVisible.value = true
+  }
+}
+
+function handleSearchClose() {
+  searchVisible.value = false
+  searchHighlight.value = null
+}
+
+interface SearchResult {
+  chapterIndex: number
+  chapterTitle: string | null | undefined
+  position: number
+  sentenceIndex?: number
+  preview: string
+}
+
+function handleJumpToSearchResult(result: SearchResult) {
+  const scrollOptions = {
+    startSid: result.sentenceIndex,
+    isSearchJump: true
+  }
+  
+  if (currentChapterIndex.value === result.chapterIndex) {
+    // 在当前章节，直接滚动
+    nextTick(() => contentRef.value?.scrollToTarget(scrollOptions))
+  } else {
+    // 跳转到其他章节
+    pendingScroll.value = {
+      chapterIndex: result.chapterIndex,
+      ...scrollOptions
+    }
+    openChapter(result.chapterIndex)
+  }
+}
+
+function handleChapterSearch(keyword: string, caseSensitive: boolean, wholeWord: boolean) {
+  // 章节搜索时也设置高亮配置
+  searchHighlight.value = { keyword, caseSensitive, wholeWord }
+}
+
+async function handleGlobalSearch(keyword: string, caseSensitive: boolean, wholeWord: boolean) {
+  if (!keyword) return
+  
+  // 设置搜索高亮配置
+  searchHighlight.value = { keyword, caseSensitive, wholeWord }
+  searchPanelRef.value?.setSearching(true)
+  
+  try {
+    // 构建正则表达式
+    let pattern = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    if (wholeWord) {
+      pattern = `\\b${pattern}\\b`
+    }
+    const flags = caseSensitive ? 'g' : 'gi'
+    const regex = new RegExp(pattern, flags)
+    
+    const results: SearchResult[] = []
+    
+    // 遍历所有章节搜索
+    for (let i = 0; i < chapters.value.length; i++) {
+      const chapter = chapters.value[i]
+      
+      try {
+        // 获取章节内容
+        const data = await txtApi.getChapterContent(fileId, i)
+        const chapterContent = data.content
+        
+        // 查找所有匹配
+        const matches = [...chapterContent.matchAll(regex)]
+        
+        for (const match of matches) {
+          const position = match.index!
+          const matchedText = match[0] // 实际匹配的文本
+          
+          // 提取预览文本
+          const contextLength = 50
+          const start = Math.max(0, position - contextLength)
+          const end = Math.min(chapterContent.length, position + matchedText.length + contextLength)
+          
+          let preview = chapterContent.substring(start, end)
+          if (start > 0) preview = '...' + preview
+          if (end < chapterContent.length) preview = preview + '...'
+          preview = preview.replace(/\n/g, ' ').trim()
+          
+          // 计算句子索引
+          let sentenceIndex: number | undefined
+          const chapterSentences = i === currentChapterIndex.value 
+            ? sentences.value 
+            : splitIntoSentences(chapterContent)
+          
+          let offset = 0
+          for (let j = 0; j < chapterSentences.length; j++) {
+            const len = chapterSentences[j].length
+            if (position >= offset && position < offset + len) {
+              sentenceIndex = j
+              break
+            }
+            offset += len
+          }
+          
+          results.push({
+            chapterIndex: i,
+            chapterTitle: chapter.title,
+            position,
+            sentenceIndex,
+            preview,
+          })
+        }
+      } catch (e) {
+        console.error(`搜索章节 ${i} 失败:`, e)
+      }
+    }
+    
+    // 将结果传递给搜索面板
+    searchPanelRef.value?.setGlobalResults(results)
+  } catch (e) {
+    console.error('全文搜索失败:', e)
+    searchPanelRef.value?.setSearching(false)
+  }
+}
+
+// 监听键盘快捷键
+function onKeyDown(e: KeyboardEvent) {
+  // Ctrl+F 或 Cmd+F：打开章节搜索
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.shiftKey) {
+    e.preventDefault()
+    searchVisible.value = true
+  }
+  // Ctrl+Shift+F 或 Cmd+Shift+F：打开全文搜索
+  else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+    e.preventDefault()
+    searchVisible.value = true
+    // 可以在这里设置默认为全文搜索模式
+  }
+  // Esc：关闭搜索
+  else if (e.key === 'Escape' && searchVisible.value) {
+    searchVisible.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeyDown)
+})
 </script>
