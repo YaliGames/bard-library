@@ -252,9 +252,16 @@ import TxtReaderContent from '@/components/Reader/TxtContent.vue'
 import SearchPanel from '@/components/Reader/SearchPanel.vue'
 import CacheManager from '@/components/Reader/CacheManager.vue'
 import { useSettingsStore } from '@/stores/settings'
-import { splitIntoSentences, buildSentenceOffsets, findAllOccurrences } from '@/utils/reader'
+import {
+  splitIntoSentences,
+  buildSentenceOffsets,
+  findAllOccurrences,
+  extractSearchPreview,
+  buildSearchRegex,
+} from '@/utils/reader'
 import { useSimpleLoading } from '@/composables/useLoading'
 import { getCachedBook, type CachedBook } from '@/utils/txtCache'
+import type { SearchResult } from '@/types/reader'
 
 const route = useRoute()
 const router = useRouter()
@@ -474,6 +481,8 @@ const pendingScroll = ref<{
   selectionText?: string
   startSid?: number
   isSearchJump?: boolean
+  matchPosition?: number
+  matchLength?: number
 } | null>(null)
 
 async function loadBookmarksForChapter() {
@@ -624,21 +633,14 @@ async function openChapter(index: number) {
     await nextTick()
     // 章节切换目录自动滚动
     if (pendingScroll.value && pendingScroll.value.chapterIndex === index) {
-      const sid =
-        typeof pendingScroll.value.startSid === 'number' ? pendingScroll.value.startSid : undefined
-      const isSearchJump = pendingScroll.value.isSearchJump || false
-      if (typeof sid === 'number') {
-        contentRef.value?.scrollToTarget({
-          startSid: sid,
-          isSearchJump,
-          selectionText: pendingScroll.value.selectionText,
-        })
-      } else if (pendingScroll.value.selectionText) {
-        contentRef.value?.scrollToTarget({
-          selectionText: pendingScroll.value.selectionText,
-          isSearchJump,
-        })
+      const scrollOpts = {
+        startSid: pendingScroll.value.startSid,
+        isSearchJump: pendingScroll.value.isSearchJump || false,
+        selectionText: pendingScroll.value.selectionText,
+        matchPosition: pendingScroll.value.matchPosition,
+        matchLength: pendingScroll.value.matchLength,
       }
+      contentRef.value?.scrollToTarget(scrollOpts)
       pendingScroll.value = null
     }
     // 保存阅读进度
@@ -761,22 +763,23 @@ async function highlightSelection() {
       ? selectionTextBuffer.value
       : sentences.value.slice(s, e + 1).join('')
 
-  // 计算绝对偏移锚点（基于当前章节的起始 offset）
+  // 计算绝对偏移锚点和本地高亮范围（一次性查找所有匹配）
   const baseOffset = chapters.value[currentChapterIndex.value]?.offset ?? 0
   let absStart: number | null = null
   let absEnd: number | null = null
+  const addedBySentence = new Map<number, Array<{ start: number; end: number }>>()
+
   if (selectionText) {
+    // 一次性查找所有匹配，避免重复计算
     const occ = findAllOccurrences(content.value, selectionText)
+    
+    // 计算绝对偏移（使用第一个匹配）
     if (occ.length > 0) {
       absStart = baseOffset + occ[0].start
       absEnd = baseOffset + occ[0].end
     }
-  }
 
-  // 1) 乐观更新：先把 UI 高亮起来
-  const addedBySentence = new Map<number, Array<{ start: number; end: number }>>()
-  if (selectionText) {
-    const occ = findAllOccurrences(content.value, selectionText)
+    // 1) 乐观更新：先把 UI 高亮起来
     for (const r of occ) {
       for (let i = 0; i < sentenceOffsets.length; i++) {
         const seg = sentenceOffsets[i]
@@ -1027,17 +1030,11 @@ function handleSearchClose() {
   searchHighlight.value = null
 }
 
-interface SearchResult {
-  chapterIndex: number
-  chapterTitle: string | null | undefined
-  position: number
-  sentenceIndex?: number
-  preview: string
-}
-
 function handleJumpToSearchResult(result: SearchResult) {
   const scrollOptions = {
     startSid: result.sentenceIndex,
+    matchPosition: result.position,
+    matchLength: result.matchLength,
     isSearchJump: true,
   }
 
@@ -1059,53 +1056,6 @@ function handleChapterSearch(keyword: string, caseSensitive: boolean, wholeWord:
   searchHighlight.value = { keyword, caseSensitive, wholeWord }
 }
 
-// 提取搜索预览
-function extractSearchPreview(content: string, position: number, matchedText: string): string {
-  const contextLength = 10
-  const matchLength = matchedText.length
-  const start = Math.max(0, position - contextLength)
-  const end = Math.min(content.length, position + matchLength + contextLength)
-
-  let preview = content.substring(start, end)
-
-  // 添加省略号
-  if (start > 0) preview = '...' + preview
-  if (end < content.length) preview = preview + '...'
-
-  // 清理换行符
-  preview = preview.replace(/\n/g, ' ')
-
-  // HTML 转义
-  const escapeHtml = (str: string) => {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;')
-  }
-
-  // 转义整个预览
-  const escapedPreview = escapeHtml(preview)
-
-  // 转义匹配的文本
-  const escapedKeyword = escapeHtml(matchedText)
-
-  // 在转义后的文本中查找转义后的关键字并高亮
-  const keywordIndex = escapedPreview.indexOf(escapedKeyword)
-  if (keywordIndex >= 0) {
-    return (
-      escapedPreview.substring(0, keywordIndex) +
-      '<strong class="text-yellow-600 dark:text-yellow-400">' +
-      escapedKeyword +
-      '</strong>' +
-      escapedPreview.substring(keywordIndex + escapedKeyword.length)
-    )
-  }
-
-  return escapedPreview
-}
-
 async function handleGlobalSearch(keyword: string, caseSensitive: boolean, wholeWord: boolean) {
   if (!keyword) return
 
@@ -1123,12 +1073,7 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
 
   try {
     // 构建正则表达式
-    let pattern = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    if (wholeWord) {
-      pattern = `\\b${pattern}\\b`
-    }
-    const flags = caseSensitive ? 'g' : 'gi'
-    const regex = new RegExp(pattern, flags)
+    const regex = buildSearchRegex(keyword, caseSensitive, wholeWord)
 
     const results: SearchResult[] = []
 
@@ -1146,6 +1091,7 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
         for (const match of matches) {
           const position = match.index!
           const matchedText = match[0]
+          const matchLength = matchedText.length
 
           // 提取预览文本（使用统一的函数）
           const preview = extractSearchPreview(chapterContent, position, matchedText)
@@ -1169,6 +1115,7 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
             chapterIndex: i,
             chapterTitle: chapter.title,
             position,
+            matchLength,
             sentenceIndex,
             preview,
           })

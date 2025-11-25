@@ -24,7 +24,14 @@
 </template>
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { escapeHtml, clampRanges, mergeRanges, buildSentenceOffsets } from '@/utils/reader'
+import {
+  escapeHtml,
+  clampRanges,
+  mergeRanges,
+  splitOverlappingRanges,
+  buildSentenceOffsets,
+  buildSearchRegex,
+} from '@/utils/reader'
 
 // Props & Emits
 const props = defineProps<{
@@ -88,13 +95,7 @@ function getSentenceHtml(i: number, s: string): string {
   if (props.searchHighlight) {
     try {
       const { keyword, caseSensitive, wholeWord } = props.searchHighlight
-      // 构建正则表达式
-      let pattern = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      if (wholeWord) {
-        pattern = `\\b${pattern}\\b`
-      }
-      const flags = caseSensitive ? 'g' : 'gi'
-      const regex = new RegExp(pattern, flags)
+      const regex = buildSearchRegex(keyword, caseSensitive, wholeWord)
 
       let match
       while ((match = regex.exec(s)) !== null) {
@@ -110,7 +111,10 @@ function getSentenceHtml(i: number, s: string): string {
 
   if (allRanges.length === 0) return escapeHtml(s)
 
-  const merged = mergeRanges(clampRanges(allRanges as any, s.length) as any) as Array<{
+  // 使用新的 splitOverlappingRanges 处理重叠，确保每个位置只渲染一次
+  const processed = splitOverlappingRanges(
+    clampRanges(allRanges as any, s.length) as any,
+  ) as Array<{
     start: number
     end: number
     bookmarkId?: number
@@ -120,13 +124,15 @@ function getSentenceHtml(i: number, s: string): string {
 
   let html = ''
   let pos = 0
-  for (const r of merged) {
+  for (const r of processed) {
     if (r.start > pos) html += escapeHtml(s.slice(pos, r.start))
     const part = s.slice(r.start, r.end)
     const bg = r.color ? r.color : 'rgba(250,216,120,.9)'
     const className = r.isSearch ? 'search-hl-mark' : 'hl-mark'
     const bidAttr = r.bookmarkId ? `data-bid="${r.bookmarkId}"` : ''
-    html += `<mark class="${className}" ${bidAttr} style="background:${bg};">${escapeHtml(part)}</mark>`
+    // 为搜索高亮添加位置标记，方便后续精确定位
+    const posAttr = r.isSearch ? `data-pos="${r.start}"` : ''
+    html += `<mark class="${className}" ${bidAttr} ${posAttr} style="background:${bg};">${escapeHtml(part)}</mark>`
     pos = r.end
   }
   if (pos < s.length) html += escapeHtml(s.slice(pos))
@@ -324,13 +330,108 @@ function flashMarksInRange(startSid: number, endSid: number): boolean {
   return found
 }
 
+// 通用函数：在指定的句子元素中找到并闪烁特定位置的搜索高亮 mark
+function flashSearchMarkAtPosition(sentenceEl: HTMLElement, matchStartInSentence: number): boolean {
+  // 直接获取所有搜索高亮的 mark 元素
+  const marks = sentenceEl.querySelectorAll(
+    'mark.search-hl-mark[data-pos]',
+  ) as NodeListOf<HTMLElement>
+
+  if (marks.length === 0) return false
+
+  // 查找具有匹配 data-pos 属性的 mark
+  let targetMark: HTMLElement | null = null
+
+  for (const mark of Array.from(marks)) {
+    const pos = parseInt(mark.getAttribute('data-pos') || '-1', 10)
+
+    if (pos === matchStartInSentence) {
+      targetMark = mark
+      break
+    }
+  }
+
+  // 如果没有精确匹配，找最接近的
+  if (!targetMark && marks.length > 0) {
+    let minDiff = Infinity
+    for (const mark of Array.from(marks)) {
+      const pos = parseInt(mark.getAttribute('data-pos') || '-1', 10)
+      if (pos >= 0) {
+        const diff = Math.abs(pos - matchStartInSentence)
+        if (diff < minDiff) {
+          minDiff = diff
+          targetMark = mark
+        }
+      }
+    }
+  }
+
+  // 闪烁找到的 mark
+  if (targetMark) {
+    targetMark.classList.add('ring-2', 'ring-primary', 'bg-yellow-200')
+    setTimeout(() => {
+      targetMark!.classList.remove('ring-2', 'ring-primary', 'bg-yellow-200')
+    }, 900)
+    return true
+  }
+
+  return false
+}
+
 function scrollToTarget(opts: {
   startSid?: number
   endSid?: number
   selectionText?: string
   isSearchJump?: boolean
+  matchPosition?: number // 匹配在章节内容中的绝对位置
+  matchLength?: number // 匹配的长度
 }) {
-  // Prefer precise by startSid
+  // 优先使用 matchPosition 进行精确定位（统一路径）
+  if (typeof opts.matchPosition === 'number') {
+    // 1. 根据 matchPosition 找到对应的句子索引
+    const offsets = buildSentenceOffsets(props.sentences)
+    let targetSid = opts.startSid
+
+    if (typeof targetSid !== 'number') {
+      // 如果没有提供 startSid，根据 matchPosition 计算
+      for (let i = 0; i < offsets.length; i++) {
+        const seg = offsets[i]
+        if (opts.matchPosition >= seg.start && opts.matchPosition < seg.end) {
+          targetSid = i
+          break
+        }
+      }
+    }
+
+    if (typeof targetSid === 'number') {
+      const el = articleEl.value?.querySelector(
+        `span[data-sid="${targetSid}"]`,
+      ) as HTMLElement | null
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+        // 对于搜索跳转，精确闪烁
+        if (opts.isSearchJump && typeof opts.matchLength === 'number') {
+          setTimeout(() => {
+            const sentenceStart = offsets[targetSid!]?.start ?? 0
+            const matchStartInSentence = opts.matchPosition! - sentenceStart
+            flashSearchMarkAtPosition(el, matchStartInSentence)
+          }, 100)
+        } else if (!opts.isSearchJump) {
+          // 书签跳转逻辑
+          const flashed = flashMarksInRange(
+            targetSid,
+            typeof opts.endSid === 'number' ? opts.endSid : targetSid,
+          )
+          if (!flashed) flashElement(el)
+        }
+        return
+      }
+    }
+  }
+
+  // 回退：使用 startSid（向后兼容，但没有精确闪烁）
   if (typeof opts.startSid === 'number') {
     const el = articleEl.value?.querySelector(
       `span[data-sid="${opts.startSid}"]`,
@@ -338,22 +439,7 @@ function scrollToTarget(opts: {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
-      // 如果是搜索跳转，只闪烁搜索高亮的 mark
-      if (opts.isSearchJump) {
-        setTimeout(() => {
-          try {
-            const marks = el.querySelectorAll('mark.search-hl-mark') as NodeListOf<HTMLElement>
-            // 闪烁所有搜索高亮的 mark,不再检查文本内容
-            marks.forEach(mark => {
-              mark.classList.add('ring-2', 'ring-primary', 'bg-yellow-200')
-              setTimeout(() => {
-                mark.classList.remove('ring-2', 'ring-primary', 'bg-yellow-200')
-              }, 900)
-            })
-          } catch {}
-        }, 100)
-      } else {
-        // 书签跳转，闪烁所有 mark
+      if (!opts.isSearchJump) {
         const flashed = flashMarksInRange(
           opts.startSid,
           typeof opts.endSid === 'number' ? opts.endSid : opts.startSid,

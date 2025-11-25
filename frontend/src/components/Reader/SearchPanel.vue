@@ -101,14 +101,8 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
-
-interface SearchResult {
-  chapterIndex: number
-  chapterTitle: string | null | undefined
-  position: number // 在章节内容中的字符位置
-  sentenceIndex?: number // 句子索引（章节搜索）
-  preview: string // 预览文本
-}
+import { extractSearchPreview, buildSearchRegex } from '@/utils/reader'
+import type { SearchResult } from '@/types/reader'
 
 interface Props {
   visible: boolean
@@ -181,66 +175,6 @@ function onInputChange() {
   }
 }
 
-function buildRegex(kw: string): RegExp {
-  let pattern = kw
-  // 转义特殊字符
-  pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-  if (wholeWord.value) {
-    pattern = `\\b${pattern}\\b`
-  }
-
-  const flags = caseSensitive.value ? 'g' : 'gi'
-  return new RegExp(pattern, flags)
-}
-
-function extractPreview(content: string, position: number, matchedText: string): string {
-  const contextLength = 10
-  const matchLength = matchedText.length
-  const start = Math.max(0, position - contextLength)
-  const end = Math.min(content.length, position + matchLength + contextLength)
-
-  let preview = content.substring(start, end)
-
-  // 添加省略号
-  if (start > 0) preview = '...' + preview
-  if (end < content.length) preview = preview + '...'
-
-  // 清理换行符
-  preview = preview.replace(/\n/g, ' ')
-
-  // HTML 转义
-  const escapeHtml = (str: string) => {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;')
-  }
-
-  // 转义整个预览
-  const escapedPreview = escapeHtml(preview)
-
-  // 转义匹配的文本(使用原始匹配结果,不是搜索关键词)
-  const escapedKeyword = escapeHtml(matchedText)
-
-  // 在转义后的文本中查找转义后的关键字
-  const keywordIndex = escapedPreview.indexOf(escapedKeyword)
-  if (keywordIndex >= 0) {
-    return (
-      escapedPreview.substring(0, keywordIndex) +
-      '<strong class="text-yellow-600 dark:text-yellow-400">' +
-      escapedKeyword +
-      '</strong>' +
-      escapedPreview.substring(keywordIndex + escapedKeyword.length)
-    )
-  }
-
-  // 如果找不到(不应该发生),返回原样
-  return escapedPreview
-}
-
 function searchInChapter() {
   results.value = []
   currentIndex.value = 0
@@ -252,11 +186,12 @@ function searchInChapter() {
   const content = props.currentChapterContent
   if (!content) return
 
-  const regex = buildRegex(keyword.value)
+  const regex = buildSearchRegex(keyword.value, caseSensitive.value, wholeWord.value)
   const matches = [...content.matchAll(regex)]
 
   results.value = matches.map(match => {
     const position = match.index!
+    const matchLength = match[0].length
     // 尝试定位到句子索引
     let sentenceIndex: number | undefined
     if (props.sentences) {
@@ -275,8 +210,9 @@ function searchInChapter() {
       chapterIndex: props.currentChapterIndex!,
       chapterTitle: props.chapters[props.currentChapterIndex!]?.title,
       position,
+      matchLength,
       sentenceIndex,
-      preview: extractPreview(content, position, match[0]),
+      preview: extractSearchPreview(content, position, match[0]),
     }
   })
 }
