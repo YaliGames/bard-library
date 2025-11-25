@@ -1,12 +1,12 @@
 <template>
   <section class="flex gap-4 items-start p-4 md:p-6">
     <!-- 左侧导览 -->
-    <aside class="hidden md:block w-[320px] shrink-0">
+    <aside class="hidden md:block w-[320px] shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)]">
       <div
-        class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden"
+        class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden flex flex-col max-h-full"
       >
         <div
-          class="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700"
+          class="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0"
         >
           <h3 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">导览</h3>
           <div class="flex">
@@ -21,7 +21,7 @@
             </el-button>
           </div>
         </div>
-        <div class="p-2">
+        <div class="p-2 flex-1 overflow-y-auto">
           <TxtNavTabs
             v-model:tab="leftTab"
             :chapters="chapters"
@@ -39,7 +39,7 @@
     <!-- 主阅读区 -->
     <main class="flex-1 min-w-0">
       <!-- 顶部工具栏（PC 显示） -->
-      <div class="hidden md:flex items-center justify-between mb-3">
+      <div class="hidden md:flex items-center justify-between mb-3 sticky top-4 z-10">
         <div
           class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm w-full"
         >
