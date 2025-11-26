@@ -20,20 +20,32 @@
                 <el-tag v-else size="small">私有</el-tag>
               </div>
             </div>
-            <p class="text-gray-600 text-sm mb-2">{{ s.description || '暂无简介' }}</p>
-            <p v-if="(s as any).user && (s as any).user.name" class="text-gray-400 text-xs">
-              创建者：{{ (s as any).user.name }}
-            </p>
+            <div class="text-gray-600 text-sm mb-2">{{ s.description || '暂无简介' }}</div>
+            <div class="flex items-center gap-3 text-xs text-gray-500">
+              <div v-if="(s as any).user && (s as any).user.name" class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-base leading-none">person</span>
+                <span class="leading-none">{{ (s as any).user.name }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-base leading-none">auto_stories</span>
+                <span class="leading-none">{{ (s.books || []).length }} 本图书</span>
+              </div>
+            </div>
           </div>
         </div>
       </router-link>
       <div v-if="s.books && s.books.length === 0" class="text-gray-500 mt-5">该书架暂无图书</div>
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-        <router-link v-for="b in s.books || []" :key="b.id" :to="`/books/${b.id}`">
-          <el-button type="primary" class="justify-start w-full">
-            <span class="material-symbols-outlined mr-2">book</span>
-            《{{ b.title }}》
-          </el-button>
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+        <router-link
+          v-for="b in s.books || []"
+          :key="b.id"
+          :to="`/books/${b.id}`"
+          class="flex items-center text-gray-700 gap-2 rounded-lg transition-all duration-200 group"
+        >
+          <span class="material-symbols-outlined group-hover:text-primary text-base">book</span>
+          <span class="text-sm group-hover:text-primary truncate font-medium">
+            {{ b.title }}
+          </span>
         </router-link>
       </div>
     </div>
