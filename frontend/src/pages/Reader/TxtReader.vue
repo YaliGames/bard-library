@@ -1,7 +1,9 @@
 <template>
   <section class="flex gap-4 items-start p-4 md:p-6">
     <!-- 左侧导览 -->
-    <aside class="hidden md:block w-[320px] shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)]">
+    <aside
+      class="hidden md:block w-[320px] shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)]"
+    >
       <div
         class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden flex flex-col max-h-full"
       >
@@ -37,7 +39,7 @@
       </div>
     </aside>
     <!-- 主阅读区 -->
-    <main class="flex-1 min-w-0">
+    <main class="flex-1 min-w-0 pb-20 md:pb-0">
       <!-- 顶部工具栏（PC 显示） -->
       <div class="hidden md:flex items-center justify-between mb-3 sticky top-4 z-10">
         <div
@@ -86,7 +88,7 @@
         <template v-else-if="!content">
           <div style="max-width: var(--reader-content-width); margin: 0 auto; padding: 24px 16px">
             <el-empty description="选择章节开始阅读">
-              <el-button type="primary" class="md:!hidden" @click="leftDrawerVisible = true">
+              <el-button type="primary" class="md:!hidden" @click="openMobileDrawer('chapters')">
                 打开目录
               </el-button>
             </el-empty>
@@ -134,7 +136,14 @@
           />
         </template>
       </div>
-      <el-drawer v-model="settingsVisible" title="阅读设置" direction="rtl" size="320px">
+      <!-- PC 端设置抽屉 -->
+      <el-drawer
+        v-model="settingsVisible"
+        title="阅读设置"
+        direction="rtl"
+        size="320px"
+        class="hidden md:block"
+      >
         <div class="flex flex-col gap-4">
           <div>
             <div class="mb-2">主题</div>
@@ -167,24 +176,9 @@
           </div>
         </div>
       </el-drawer>
-      <!-- 移动端悬浮按钮组 -->
-      <div class="fixed right-4 bottom-4 z-10 md:hidden flex flex-col gap-2">
-        <el-button type="primary" class="px-3 py-2 rounded-full" @click="toggleSearch">
-          <span class="material-symbols-outlined">search</span>
-        </el-button>
-        <el-button type="primary" class="px-3 py-2 rounded-full" @click="settingsVisible = true">
-          设置
-        </el-button>
-      </div>
-      <!-- 移动端悬浮目录按钮 -->
-      <div class="fixed left-4 bottom-4 z-10 md:hidden">
-        <el-button type="primary" class="px-3 py-2 rounded-full" @click="leftDrawerVisible = true">
-          目录
-        </el-button>
-      </div>
     </main>
 
-    <!-- 搜索面板 -->
+    <!-- PC 端搜索面板 -->
     <SearchPanel
       ref="searchPanelRef"
       :visible="searchVisible"
@@ -192,46 +186,74 @@
       :current-chapter-index="currentChapterIndex"
       :chapters="chapters"
       :sentences="sentences"
+      class="hidden md:block"
       @close="handleSearchClose"
       @jump-to-result="handleJumpToSearchResult"
       @search-chapter="handleChapterSearch"
       @search-global="handleGlobalSearch"
     />
   </section>
-  <!-- 移动端：左侧导览抽屉，仅小屏显示 -->
-  <el-drawer v-model="leftDrawerVisible" title="导览" direction="ltr" size="80%" class="md:!hidden">
-    <div class="px-2">
-      <TxtNavTabs
-        v-model:tab="leftTab"
-        :chapters="chapters"
-        :current-chapter-index="currentChapterIndex"
-        :is-logged-in="isLoggedIn"
-        :filtered-bookmarks="filteredBookmarks"
-        :auto-scroll-category="userSettings.txtReader?.autoScrollCategory"
-        @open-chapter="
-          (i: number) => {
-            openChapter(i)
-            leftDrawerVisible = false
-          }
-        "
-        @jump="
-          (b: Bookmark) => {
-            jumpToBookmark(b)
-            leftDrawerVisible = false
-          }
-        "
-        @remove="removeBookmarkConfirm"
-      />
-    </div>
-  </el-drawer>
 
-  <!-- 缓存管理对话框 -->
+  <!-- 移动端搜索抽屉 -->
+  <MobileSearchDrawer
+    ref="mobileSearchDrawerRef"
+    :visible="mobileSearchVisible"
+    :current-chapter-content="content"
+    :current-chapter-index="currentChapterIndex"
+    :chapters="chapters"
+    :sentences="sentences"
+    class="md:hidden"
+    @close="handleMobileSearchClose"
+    @jump-to-result="handleJumpToSearchResult"
+    @search-chapter="handleChapterSearch"
+    @search-global="handleGlobalSearch"
+  />
+
+  <!-- PC 端缓存管理对话框 -->
   <CacheManager
     v-model="showCacheManager"
     :file-id="fileId"
     :book-title="'title' in book && book.title ? book.title : `文件 ${fileId}`"
     :chapters="chapters"
     @cache-complete="loadCacheStatus"
+    class="hidden md:block"
+  />
+
+  <!-- 移动端底部菜单 -->
+  <MobileBottomBar
+    class="md:hidden"
+    :visible="mobileBottomBarVisible"
+    :cached="!!cachedBook"
+    :has-prev="hasPrevChapter"
+    :has-next="hasNextChapter"
+    @prev="goPrevChapter"
+    @menu="openMobileDrawer('chapters')"
+    @next="goNextChapter"
+    @search="toggleSearch"
+    @settings="openMobileDrawer('settings')"
+  />
+
+  <!-- 移动端目录/书签抽屉 -->
+  <MobileDrawer
+    :visible="showMobileDrawer"
+    :chapters="chapters"
+    :bookmarks="filteredBookmarks"
+    :current-chapter-index="currentChapterIndex"
+    :file-id="fileId"
+    :book-title="'title' in book && book.title ? book.title : `文件 ${fileId}`"
+    :settings="settings"
+    :cached-book="cachedBook"
+    :default-tab="mobileDrawerDefaultTab"
+    :auto-scroll-category="userSettings.txtReader?.autoScrollCategory"
+    @close="showMobileDrawer = false"
+    @open-chapter="openChapter"
+    @jump-bookmark="jumpToBookmark"
+    @remove-bookmark="removeBookmarkConfirm"
+    @cache-complete="loadCacheStatus"
+    @update-theme="theme => (settings.theme = theme as any)"
+    @update-font-size="size => (settings.fontSize = size)"
+    @update-line-height="height => (settings.lineHeight = height)"
+    @update-content-width="width => (settings.contentWidth = width)"
   />
 </template>
 
@@ -244,13 +266,16 @@ import { progressApi, type ProgressPayload } from '@/api/progress'
 import { bookmarksApi } from '@/api/bookmarks'
 import type { Book, Bookmark } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
-import HighlightMenu from '@/components/Reader/HighlightMenu.vue'
-import SelectionMenu from '@/components/Reader/SelectionMenu.vue'
-import TxtNavTabs from '@/components/Reader/TxtNavTabs.vue'
-import TxtChapterNav from '@/components/Reader/TxtChapterNav.vue'
-import TxtReaderContent from '@/components/Reader/TxtContent.vue'
-import SearchPanel from '@/components/Reader/SearchPanel.vue'
-import CacheManager from '@/components/Reader/CacheManager.vue'
+import HighlightMenu from '@/components/Reader/Shared/HighlightMenu.vue'
+import SelectionMenu from '@/components/Reader/Shared/SelectionMenu.vue'
+import TxtNavTabs from '@/components/Reader/Txt/TxtNavTabs.vue'
+import TxtChapterNav from '@/components/Reader/Txt/TxtChapterNav.vue'
+import TxtReaderContent from '@/components/Reader/Txt/TxtContent.vue'
+import SearchPanel from '@/components/Reader/Shared/SearchPanel.vue'
+import CacheManager from '@/components/Reader/Shared/CacheManager.vue'
+import MobileBottomBar from '@/components/Reader/Mobile/MobileBottomBar.vue'
+import MobileDrawer from '@/components/Reader/Mobile/MobileDrawer.vue'
+import MobileSearchDrawer from '@/components/Reader/Mobile/MobileSearchDrawer.vue'
 import { useSettingsStore } from '@/stores/settings'
 import {
   splitIntoSentences,
@@ -329,7 +354,6 @@ let sentenceOffsets: Array<{ start: number; end: number }> = []
 const err = ref('')
 const currentChapterIndex = ref<number | null>(null)
 const settingsVisible = ref(false)
-const leftDrawerVisible = ref(false)
 const contentRef = ref<{
   scrollToTarget: (opts: {
     startSid?: number
@@ -342,13 +366,22 @@ const searchPanelRef = ref<{
   setGlobalResults: (results: any[]) => void
   setSearching: (value: boolean) => void
 } | null>(null)
+const mobileSearchDrawerRef = ref<{
+  setGlobalResults: (results: any[]) => void
+  setSearching: (value: boolean) => void
+} | null>(null)
 const leftTab = ref<'chapters' | 'bookmarks'>('chapters')
-const searchVisible = ref(false)
+const searchVisible = ref(false) // PC 端搜索
+const mobileSearchVisible = ref(false) // 移动端搜索
 const searchHighlight = ref<{ keyword: string; caseSensitive: boolean; wholeWord: boolean } | null>(
   null,
 ) // 当前搜索配置
 const showCacheManager = ref(false)
 const cachedBook = ref<CachedBook | null>(null)
+const showMobileDrawer = ref(false)
+const mobileDrawerDefaultTab = ref<'chapters' | 'bookmarks' | 'cache' | 'settings'>('chapters')
+const mobileBottomBarVisible = ref(true)
+let lastScrollY = 0
 const hasPrevChapter = computed(
   () => typeof currentChapterIndex.value === 'number' && currentChapterIndex.value > 0,
 )
@@ -490,7 +523,10 @@ async function loadBookmarksForChapter() {
   try {
     const bookmarksResponse = await bookmarksApi.list(bookId.value, fileId)
     const list = bookmarksResponse.bookmarks || []
-    book.value = bookmarksResponse.book || {}
+    // 只在 book 信息还未加载时才从 bookmarks 接口获取
+    if (!book.value || !('title' in book.value)) {
+      book.value = bookmarksResponse.book || {}
+    }
 
     bookmarks.value = list.filter(b => {
       if (!b.location) return false
@@ -549,15 +585,26 @@ async function loadChapters() {
   err.value = ''
   setLoading(true)
   try {
-    const list = await txtApi.listChapters(fileId)
-    try {
-      const b =
-        list && list.length > 0 && (list[0] as any).book_id ? Number((list[0] as any).book_id) : 0
-      if (Number.isFinite(b) && b > 0) {
-        bookId.value = b
-      }
-    } catch {}
-    chapters.value = list
+    const response = await txtApi.listChapters(fileId)
+
+    // 从响应中提取 book 和 chapters
+    if (response.book) {
+      book.value = response.book
+      bookId.value = response.book.id
+    } else {
+      // 向后兼容：从 chapters 中提取 book_id
+      try {
+        const b =
+          response.chapters && response.chapters.length > 0 && response.chapters[0].book_id
+            ? Number(response.chapters[0].book_id)
+            : 0
+        if (Number.isFinite(b) && b > 0) {
+          bookId.value = b
+        }
+      } catch {}
+    }
+
+    chapters.value = response.chapters
     // 优先使用外部明确指定的章节（例如路由参数/历史 state）
     if (typeof initialChapterIndex.value === 'number') {
       await openChapter(initialChapterIndex.value)
@@ -670,7 +717,29 @@ onMounted(async () => {
   resolveInitialContext()
   await loadChapters()
   await loadCacheStatus() // 加载缓存状态
+
+  // 移动端滚动监听
+  window.addEventListener('scroll', handleMobileScroll)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleMobileScroll)
+})
+
+// 移动端滚动处理：向下隐藏底部栏，向上显示
+function handleMobileScroll() {
+  const currentScrollY = window.scrollY
+
+  if (currentScrollY > lastScrollY && currentScrollY > 100) {
+    // 向下滚动且超过100px，隐藏底部栏
+    mobileBottomBarVisible.value = false
+  } else if (currentScrollY < lastScrollY) {
+    // 向上滚动，显示底部栏
+    mobileBottomBarVisible.value = true
+  }
+
+  lastScrollY = currentScrollY
+}
 
 function goEditChapters() {
   router.push({ name: 'admin-txt-chapters', params: { id: String(fileId) } })
@@ -772,7 +841,7 @@ async function highlightSelection() {
   if (selectionText) {
     // 一次性查找所有匹配，避免重复计算
     const occ = findAllOccurrences(content.value, selectionText)
-    
+
     // 计算绝对偏移（使用第一个匹配）
     if (occ.length > 0) {
       absStart = baseOffset + occ[0].start
@@ -1015,18 +1084,41 @@ async function onPickColor(color: string | Event) {
   } catch {}
 }
 
+// ==================== 移动端抽屉辅助函数 ====================
+
+function openMobileDrawer(tab: 'chapters' | 'bookmarks' | 'cache' | 'settings' = 'chapters') {
+  mobileDrawerDefaultTab.value = tab
+  showMobileDrawer.value = true
+}
+
 // ==================== 搜索功能 ====================
 
 function toggleSearch() {
-  if (searchVisible.value) {
-    handleSearchClose()
+  // 检测设备类型,移动端打开抽屉,PC端打开弹窗
+  const isMobile = window.innerWidth < 768
+
+  if (isMobile) {
+    if (mobileSearchVisible.value) {
+      handleMobileSearchClose()
+    } else {
+      mobileSearchVisible.value = true
+    }
   } else {
-    searchVisible.value = true
+    if (searchVisible.value) {
+      handleSearchClose()
+    } else {
+      searchVisible.value = true
+    }
   }
 }
 
 function handleSearchClose() {
   searchVisible.value = false
+  searchHighlight.value = null
+}
+
+function handleMobileSearchClose() {
+  mobileSearchVisible.value = false
   searchHighlight.value = null
 }
 
@@ -1062,14 +1154,22 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
   // 检查是否有缓存
   if (!cachedBook.value) {
     ElMessage.warning('全文搜索需要先缓存书籍内容，请先缓存后再试')
-    showCacheManager.value = true // 打开缓存管理弹窗
+    // 移动端打开抽屉的缓存标签,PC端打开缓存弹窗
+    const isMobile = window.innerWidth < 768
+    if (isMobile) {
+      openMobileDrawer('cache')
+    } else {
+      showCacheManager.value = true
+    }
     searchPanelRef.value?.setSearching(false)
+    mobileSearchDrawerRef.value?.setSearching(false)
     return
   }
 
   // 设置搜索高亮配置
   searchHighlight.value = { keyword, caseSensitive, wholeWord }
   searchPanelRef.value?.setSearching(true)
+  mobileSearchDrawerRef.value?.setSearching(true)
 
   try {
     // 构建正则表达式
@@ -1127,9 +1227,11 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
 
     // 将结果传递给搜索面板
     searchPanelRef.value?.setGlobalResults(results)
+    mobileSearchDrawerRef.value?.setGlobalResults(results)
   } catch (e) {
     console.error('全文搜索失败:', e)
     searchPanelRef.value?.setSearching(false)
+    mobileSearchDrawerRef.value?.setSearching(false)
   }
 }
 

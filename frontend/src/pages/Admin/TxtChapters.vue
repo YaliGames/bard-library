@@ -291,7 +291,8 @@ async function fetchChapters() {
   startLoading('chapters')
   isPreviewMode.value = false // 加载实际目录时退出预览模式
   try {
-    chapters.value = await txtApi.listChapters(fileId.value)
+    const response = await txtApi.listChapters(fileId.value)
+    chapters.value = response.chapters
   } catch (e: any) {
     handleError(e, { context: 'Admin.TxtChapters.fetchChapters' })
   } finally {
@@ -327,7 +328,8 @@ async function preview() {
   startLoading('chapters')
   isPreviewMode.value = true // 进入预览模式
   try {
-    chapters.value = await txtApi.listChapters(fileId.value, { pattern: pat, dry: true })
+    const response = await txtApi.listChapters(fileId.value, { pattern: pat, dry: true })
+    chapters.value = response.chapters
   } catch (e: any) {
     handleError(e, { context: 'Admin.TxtChapters.preview' })
   } finally {

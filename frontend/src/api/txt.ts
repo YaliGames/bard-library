@@ -9,9 +9,19 @@ export interface Chapter {
   book_id?: number
 }
 
+export interface ChaptersResponse {
+  book?: {
+    id: number
+    title: string
+    author?: string
+    cover?: string
+  } | null
+  chapters: Chapter[]
+}
+
 export const txtApi = {
   listChapters: (fileId: number, params?: { pattern?: string; dry?: boolean }) => {
-    return http.get<Chapter[]>(`/api/v1/txt/${fileId}/chapters`, { params })
+    return http.get<ChaptersResponse>(`/api/v1/txt/${fileId}/chapters`, { params })
   },
   saveChapters: (fileId: number, payload: { pattern?: string; replace?: boolean }) => {
     return http.post<Chapter[]>(`/api/v1/txt/${fileId}/chapters`, payload)

@@ -327,8 +327,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick, markRaw } from 'vue'
 import { onUnmounted } from 'vue'
-import HighlightMenu from '@/components/Reader/HighlightMenu.vue'
-import PdfPage from '@/components/Reader/PdfPage.vue'
+import HighlightMenu from '@/components/Reader/Shared/HighlightMenu.vue'
+import PdfPage from '@/components/Reader/Pdf/PdfPage.vue'
 import { useRoute } from 'vue-router'
 import { getPreviewUrl, getDownloadUrl } from '@/utils/signedUrls'
 

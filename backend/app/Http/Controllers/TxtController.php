@@ -25,8 +25,8 @@ class TxtController extends Controller
             // 无自定义参数：优先返回已存在的章节，否则使用默认规则解析并入库
             $exists = TxtChapter::where('file_id',$fileId)->orderBy('index')->get();
             if ($exists->count() > 0) {
-                // 统一结构并附带 book_id
-                return $exists->map(function($c) use ($file) {
+                // 统一结构并附带 book_id 和 book 信息
+                $chapters = $exists->map(function($c) use ($file) {
                     return [
                         'book_id' => $file->book_id,
                         'file_id' => $c->file_id,
@@ -36,6 +36,17 @@ class TxtController extends Controller
                         'length'  => (int)$c->length,
                     ];
                 });
+                
+                // 返回包含 book 信息的完整响应
+                return response()->json([
+                    'book' => $file->book ? [
+                        'id' => $file->book->id,
+                        'title' => $file->book->title,
+                        'author' => $file->book->author,
+                        'cover' => $file->book->cover,
+                    ] : null,
+                    'chapters' => $chapters,
+                ]);
             }
             return $this->parse($fileId, null, true);
         }
@@ -132,7 +143,17 @@ class TxtController extends Controller
                 foreach ($chapters as $c) { TxtChapter::create($c); }
             });
         }
-        return $chapters;
+        
+        // 返回包含 book 信息的完整响应
+        return response()->json([
+            'book' => $file->book ? [
+                'id' => $file->book->id,
+                'title' => $file->book->title,
+                'author' => $file->book->author,
+                'cover' => $file->book->cover,
+            ] : null,
+            'chapters' => $chapters,
+        ]);
     }
 
     // 获取某章节内容

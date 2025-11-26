@@ -27,7 +27,6 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import {
   escapeHtml,
   clampRanges,
-  mergeRanges,
   splitOverlappingRanges,
   buildSentenceOffsets,
   buildSearchRegex,

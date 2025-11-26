@@ -320,7 +320,8 @@ onMounted(async () => {
     if (firstTxt) {
       startLoading('chapters')
       try {
-        chapters.value = await txtApi.listChapters(firstTxt.id)
+        const response = await txtApi.listChapters(firstTxt.id)
+        chapters.value = response.chapters
       } catch (e: any) {
         handleError(e, { context: 'BookDetail.loadChapters' })
       } finally {
