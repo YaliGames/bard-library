@@ -451,4 +451,71 @@ class BooksController extends Controller
         });
         return response()->noContent();
     }
+
+    /**
+     * 发送图书文件到邮箱
+     */
+    public function sendEmail(Request $request, int $bookId, int $fileId)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = $this->userResolver->user($request);
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // 查找图书
+        $book = Book::find($bookId);
+        if (!$book) {
+            return response()->json(['error' => 'Book not found'], 404);
+        }
+
+        // 查找文件
+        $file = $book->files()->find($fileId);
+        if (!$file) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        // 检查文件是否存在
+        $disk = \Illuminate\Support\Facades\Storage::disk($file->storage ?: config('filesystems.default'));
+        if (!$disk->exists($file->path)) {
+            return response()->json(['error' => 'File not found on storage'], 404);
+        }
+
+        // 获取文件完整路径
+        $filePath = $disk->path($file->path);
+        
+        // 构造文件名
+        $fileName = ($book->title ?: 'book') . '.' . ($file->format ?: 'file');
+
+        // 发送邮件
+        try {
+            \Illuminate\Support\Facades\Mail::to($validated['email'])
+                ->send(new \App\Mail\SendBookMail(
+                    $book->title ?: 'Unknown Book',
+                    $user->name ?: 'User',
+                    $filePath,
+                    $fileName
+                ));
+
+            return response()->json([
+                'message' => 'Email sent successfully',
+                'email' => $validated['email'],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send book email', [
+                'error' => $e->getMessage(),
+                'book_id' => $bookId,
+                'file_id' => $fileId,
+                'email' => $validated['email'],
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to send email',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -222,4 +222,18 @@ export const booksApi = {
   markRead: (id: number, is_read: boolean) => {
     return http.post<{ success: boolean }>(`${BASE}/${id}/mark-read`, { is_read })
   },
+
+  /**
+   * 发送图书文件到邮箱
+   * @param bookId - 书籍 ID
+   * @param fileId - 文件 ID
+   * @param email - 邮箱地址
+   * @returns 发送结果
+   */
+  sendEmail: (bookId: number, fileId: number, email: string) => {
+    return http.post<{ message: string; email: string }>(
+      `${BASE}/${bookId}/files/${fileId}/send-email`,
+      { email },
+    )
+  },
 }

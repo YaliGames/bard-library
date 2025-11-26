@@ -81,6 +81,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/mark-read', [MarkController::class, 'setRead']);
         });
 
+        // 发送图书到邮箱（需登录）
+        Route::middleware(['session', 'auth'])->group(function () {
+            Route::post('/{bookId}/files/{fileId}/send-email', [BooksController::class, 'sendEmail']);
+        });
+
         // Admin：图书管理（需登录 + 相应权限）
         Route::middleware(['session', 'auth'])->group(function () {
             Route::post('/', [BooksController::class, 'store'])

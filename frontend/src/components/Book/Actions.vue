@@ -148,45 +148,8 @@
       </el-dropdown>
     </div>
 
-    <!-- 发送 & 编辑 链接：通过事件或插槽处理 -->
-    <div class="flex flex-row">
-      <el-button
-        size="large"
-        class="rounded-r-none"
-        :disabled="files.length === 0"
-        @click="$emit('send')"
-      >
-        发送到
-        <span class="material-symbols-outlined ml-1">mail</span>
-      </el-button>
-      <el-dropdown trigger="click" class="ml-0">
-        <span class="el-dropdown-link">
-          <el-button
-            size="large"
-            class="rounded-l-none border-l-0 px-0"
-            :disabled="files.length === 0"
-          >
-            <span class="material-symbols-outlined">arrow_drop_down</span>
-          </el-button>
-        </span>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item>
-              <span class="material-symbols-outlined">aod_tablet</span>
-              <span>Kindle</span>
-            </el-dropdown-item>
-            <el-dropdown-item>
-              <span class="material-symbols-outlined">add_to_drive</span>
-              <span>GoogleDrive</span>
-            </el-dropdown-item>
-            <el-dropdown-item>
-              <span class="material-symbols-outlined">mail</span>
-              <span>邮箱</span>
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-    </div>
+    <!-- 发送到 -->
+    <Share :files="files" :book-id="bookId" :user="user" />
 
     <slot name="buttons" />
   </div>
@@ -195,12 +158,15 @@
 <script setup lang="ts">
 import type { FileRec } from '@/api/types'
 import { computed } from 'vue'
+import Share from './Share.vue'
 
 const props = defineProps<{
   files: FileRec[]
   continueTarget: any
   isLoggedIn: boolean
   isReadMark: number | boolean
+  bookId: number
+  user?: any
 }>()
 
 const files = computed(() => props.files || [])

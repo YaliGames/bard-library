@@ -169,14 +169,15 @@
               </div>
             </div>
             <BookActions
+              :book-id="book.id"
               :files="files"
               :continue-target="continueTarget"
               :is-logged-in="isLoggedIn"
               :is-read-mark="isReadMark"
+              :user="authStore.user"
               @read="onRead"
               @download="onDownload"
               @toggle-read="toggleRead"
-              @send="onSend"
             >
               <template #buttons>
                 <router-link
@@ -362,10 +363,6 @@ async function onDownload(fileId: number) {
   try {
     window.location.href = await getDownloadUrl(fileId)
   } catch {}
-}
-
-function onSend() {
-  // 占位：发送到外部服务的实现可以在此处补充
 }
 
 // 传递bookId和chapterIndex，当前不需要使用该方法，仅留作备用
