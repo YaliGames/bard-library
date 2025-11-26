@@ -1,5 +1,6 @@
 id: jjwxc
 name: 晋江文学城
+description: 由于平台限制，搜索结果预览无法获取封面图片，执行刮削操作时能正常获取。
 base_url: https://www.jjwxc.net/
 search:
   url: https://www.jjwxc.net/search.php

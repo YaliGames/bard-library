@@ -26,25 +26,40 @@
             <span class="font-medium text-lg">搜索元数据</span>
           </div>
 
-          <el-form>
-            <el-form-item label="元数据提供商">
-              <el-select v-model="provider" placeholder="选择提供商" @change="handleProviderChange">
-                <el-option v-for="p in providers" :key="p.id" :label="p.name" :value="p.id" />
-              </el-select>
-            </el-form-item>
+          <div class="flex gap-3 items-center mb-3">
+            <el-select
+              v-model="provider"
+              placeholder="选择平台"
+              style="width: 200px"
+              :disabled="searching"
+              @change="handleProviderChange"
+            >
+              <el-option v-for="p in providers" :key="p.id" :label="p.name" :value="p.id" />
+            </el-select>
+            <el-input
+              v-model="query"
+              placeholder="输入书名/ISBN/作者"
+              @keyup.enter="handleSearch"
+              clearable
+              :disabled="searching"
+            />
+            <el-button
+              type="primary"
+              :loading="searching"
+              :disabled="!query.trim()"
+              @click="handleSearch"
+            >
+              搜索
+            </el-button>
+          </div>
 
-            <el-form-item label="搜索关键词">
-              <el-input
-                v-model="query"
-                placeholder="输入书名、作者或ISBN"
-                @keyup.enter="handleSearch"
-              >
-                <template #append>
-                  <el-button icon="Search" :loading="searching" @click="handleSearch" />
-                </template>
-              </el-input>
-            </el-form-item>
-          </el-form>
+          <div
+            v-if="currentProviderDescription"
+            class="mb-3 text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded px-3 py-2"
+          >
+            <span class="material-symbols-outlined text-sm align-middle mr-1">info</span>
+            {{ currentProviderDescription }}
+          </div>
 
           <div class="h-[480px] flex flex-col">
             <div v-if="searchResults.length > 0" class="flex flex-col h-full">
@@ -76,6 +91,9 @@
                       <div class="font-medium truncate">{{ item.title }}</div>
                       <div class="text-sm text-gray-500 space-y-1">
                         <div v-if="item.authors">作者: {{ formatAuthors(item.authors) }}</div>
+                        <div v-if="item.description" class="text-xs line-clamp-2 text-gray-400">
+                          {{ item.description }}
+                        </div>
                         <div v-if="item.rating" class="flex items-center gap-1">
                           <span
                             class="material-symbols-outlined text-yellow-500"
@@ -435,6 +453,11 @@ watch(
 // 计算属性
 const canSubmit = computed(() => {
   return selectedItems.value.length > 0 && taskName.value.trim() !== '' && !submitting.value
+})
+
+const currentProviderDescription = computed(() => {
+  const p = providers.value.find(p => p.id === provider.value)
+  return p?.description || ''
 })
 
 // 加载提供商列表
