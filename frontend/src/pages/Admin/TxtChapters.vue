@@ -111,7 +111,13 @@
                 <el-option v-for="p in allPresets" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
               <div v-if="currentPresetPattern" class="mt-2 p-2 bg-gray-50 rounded text-xs">
-                <div class="text-gray-600 mb-1">正则表达式:</div>
+                <div class="flex items-center justify-between mb-1">
+                  <div class="text-gray-600">正则表达式:</div>
+                  <el-button size="small" text type="primary" @click="editPresetPattern">
+                    <span class="material-symbols-outlined text-sm mr-1">edit</span>
+                    编辑
+                  </el-button>
+                </div>
                 <code class="text-primary break-all">{{ currentPresetPattern }}</code>
               </div>
             </div>
@@ -233,6 +239,14 @@ watch(ruleType, newType => {
     selectedPresetId.value = allPresets.value[0].id
   }
 })
+
+// 编辑内置规则的正则表达式
+function editPresetPattern() {
+  if (currentPresetPattern.value) {
+    pattern.value = currentPresetPattern.value
+    ruleType.value = 'custom'
+  }
+}
 
 function back() {
   router.back()
