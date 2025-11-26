@@ -7,23 +7,26 @@ search:
   params:
     t: 1
     kw: $query
-  result_list_xpath: //div[@id='search_result']//div[not(contains(div[@class='info'], '文章类型：评论'))]//h3[@class='title']/a
+  result_list_xpath: //div[@id='search_result']/div[h3[@class='title'] and not(contains(div[@class='info'], '文章类型：评论'))]
   detail_url_attr: href
   # 搜索页预览字段
   preview_fields:
+    url:
+      xpath: .//h3[@class='title']/a
+      attr: href
     title:
-      xpath: .
+      xpath: .//h3[@class='title']/a
       attr: text
     authors:
-      xpath: ./ancestor::div[contains(@class, 'bookbox')]//div[@class='author']//a
+      xpath: .//div[@class='info']/a
       attr: text
-    cover:
-      xpath: ./ancestor::div[contains(@class, 'bookbox')]//img
-      attr: src
+    description:
+      xpath: .//div[@class='intro']
+      attr: text
     status:
-      xpath: ./ancestor::div[contains(@class, 'bookbox')]//div[@class='info']
+      xpath: .//div[@class='info']
       attr: text
-      filter: '$regexMatch("/文章状态：([^\s]+)/u", $v, 1)'
+      filter: '$regexMatch("/进度：(.+?)(?:\s|┃|$)/u", $v, 1)'
 detail:
   fields:
     title:
