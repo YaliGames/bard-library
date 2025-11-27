@@ -1,28 +1,42 @@
 <template>
-  <div v-if="systemStore.initialized">
+  <div v-show="systemStore.initialized">
     <NavBar />
     <main>
       <router-view />
     </main>
   </div>
-  <div v-else class="loading-container">
-    <div class="loading-content">
-      <div class="loading-spinner"></div>
-      <p class="loading-text">正在加载...</p>
+  <Transition name="slide-down">
+    <div v-if="showLoading" class="loading-container">
+      <LoadingAnimation :book-size="0.5" />
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import NavBar from './components/NavBar.vue'
+import LoadingAnimation from './components/LoadingAnimation.vue'
 import { useSystemStore } from '@/stores/system'
 import { useAuthStore } from '@/stores/auth'
 
 const systemStore = useSystemStore()
 const authStore = useAuthStore()
 const router = useRouter()
+const showLoading = ref(true)
+
+// 监听初始化状态，触发退场动画
+watch(
+  () => systemStore.initialized,
+  newVal => {
+    if (newVal) {
+      // 延迟一点时间让用户看到加载完成
+      setTimeout(() => {
+        showLoading.value = false
+      }, 300)
+    }
+  },
+)
 
 function handleUnauthorized(event: Event) {
   const customEvent = event as CustomEvent<{ redirectTo: string }>
@@ -53,37 +67,28 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .loading-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 9999;
 }
 
-.loading-content {
-  text-align: center;
-  color: white;
+.slide-down-enter-active {
+  transition: transform 0.5s ease-in-out;
 }
 
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  margin: 0 auto 1rem;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.slide-down-leave-active {
+  transition: transform 0.8s ease-in-out;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.slide-down-enter-from {
+  transform: translateY(0);
 }
 
-.loading-text {
-  font-size: 1.125rem;
-  font-weight: 500;
-  margin: 0;
+.slide-down-leave-to {
+  transform: translateY(100%);
 }
 </style>
