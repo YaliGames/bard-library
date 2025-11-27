@@ -1,5 +1,5 @@
 <template>
-  <section class="flex gap-4 items-start p-4 md:p-6">
+  <section class="flex gap-4 items-start md:p-4 lg:p-6">
     <!-- 左侧导览 -->
     <aside
       class="hidden md:block w-[320px] shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)]"
@@ -68,7 +68,7 @@
         </div>
       </div>
       <div
-        class="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm"
+        class="border border-gray-200 dark:border-gray-700 md:rounded-lg shadow-sm"
         :style="{
           '--reader-font-size': settings.fontSize + 'px',
           '--reader-line-height': String(settings.lineHeight),
@@ -107,7 +107,7 @@
                 @selection="onSelectionEvent"
                 @mark-click="onMarkClickEvent"
               />
-              <div class="px-3 py-2 mb-24">
+              <div class="px-3 py-2 mb-24 hidden md:block">
                 <TxtChapterNav
                   :has-prev="hasPrevChapter"
                   :has-next="hasNextChapter"

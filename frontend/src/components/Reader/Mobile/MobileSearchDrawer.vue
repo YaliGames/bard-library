@@ -52,7 +52,7 @@
                 <button
                   @click="setMode('chapter')"
                   :class="[
-                    'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors',
+                    'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
                     mode === 'chapter'
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
@@ -63,7 +63,7 @@
                 <button
                   @click="setMode('global')"
                   :class="[
-                    'flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors',
+                    'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
                     mode === 'global'
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
@@ -82,9 +82,9 @@
                     @keyup.enter="handleSearch"
                     type="text"
                     placeholder="输入关键词..."
-                    class="w-full px-4 py-2 pr-20 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus-within:ring-2 focus-within:ring-[var(--el-color-primary)]"
                   />
-                  <div class="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 items-center">
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2 items-center">
                     <span v-if="searching" class="text-xs text-gray-500">搜索中...</span>
                     <span v-else-if="results.length > 0" class="text-xs text-gray-500">
                       {{ currentIndex + 1 }}/{{ results.length }}
@@ -108,28 +108,18 @@
 
               <!-- 搜索选项 -->
               <div class="flex gap-4 mb-3">
-                <label
-                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  <input
-                    :checked="caseSensitive"
-                    @change="toggleCaseSensitive"
-                    type="checkbox"
-                    class="rounded text-blue-500 focus:ring-blue-500"
-                  />
-                  区分大小写
-                </label>
-                <label
-                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  <input
-                    :checked="wholeWord"
-                    @change="toggleWholeWord"
-                    type="checkbox"
-                    class="rounded text-blue-500 focus:ring-blue-500"
-                  />
-                  全字匹配
-                </label>
+                <el-checkbox
+                  :model-value="caseSensitive"
+                  @update:model-value="toggleCaseSensitive"
+                  label="区分大小写"
+                  size="large"
+                />
+                <el-checkbox
+                  :model-value="wholeWord"
+                  @update:model-value="toggleWholeWord"
+                  label="全字匹配"
+                  size="large"
+                />
               </div>
 
               <!-- 搜索按钮 -->
@@ -137,7 +127,11 @@
                 <button
                   @click="handleSearch"
                   :disabled="!keyword.trim() || searching"
-                  class="flex-1 py-2 px-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed"
+                  :class="[
+                    'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors',
+                    'bg-blue-500 text-white hover:bg-blue-600',
+                    !keyword.trim() || searching ? 'opacity-50 cursor-not-allowed' : '',
+                  ]"
                 >
                   {{ searching ? '搜索中...' : '搜索' }}
                 </button>
@@ -145,17 +139,17 @@
                   v-if="searched && results.length > 0"
                   @click="prevResult"
                   :disabled="results.length === 0"
-                  class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  class="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ↑
+                  <span class="material-symbols-outlined text-lg">arrow_upward</span>
                 </button>
                 <button
                   v-if="searched && results.length > 0"
                   @click="nextResult"
                   :disabled="results.length === 0"
-                  class="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  class="px-3 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ↓
+                  <span class="material-symbols-outlined text-lg">arrow_downward</span>
                 </button>
               </div>
 
@@ -218,7 +212,7 @@
         <div class="border-t border-gray-200 dark:border-gray-700 p-3 flex-shrink-0">
           <button
             @click="$emit('close')"
-            class="w-full py-2 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
+            class="w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             关闭
           </button>
