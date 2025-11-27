@@ -28,6 +28,7 @@ export type UserMenuItem = {
 export const userMenu: UserMenuItem[] = [
   { id: 'user-profile', label: '个人资料', path: '/user/profile' },
   { id: 'user-settings', label: '用户设置', path: '/user/settings' },
+  { id: 'user-cache', label: '缓存管理', path: '/user/cache' },
   {
     id: 'system',
     label: '系统设置',

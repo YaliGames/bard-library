@@ -91,6 +91,11 @@ const routes: RouteRecordRaw[] = [
         name: 'user-settings',
         component: () => import('./pages/UserSettings.vue'),
       },
+      {
+        path: 'cache',
+        name: 'user-cache',
+        component: () => import('./pages/CacheManagement.vue'),
+      },
     ],
   },
   {
