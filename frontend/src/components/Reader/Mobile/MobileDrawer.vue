@@ -160,6 +160,7 @@
           <div v-else-if="activeTab === 'cache'" class="p-4">
             <CacheCore
               :file-id="fileId"
+              :book-id="bookId"
               :book-title="bookTitle"
               :chapters="chapters"
               :cached-book="cachedBook"
@@ -432,6 +433,7 @@ interface Props {
   bookmarks: Bookmark[]
   currentChapterIndex: number | null
   fileId: number
+  bookId?: number
   bookTitle: string
   settings: ReaderSettings
   cachedBook: CachedBook | null

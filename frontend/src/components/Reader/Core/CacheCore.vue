@@ -27,6 +27,7 @@ interface Chapter {
 
 interface Props {
   fileId: number
+  bookId?: number
   bookTitle: string
   chapters: Chapter[]
   cachedBook: CachedBook | null
@@ -102,8 +103,12 @@ async function handleCacheCurrentBook() {
       contentsMap.set(Number(key), value as string)
     }
 
+    // 使用 props.bookId 或者从 API 返回的 book_id
+    const bookId = props.bookId || data.book_id
+
     await cacheBook(props.fileId, props.chapters, contentsMap, {
-      bookTitle: props.bookTitle,
+      bookId: bookId,
+      bookTitle: props.bookTitle || data.book_title,
       fileName: data.file_name,
     })
 

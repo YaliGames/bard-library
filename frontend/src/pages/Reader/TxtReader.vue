@@ -213,8 +213,10 @@
   <CacheManager
     v-model="showCacheManager"
     :file-id="fileId"
+    :book-id="bookId"
     :book-title="'title' in book && book.title ? book.title : `文件 ${fileId}`"
     :chapters="chapters"
+    :cached-book="cachedBook"
     @cache-complete="loadCacheStatus"
     class="hidden md:block"
   />
@@ -240,6 +242,7 @@
     :bookmarks="filteredBookmarks"
     :current-chapter-index="currentChapterIndex"
     :file-id="fileId"
+    :book-id="bookId"
     :book-title="'title' in book && book.title ? book.title : `文件 ${fileId}`"
     :settings="settings"
     :cached-book="cachedBook"

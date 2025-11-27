@@ -2,9 +2,10 @@
   <el-dialog v-model="visible" title="本地缓存管理" width="600px" :close-on-click-modal="false">
     <CacheCore
       :file-id="fileId"
+      :book-id="bookId"
       :book-title="bookTitle"
       :chapters="chapters"
-      :cached-book="null"
+      :cached-book="cachedBook"
       @cache-complete="emit('cache-complete')"
     >
       <template
@@ -138,12 +139,15 @@
 import { computed } from 'vue'
 import CacheCore from '../Core/CacheCore.vue'
 import type { Chapter } from '@/api/txt'
+import type { CachedBook } from '@/utils/txtCache'
 
 interface Props {
   modelValue: boolean
   fileId: number
+  bookId?: number
   bookTitle: string
   chapters: Chapter[]
+  cachedBook: CachedBook | null
 }
 
 const props = defineProps<Props>()
