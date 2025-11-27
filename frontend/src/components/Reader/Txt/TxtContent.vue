@@ -521,10 +521,12 @@ defineExpose({ scrollToTarget })
 onMounted(() => {
   document.addEventListener('selectionchange', onSelectionChange, { passive: true } as any)
   articleEl.value?.addEventListener('contextmenu', onContextMenu)
+  document.addEventListener('contextmenu', onContextMenu)
 })
 onUnmounted(() => {
   document.removeEventListener('selectionchange', onSelectionChange as any)
   articleEl.value?.removeEventListener('contextmenu', onContextMenu)
+  document.removeEventListener('contextmenu', onContextMenu)
 })
 </script>
 
@@ -535,6 +537,12 @@ onUnmounted(() => {
   user-select: text;
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-tap-highlight-color: transparent;
+}
+
+.reader-article * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* 隐藏移动端原生的复制/粘贴等菜单 */
