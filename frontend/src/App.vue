@@ -7,7 +7,7 @@
   </div>
   <Transition name="slide-down">
     <div v-if="showLoading" class="loading-container">
-      <LoadingAnimation :book-size="0.5" />
+      <LoadingAnimation :book-size="0.5" :animation-speed="0.5" />
     </div>
   </Transition>
 </template>

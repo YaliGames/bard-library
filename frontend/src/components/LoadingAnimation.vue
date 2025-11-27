@@ -10,10 +10,12 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 interface Props {
   bookSize?: number // 书本大小缩放比例，默认为 1
+  animationSpeed?: number // 动画速度倍率，默认为 1
 }
 
 const props = withDefaults(defineProps<Props>(), {
   bookSize: 1,
+  animationSpeed: 1,
 })
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -109,9 +111,11 @@ class Book {
   curveAmount: number
   textMargin: number
   scale: number
+  speedMultiplier: number
 
-  constructor(scale = 1) {
+  constructor(scale = 1, speedMultiplier = 1) {
     this.scale = scale
+    this.speedMultiplier = speedMultiplier
     this.width = 120 * scale
     this.height = 160 * scale
     this.state = 'flipping'
@@ -119,7 +123,7 @@ class Book {
     this.waitDuration = 50
     this.rawProgress = 0
     this.flipProgress = 0
-    this.flipSpeed = 0.02
+    this.flipSpeed = 0.02 * speedMultiplier
     this.hoverOffset = 0
     this.curveAmount = 15 * scale
     this.textMargin = 10 * scale
@@ -130,10 +134,10 @@ class Book {
   }
 
   update() {
-    this.hoverOffset = Math.sin(frame * 0.05) * 10 * this.scale
+    this.hoverOffset = Math.sin(frame * 0.05 * this.speedMultiplier) * 10 * this.scale
 
     if (this.state === 'waiting') {
-      this.waitTimer++
+      this.waitTimer += this.speedMultiplier
       if (this.waitTimer >= this.waitDuration) {
         this.state = 'flipping'
         this.rawProgress = 0
@@ -142,10 +146,8 @@ class Book {
       this.rawProgress += this.flipSpeed
       this.flipProgress = this.easeInOutCubic(this.rawProgress)
 
-      if (this.rawProgress > 0.45 && this.rawProgress < 0.55) {
-        if (Math.random() > 0.3) {
-          particles.push(new Particle(width / 2, height / 2 + this.hoverOffset))
-        }
+      if (this.rawProgress < 0.05) {
+        particles.push(new Particle(width / 2 + this.width / 2, height / 2 + this.hoverOffset))
       }
 
       if (this.rawProgress >= 1) {
@@ -383,7 +385,7 @@ onMounted(() => {
   resize()
   window.addEventListener('resize', resize)
 
-  book = new Book(props.bookSize)
+  book = new Book(props.bookSize, props.animationSpeed)
   animate()
 })
 
