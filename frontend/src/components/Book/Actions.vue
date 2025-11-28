@@ -107,7 +107,6 @@
       size="large"
       v-if="files.length <= 1"
       :disabled="files.length === 0"
-      class="mb-2 md:mb-0"
       @click="$emit('download', files[0]?.id)"
     >
       <span class="material-symbols-outlined mr-1">download</span>
