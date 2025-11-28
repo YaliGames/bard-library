@@ -286,6 +286,8 @@ import {
   findAllOccurrences,
   extractSearchPreview,
   buildSearchRegex,
+  mapAbsRangeToChapter,
+  splitLocalRangeToSentenceRanges,
 } from '@/utils/reader'
 import { useSimpleLoading } from '@/composables/useLoading'
 import { getCachedBook, type CachedBook } from '@/utils/txtCache'
@@ -363,6 +365,8 @@ const contentRef = ref<{
     endSid?: number
     selectionText?: string
     isSearchJump?: boolean
+    matchPosition?: number
+    matchLength?: number
   }) => void
 } | null>(null)
 const searchPanelRef = ref<{
@@ -547,26 +551,29 @@ async function loadBookmarksForChapter() {
     for (const b of bookmarks.value) {
       try {
         const loc = JSON.parse(b.location || '{}')
-        if (typeof loc.selectionText === 'string' && loc.selectionText) {
-          // 1) 在全文中查找所有出现位置
-          const occ = findAllOccurrences(content.value, loc.selectionText)
-          // 2) 将每个全文范围拆分映射到句内范围
-          for (const r of occ) {
-            // 找到覆盖的句子
-            for (let i = 0; i < sentenceOffsets.length; i++) {
-              const seg = sentenceOffsets[i]
-              if (r.end <= seg.start || r.start >= seg.end) continue
-              const localStart = Math.max(0, r.start - seg.start)
-              const localEnd = Math.min(seg.end - seg.start, r.end - seg.start)
-              const arr = markRanges.get(i) || []
-              arr.push({
-                start: localStart,
-                end: localEnd,
-                bookmarkId: b.id,
-                color: (b as any).color || null,
-              })
-              markRanges.set(i, arr)
-            }
+        // 只处理 txt 格式的 location
+        if (!(loc && loc.format === 'txt')) continue
+
+        // 如果后端提供 absStart/absEnd，则映射到章节并拆分为句子范围
+        if (typeof loc.absStart === 'number' && typeof loc.absEnd === 'number') {
+          const absStart = Number(loc.absStart)
+          const absEnd = Number(loc.absEnd)
+          const mapped = mapAbsRangeToChapter(absStart, absEnd, chapters.value)
+          if (!mapped) continue
+
+          // 仅当该书签属于当前章节才渲染高亮
+          if (mapped.chapterIndex !== currentChapterIndex.value) continue
+
+          const sentenceRanges = splitLocalRangeToSentenceRanges(
+            mapped.localStart,
+            mapped.localEnd,
+            sentenceOffsets,
+          )
+
+          for (const r of sentenceRanges) {
+            const arr = markRanges.get(r.sentenceIndex) || []
+            arr.push({ start: r.start, end: r.end, bookmarkId: b.id, color: (b as any).color || null })
+            markRanges.set(r.sentenceIndex, arr)
           }
         }
       } catch {}
@@ -918,33 +925,27 @@ async function jumpToBookmark(b: Bookmark) {
     const loc = JSON.parse(b.location || '{}')
     const text = typeof loc.selectionText === 'string' ? loc.selectionText : undefined
 
-    // 优先使用绝对偏移锚点
-    if (typeof loc?.absStart === 'number' && chapters.value.length > 0) {
-      const abs = Number(loc.absStart)
-      // 找到所属章节
-      let targetChapter = 0
-      for (let i = 0; i < chapters.value.length; i++) {
-        const ch = chapters.value[i]
-        if (abs >= ch.offset && abs < ch.offset + ch.length) {
-          targetChapter = i
-          break
-        }
-      }
+    // 优先使用后端提供的绝对偏移（absStart/absEnd）进行精确定位
+    if (typeof loc?.absStart === 'number' && typeof loc?.absEnd === 'number' && chapters.value.length > 0) {
+      const absStart = Number(loc.absStart)
+      const absEnd = Number(loc.absEnd)
+      const mapped = mapAbsRangeToChapter(absStart, absEnd, chapters.value)
+      if (!mapped) return
 
-      // 如果跳转到非当前章节，需要先加载章节内容
-      if (currentChapterIndex.value !== targetChapter) {
+      // 若跳转到非当前章节，先设置 pendingScroll（包含章节局部位置），并加载目标章节
+      if (mapped.chapterIndex !== currentChapterIndex.value) {
         pendingScroll.value = {
-          chapterIndex: targetChapter,
+          chapterIndex: mapped.chapterIndex,
           selectionText: text,
+          matchPosition: mapped.localStart,
+          matchLength: mapped.localEnd - mapped.localStart,
         }
-        await openChapter(targetChapter)
+        await openChapter(mapped.chapterIndex)
         return
       }
 
-      // 当前章节，计算句子索引
-      const base = chapters.value[targetChapter]?.offset ?? 0
-      const localPos = Math.max(0, abs - base)
-
+      // 当前章节：找到对应的句子索引并滚动、高亮
+      const localPos = mapped.localStart
       let targetSid: number | undefined = undefined
       for (let i = 0; i < sentenceOffsets.length; i++) {
         const seg = sentenceOffsets[i]
@@ -954,7 +955,9 @@ async function jumpToBookmark(b: Bookmark) {
         }
       }
 
-      nextTick(() => contentRef.value?.scrollToTarget({ startSid: targetSid, selectionText: text }))
+      nextTick(() =>
+        contentRef.value?.scrollToTarget({ startSid: targetSid, selectionText: text, matchPosition: mapped.localStart, matchLength: mapped.localEnd - mapped.localStart }),
+      )
       return
     }
 

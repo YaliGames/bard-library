@@ -93,6 +93,56 @@ export function clampRanges<T extends RangeLike>(ranges: Array<T>, maxLen: numbe
     .filter((r: any) => r.end > r.start) as Array<T>
 }
 
+/**
+ * 将文件级的绝对区间 [absStart, absEnd) 映射到所属章节以及章节内的局部区间。
+ * chapters 应包含 offset（在全文中的起始绝对位置）和 length（章节长度）。
+ * 返回 null 表示无法映射到任何章节。
+ */
+export function mapAbsRangeToChapter(
+  absStart: number,
+  absEnd: number,
+  chapters: Array<{ offset?: number; length?: number }>,
+): { chapterIndex: number; localStart: number; localEnd: number } | null {
+  if (!Array.isArray(chapters) || chapters.length === 0) return null
+  for (let i = 0; i < chapters.length; i++) {
+    const ch = chapters[i]
+    const off = Number(ch.offset || 0)
+    const len = Number(ch.length || 0)
+    const chStart = off
+    const chEnd = off + len
+    // 只要 absStart 落在章节范围内，就认为该区间属于此章节（书签通常不会跨章节）
+    if (absStart >= chStart && absStart < chEnd) {
+      const localStart = Math.max(0, absStart - chStart)
+      const localEnd = Math.max(0, Math.min(len, absEnd - chStart))
+      return { chapterIndex: i, localStart, localEnd }
+    }
+  }
+  return null
+}
+
+/**
+ * 将章节内的局部区间 [localStart, localEnd) 拆分成若干句子的范围，
+ * 返回数组，每项包含 sentenceIndex（句子索引）和 start/end（句内偏移，半开区间）。
+ */
+export function splitLocalRangeToSentenceRanges(
+  localStart: number,
+  localEnd: number,
+  sentenceOffsets: Array<{ start: number; end: number }>,
+): Array<{ sentenceIndex: number; start: number; end: number }> {
+  const res: Array<{ sentenceIndex: number; start: number; end: number }> = []
+  if (!Array.isArray(sentenceOffsets) || sentenceOffsets.length === 0) return res
+  const s = Math.max(0, localStart)
+  const e = Math.max(s, localEnd)
+  for (let i = 0; i < sentenceOffsets.length; i++) {
+    const seg = sentenceOffsets[i]
+    if (e <= seg.start || s >= seg.end) continue
+    const segStart = Math.max(seg.start, s)
+    const segEnd = Math.min(seg.end, e)
+    res.push({ sentenceIndex: i, start: segStart - seg.start, end: segEnd - seg.start })
+  }
+  return res
+}
+
 export function mergeRanges<T extends RangeLike & { bookmarkId?: number; color?: string | null }>(
   ranges: Array<T>,
 ): Array<T> {
