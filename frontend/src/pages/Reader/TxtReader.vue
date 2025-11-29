@@ -281,13 +281,13 @@ import MobileDrawer from '@/components/Reader/Mobile/MobileDrawer.vue'
 import MobileSearchDrawer from '@/components/Reader/Mobile/MobileSearchDrawer.vue'
 import { useSettingsStore } from '@/stores/settings'
 import {
-  splitIntoSentences,
   buildSentenceOffsets,
   findAllOccurrences,
   extractSearchPreview,
   buildSearchRegex,
-  mapAbsRangeToChapter,
-  splitLocalRangeToSentenceRanges,
+  mapAbsToChapter,
+  splitRangeToSegments,
+  splitByLines,
 } from '@/utils/reader'
 import { useSimpleLoading } from '@/composables/useLoading'
 import { getCachedBook, type CachedBook } from '@/utils/txtCache'
@@ -558,22 +558,22 @@ async function loadBookmarksForChapter() {
         if (typeof loc.absStart === 'number' && typeof loc.absEnd === 'number') {
           const absStart = Number(loc.absStart)
           const absEnd = Number(loc.absEnd)
-          const mapped = mapAbsRangeToChapter(absStart, absEnd, chapters.value)
+          const mapped = mapAbsToChapter(absStart, absEnd, chapters.value)
           if (!mapped) continue
 
           // 仅当该书签属于当前章节才渲染高亮
           if (mapped.chapterIndex !== currentChapterIndex.value) continue
 
-          const sentenceRanges = splitLocalRangeToSentenceRanges(
-            mapped.localStart,
-            mapped.localEnd,
-            sentenceOffsets,
-          )
-
-          for (const r of sentenceRanges) {
-            const arr = markRanges.get(r.sentenceIndex) || []
-            arr.push({ start: r.start, end: r.end, bookmarkId: b.id, color: (b as any).color || null })
-            markRanges.set(r.sentenceIndex, arr)
+          const segs = splitRangeToSegments(mapped.localStart, mapped.localEnd, sentenceOffsets)
+          for (const seg of segs) {
+            const arr = markRanges.get(seg.idx) || []
+            arr.push({
+              start: seg.start,
+              end: seg.end,
+              bookmarkId: b.id,
+              color: (b as any).color || null,
+            })
+            markRanges.set(seg.idx, arr)
           }
         }
       } catch {}
@@ -597,21 +597,10 @@ async function loadChapters() {
   try {
     const response = await txtApi.listChapters(fileId)
 
-    // 从响应中提取 book 和 chapters
+    // 从响应中提取 book（只支持新结构：response.book）
     if (response.book) {
       book.value = response.book
       bookId.value = response.book.id
-    } else {
-      // 向后兼容：从 chapters 中提取 book_id
-      try {
-        const b =
-          response.chapters && response.chapters.length > 0 && response.chapters[0].book_id
-            ? Number(response.chapters[0].book_id)
-            : 0
-        if (Number.isFinite(b) && b > 0) {
-          bookId.value = b
-        }
-      } catch {}
     }
 
     chapters.value = response.chapters
@@ -668,18 +657,17 @@ async function openChapter(index: number) {
     } else {
       // 从API加载
       const data = await txtApi.getChapterContent(fileId, index)
-      // 若章节内容接口也返回了 book_id，则以其为准
-      try {
-        const b = Number((data as any).book_id || 0)
-        if (Number.isFinite(b) && b > 0) {
-          bookId.value = b
-        }
-      } catch {}
+      // 若章节内容接口返回了 book_id，则以其为准（仅支持新结构）
+      if ((data as any)?.book_id) {
+        const b = Number((data as any).book_id)
+        if (Number.isFinite(b) && b > 0) bookId.value = b
+      }
       chapterContent = data.content
     }
 
     content.value = chapterContent
-    sentences.value = splitIntoSentences(chapterContent)
+    // 使用按换行拆分，避免句子切分导致高亮位置偏移或被拆断
+    sentences.value = splitByLines(chapterContent)
     sentenceOffsets = buildSentenceOffsets(sentences.value)
     currentChapterIndex.value = index
     selectionRange.value = null
@@ -721,12 +709,12 @@ async function openChapter(index: number) {
   }
 }
 
-onMounted(loadSettings)
-// 先初始化鉴权状态，再解析初始上下文，最后加载章节
+// 合并 mounted：先加载设置，再解析上下文并加载章节与缓存状态
 onMounted(async () => {
+  loadSettings()
   resolveInitialContext()
   await loadChapters()
-  await loadCacheStatus() // 加载缓存状态
+  await loadCacheStatus()
 
   // 移动端滚动监听
   window.addEventListener('scroll', handleMobileScroll)
@@ -740,7 +728,15 @@ onUnmounted(() => {
 function handleMobileScroll() {
   const currentScrollY = window.scrollY
 
-  if (currentScrollY > lastScrollY && currentScrollY > 100) {
+  const viewportHeight = window.innerHeight
+  const docHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)
+  const distanceToBottom = docHeight - (currentScrollY + viewportHeight)
+  const bottomThreshold = 120 // px，接近底部时保持显示
+
+  // 如果接近底部，始终显示底部栏（覆盖向下隐藏逻辑）
+  if (distanceToBottom <= bottomThreshold) {
+    mobileBottomBarVisible.value = true
+  } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
     // 向下滚动且超过100px，隐藏底部栏
     mobileBottomBarVisible.value = false
   } else if (currentScrollY < lastScrollY) {
@@ -926,10 +922,14 @@ async function jumpToBookmark(b: Bookmark) {
     const text = typeof loc.selectionText === 'string' ? loc.selectionText : undefined
 
     // 优先使用后端提供的绝对偏移（absStart/absEnd）进行精确定位
-    if (typeof loc?.absStart === 'number' && typeof loc?.absEnd === 'number' && chapters.value.length > 0) {
+    if (
+      typeof loc?.absStart === 'number' &&
+      typeof loc?.absEnd === 'number' &&
+      chapters.value.length > 0
+    ) {
       const absStart = Number(loc.absStart)
       const absEnd = Number(loc.absEnd)
-      const mapped = mapAbsRangeToChapter(absStart, absEnd, chapters.value)
+      const mapped = mapAbsToChapter(absStart, absEnd, chapters.value)
       if (!mapped) return
 
       // 若跳转到非当前章节，先设置 pendingScroll（包含章节局部位置），并加载目标章节
@@ -944,42 +944,36 @@ async function jumpToBookmark(b: Bookmark) {
         return
       }
 
-      // 当前章节：找到对应的句子索引并滚动、高亮
+      // 当前章节：找到对应的句子索引并滚动、高亮（同时计算 endSid，确保跨句子范围也会闪烁）
       const localPos = mapped.localStart
+      const localEndPos = Math.max(0, mapped.localEnd - 1)
       let targetSid: number | undefined = undefined
+      let endSid: number | undefined = undefined
+
       for (let i = 0; i < sentenceOffsets.length; i++) {
         const seg = sentenceOffsets[i]
-        if (localPos >= seg.start && localPos < seg.end) {
+        if (targetSid === undefined && localPos >= seg.start && localPos < seg.end) {
           targetSid = i
-          break
         }
+        if (endSid === undefined && localEndPos >= seg.start && localEndPos < seg.end) {
+          endSid = i
+        }
+        if (targetSid !== undefined && endSid !== undefined) break
       }
 
       nextTick(() =>
-        contentRef.value?.scrollToTarget({ startSid: targetSid, selectionText: text, matchPosition: mapped.localStart, matchLength: mapped.localEnd - mapped.localStart }),
+        contentRef.value?.scrollToTarget({
+          startSid: targetSid,
+          endSid,
+          selectionText: text,
+          matchPosition: mapped.localStart,
+          matchLength: mapped.localEnd - mapped.localStart,
+        }),
       )
       return
     }
 
-    // 兼容旧结构 chapterIndex
-    if (typeof loc?.chapterIndex === 'number') {
-      const targetChapter = Number(loc.chapterIndex)
-      const targetSid = typeof loc.startSid === 'number' ? Number(loc.startSid) : undefined
-      const endSid = typeof loc.endSid === 'number' ? Number(loc.endSid) : undefined
-
-      if (currentChapterIndex.value === targetChapter) {
-        nextTick(() =>
-          contentRef.value?.scrollToTarget({ startSid: targetSid, endSid, selectionText: text }),
-        )
-      } else {
-        pendingScroll.value = {
-          chapterIndex: targetChapter,
-          selectionText: text,
-          startSid: targetSid,
-        }
-        await openChapter(targetChapter)
-      }
-    }
+    return
   } catch {}
 }
 
@@ -1204,8 +1198,9 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
 
           // 计算句子索引
           let sentenceIndex: number | undefined
+          // 使用与正文一致的按换行分段策略来计算段索引（保证索引一致）
           const chapterSentences =
-            i === currentChapterIndex.value ? sentences.value : splitIntoSentences(chapterContent)
+            i === currentChapterIndex.value ? sentences.value : splitByLines(chapterContent)
 
           let offset = 0
           for (let j = 0; j < chapterSentences.length; j++) {

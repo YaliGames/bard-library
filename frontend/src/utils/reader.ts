@@ -1,18 +1,30 @@
 export type RangeLike = { start: number; end: number }
 
-// 句子切分（简单中文/英文标点），尽量保留分隔符
-export function splitIntoSentences(text: string): string[] {
+// 按换行符拆分为段（保留换行符在段尾，除最后一段），以便构建与原文字符位置严格对应的偏移映射
+export function splitByLines(text: string): string[] {
   if (!text) return []
+  // 统一使用 '\n' 作为换行分隔符；保留换行符在每段末尾（除了最后一段）
   const parts: string[] = []
-  let buf = ''
-  for (const ch of text) {
-    buf += ch
-    if (/^[。！？!?;；]\s?$/.test(ch)) {
-      parts.push(buf)
-      buf = ''
+  let start = 0
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (ch === '\r') {
+      // 支持 CRLF 或 CR，统一处理为一处换行
+      const next = text[i + 1]
+      if (next === '\n') {
+        parts.push(text.slice(start, i + 2))
+        i += 1
+        start = i + 1
+      } else {
+        parts.push(text.slice(start, i + 1))
+        start = i + 1
+      }
+    } else if (ch === '\n') {
+      parts.push(text.slice(start, i + 1))
+      start = i + 1
     }
   }
-  if (buf) parts.push(buf)
+  if (start < text.length) parts.push(text.slice(start))
   return parts
 }
 
@@ -98,7 +110,7 @@ export function clampRanges<T extends RangeLike>(ranges: Array<T>, maxLen: numbe
  * chapters 应包含 offset（在全文中的起始绝对位置）和 length（章节长度）。
  * 返回 null 表示无法映射到任何章节。
  */
-export function mapAbsRangeToChapter(
+export function mapAbsToChapter(
   absStart: number,
   absEnd: number,
   chapters: Array<{ offset?: number; length?: number }>,
@@ -124,23 +136,23 @@ export function mapAbsRangeToChapter(
  * 将章节内的局部区间 [localStart, localEnd) 拆分成若干句子的范围，
  * 返回数组，每项包含 sentenceIndex（句子索引）和 start/end（句内偏移，半开区间）。
  */
-export function splitLocalRangeToSentenceRanges(
+export function splitRangeToSegments(
   localStart: number,
   localEnd: number,
-  sentenceOffsets: Array<{ start: number; end: number }>,
-): Array<{ sentenceIndex: number; start: number; end: number }> {
-  const res: Array<{ sentenceIndex: number; start: number; end: number }> = []
-  if (!Array.isArray(sentenceOffsets) || sentenceOffsets.length === 0) return res
+  offsets: Array<{ start: number; end: number }>,
+): Array<{ idx: number; start: number; end: number }> {
+  const out: Array<{ idx: number; start: number; end: number }> = []
+  if (!Array.isArray(offsets) || offsets.length === 0) return out
   const s = Math.max(0, localStart)
   const e = Math.max(s, localEnd)
-  for (let i = 0; i < sentenceOffsets.length; i++) {
-    const seg = sentenceOffsets[i]
+  for (let i = 0; i < offsets.length; i++) {
+    const seg = offsets[i]
     if (e <= seg.start || s >= seg.end) continue
     const segStart = Math.max(seg.start, s)
     const segEnd = Math.min(seg.end, e)
-    res.push({ sentenceIndex: i, start: segStart - seg.start, end: segEnd - seg.start })
+    out.push({ idx: i, start: segStart - seg.start, end: segEnd - seg.start })
   }
-  return res
+  return out
 }
 
 export function mergeRanges<T extends RangeLike & { bookmarkId?: number; color?: string | null }>(

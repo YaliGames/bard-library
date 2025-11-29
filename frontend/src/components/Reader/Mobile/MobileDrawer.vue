@@ -34,7 +34,7 @@
         </div>
 
         <!-- 内容区 -->
-        <div ref="contentScrollRef" class="flex-1 overflow-y-auto min-h-0">
+        <div ref="contentScrollRef" class="flex-1 overflow-y-auto min-h-0 mt-2">
           <!-- 章节 -->
           <div v-if="activeTab === 'chapters'" class="p-2">
             <ChapterCore
@@ -77,7 +77,7 @@
           </div>
 
           <!-- 书签 -->
-          <div v-else-if="activeTab === 'bookmarks'" class="p-2">
+          <div v-else-if="activeTab === 'bookmarks'">
             <BookmarkCore
               :bookmarks="bookmarks"
               :chapters="chapters"
@@ -102,7 +102,7 @@
                 </div>
                 <div v-else>
                   <!-- 排序选项 -->
-                  <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-2 pt-1 pb-2 mb-2">
+                  <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-4 py-2 mb-2">
                     <div class="flex items-center justify-between text-xs">
                       <span class="text-gray-500 dark:text-gray-400">排序</span>
                       <div class="flex gap-2">

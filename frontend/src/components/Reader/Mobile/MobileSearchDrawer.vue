@@ -14,7 +14,7 @@
           <div class="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-3 min-h-0">
+        <div class="flex-1 p-3 min-h-0 flex flex-col">
           <SearchCore
             ref="searchCoreRef"
             :visible="visible"
