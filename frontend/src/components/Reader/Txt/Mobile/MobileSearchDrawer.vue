@@ -223,20 +223,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import SearchCore from '../Core/SearchCore.vue'
+import { ref, inject } from 'vue'
+import type { ReaderContext } from '@/types/readerContext'
+import SearchCore from '../core/SearchCore.vue'
 import type { SearchResult } from '@/types/reader'
 
-interface Props {
-  visible: boolean
-  currentChapterContent: string
-  currentChapterIndex: number | null
-  chapters: Array<{ index?: number; title?: string | null; offset?: number; length?: number }>
-  sentences: string[]
-}
+const readerContext = inject<ReaderContext>('readerContext')!
 
-defineProps<Props>()
-defineEmits<{
+// Use direct aliases to the provided Refs for simplicity and clarity
+const visible = readerContext.mobileSearchVisible
+const currentChapterContent = readerContext.content
+const currentChapterIndex = readerContext.currentChapterIndex
+const chapters = readerContext.chapters
+const sentences = readerContext.sentences
+
+const emit = defineEmits<{
   close: []
   'jump-to-result': [result: SearchResult]
   'search-chapter': [keyword: string, caseSensitive: boolean, wholeWord: boolean]

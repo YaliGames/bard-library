@@ -94,7 +94,9 @@ function getSentenceHtml(i: number, s: string): string {
           color: 'rgba(255,235,59,0.6)',
         })
       }
-    } catch (e) {}
+    } catch {
+      /* noop */
+    }
   }
 
   if (!allRanges.length) return escapeHtml(s)
@@ -183,13 +185,17 @@ function onArticleMouseUp() {
   try {
     const sel = window.getSelection?.() ?? null
     processSelectionFrom(sel)
-  } catch (e) {}
+  } catch {
+    /* noop */
+  }
 }
 
 function onSelectionChange() {
   try {
     processSelectionFrom(document.getSelection?.() ?? null)
-  } catch (e) {}
+  } catch {
+    /* noop */
+  }
 }
 
 // 合并：从选中的 Range（由句子范围计算）设置菜单位置

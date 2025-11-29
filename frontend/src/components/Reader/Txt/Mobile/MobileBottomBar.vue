@@ -9,7 +9,7 @@
     <div class="grid grid-cols-5 gap-1 px-2 py-2">
       <!-- 搜索 -->
       <button
-        @click="$emit('search')"
+        @click="doSearch"
         class="flex flex-col items-center justify-center py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600"
       >
         <span class="material-symbols-outlined text-xl">search</span>
@@ -18,7 +18,7 @@
 
       <!-- 上一章 -->
       <button
-        @click="$emit('prev')"
+        @click="doPrev"
         :disabled="!hasPrev"
         :class="[
           'flex flex-col items-center justify-center py-2 rounded',
@@ -33,7 +33,7 @@
 
       <!-- 目录/菜单 -->
       <button
-        @click="$emit('menu')"
+        @click="doMenu"
         class="flex flex-col items-center justify-center py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600"
       >
         <span class="material-symbols-outlined text-xl text-blue-500">menu_book</span>
@@ -42,7 +42,7 @@
 
       <!-- 下一章 -->
       <button
-        @click="$emit('next')"
+        @click="doNext"
         :disabled="!hasNext"
         :class="[
           'flex flex-col items-center justify-center py-2 rounded',
@@ -57,7 +57,7 @@
 
       <!-- 设置 -->
       <button
-        @click="$emit('settings')"
+        @click="doSettings"
         class="flex flex-col items-center justify-center py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600"
       >
         <span class="material-symbols-outlined text-xl">settings</span>
@@ -68,20 +68,41 @@
 </template>
 
 <script setup lang="ts">
-interface Props {
-  visible: boolean
-  cached: boolean
-  hasPrev: boolean
-  hasNext: boolean
+import { inject, computed } from 'vue'
+import type { ReaderContext } from '@/types/readerContext'
+
+const readerContext = inject<ReaderContext>('readerContext')!
+
+const visible = computed(() => Boolean(readerContext.mobileBottomBarVisible.value))
+const hasPrev = computed(
+  () =>
+    typeof readerContext.currentChapterIndex.value === 'number' &&
+    readerContext.currentChapterIndex.value > 0,
+)
+const hasNext = computed(
+  () =>
+    typeof readerContext.currentChapterIndex.value === 'number' &&
+    Array.isArray(readerContext.chapters.value) &&
+    readerContext.currentChapterIndex.value < readerContext.chapters.value.length - 1,
+)
+
+function doPrev() {
+  readerContext.goPrevChapter()
 }
 
-defineProps<Props>()
+function doNext() {
+  readerContext.goNextChapter()
+}
 
-defineEmits<{
-  prev: []
-  menu: []
-  next: []
-  search: []
-  settings: []
-}>()
+function doMenu() {
+  readerContext.openMobileDrawer('chapters')
+}
+
+function doSearch() {
+  readerContext.toggleSearch()
+}
+
+function doSettings() {
+  readerContext.openMobileDrawer('settings')
+}
 </script>

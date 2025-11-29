@@ -1,12 +1,12 @@
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="visible" @click="$emit('close')" class="fixed inset-0 bg-black/50 z-50"></div>
+      <div v-if="showDrawer" @click="closeDrawer" class="fixed inset-0 bg-black/50 z-50"></div>
     </Transition>
 
     <Transition name="slide-up">
       <div
-        v-if="visible"
+        v-if="showDrawer"
         class="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col"
       >
         <!-- 顶部拖拽条 -->
@@ -100,7 +100,7 @@
                   <span class="material-symbols-outlined text-4xl mb-2">bookmark_border</span>
                   <div class="text-sm">暂无书签</div>
                 </div>
-                <div v-else>
+                <div v-else ref="bookmarksScrollRef">
                   <!-- 排序选项 -->
                   <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-4 py-2 mb-2">
                     <div class="flex items-center justify-between text-xs">
@@ -164,7 +164,7 @@
               :book-title="bookTitle"
               :chapters="chapters"
               :cached-book="cachedBook"
-              @cache-complete="$emit('cache-complete')"
+              @cache-complete="onCacheComplete"
             >
               <template
                 #default="{
@@ -283,10 +283,10 @@
           <div v-else-if="activeTab === 'settings'" class="p-4">
             <SettingsCore
               :settings="settings"
-              @update-theme="$emit('update-theme', $event)"
-              @update-font-size="$emit('update-font-size', $event)"
-              @update-line-height="$emit('update-line-height', $event)"
-              @update-content-width="$emit('update-content-width', $event)"
+              @update-theme="onUpdateTheme"
+              @update-font-size="onUpdateFontSize"
+              @update-line-height="onUpdateLineHeight"
+              @update-content-width="onUpdateContentWidth"
             >
               <template
                 #default="{
@@ -405,55 +405,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
-import ChapterCore from '../Core/ChapterCore.vue'
-import BookmarkCore from '../Core/BookmarkCore.vue'
-import CacheCore from '../Core/CacheCore.vue'
-import SettingsCore from '../Core/SettingsCore.vue'
-import type { CachedBook } from '@/utils/txtCache'
+import { ref, watch, nextTick, inject, computed } from 'vue'
+import ChapterCore from '@/components/Reader/Txt/Core/ChapterCore.vue'
+import BookmarkCore from '@/components/Reader/Txt/Core/BookmarkCore.vue'
+import CacheCore from '@/components/Reader/Txt/Core/CacheCore.vue'
+import SettingsCore from '@/components/Reader/Txt/Core/SettingsCore.vue'
 import type { Bookmark } from '@/api/types'
+import type { ThemeKey } from '@/types/readerContext'
+import type { ReaderContext } from '@/types/readerContext'
 
-interface Chapter {
-  title?: string | null
-  index: number
-  offset: number
-  length: number
-}
+const readerContext = inject<ReaderContext>('readerContext')!
 
-interface ReaderSettings {
-  theme: 'light' | 'sepia' | 'dark'
-  fontSize: number
-  lineHeight: number
-  contentWidth: number
-}
-
-interface Props {
-  visible: boolean
-  chapters: Chapter[]
-  bookmarks: Bookmark[]
-  currentChapterIndex: number | null
-  fileId: number
-  bookId?: number
-  bookTitle: string
-  settings: ReaderSettings
-  cachedBook: CachedBook | null
-  defaultTab?: 'chapters' | 'bookmarks' | 'cache' | 'settings'
-  autoScrollCategory?: boolean
-}
-
-const props = defineProps<Props>()
-
-const emit = defineEmits<{
-  close: []
-  'open-chapter': [index: number]
-  'jump-bookmark': [bookmark: Bookmark]
-  'remove-bookmark': [bookmark: Bookmark]
-  'cache-complete': []
-  'update-theme': [theme: string]
-  'update-font-size': [size: number]
-  'update-line-height': [height: number]
-  'update-content-width': [width: number]
-}>()
+const chapters = computed(() => readerContext.chapters.value)
+const bookmarks = computed(() => readerContext.bookmarks.value)
+const currentChapterIndex = computed(() => readerContext.currentChapterIndex.value)
+const fileId = computed(() => readerContext.fileId)
+const bookId = computed(() =>
+  typeof readerContext.bookId === 'number' ? readerContext.bookId : readerContext.bookId?.value,
+)
+const bookTitle = computed(() => readerContext.bookTitle.value)
+const settings = computed(() => readerContext.settings.value)
+const cachedBook = computed(() => readerContext.cachedBook.value)
+const defaultTabProp = computed(() =>
+  readerContext.mobileDrawerDefaultTab ? readerContext.mobileDrawerDefaultTab.value : undefined,
+)
+const autoScrollCategory = computed(() =>
+  readerContext.autoScrollCategory ? readerContext.autoScrollCategory.value : undefined,
+)
+const showDrawer = computed(() => readerContext.showMobileDrawer.value)
 
 const tabs = [
   { value: 'chapters', label: '目录' },
@@ -462,22 +441,28 @@ const tabs = [
   { value: 'settings', label: '设置' },
 ] as const
 
+function normalizeTab(t: any) {
+  if (t === 'chapters' || t === 'bookmarks' || t === 'cache' || t === 'settings') return t
+  return 'chapters'
+}
+
 const activeTab = ref<'chapters' | 'bookmarks' | 'cache' | 'settings'>(
-  props.defaultTab || 'chapters',
+  normalizeTab(defaultTabProp.value),
 )
 
 const contentScrollRef = ref<HTMLElement | null>(null)
 const chaptersScrollRef = ref<HTMLElement | null>(null)
+const bookmarksScrollRef = ref<HTMLElement | null>(null)
 
 // 将当前章节滚动到可见位置
 function scrollActiveChapterToTop(smooth = true) {
   try {
-    if (props.autoScrollCategory === false) return
+    if (autoScrollCategory.value === false) return
     if (activeTab.value !== 'chapters') return
     // 使用内容区的滚动容器
     const container = contentScrollRef.value
     if (!container) return
-    const idx = props.currentChapterIndex
+    const idx = currentChapterIndex.value
     if (idx == null) return
     // 从章节列表中查找目标元素
     const chapterList = chaptersScrollRef.value
@@ -496,24 +481,27 @@ function scrollActiveChapterToTop(smooth = true) {
 }
 
 // 监听defaultTab变化
-watch([() => props.visible, () => props.defaultTab], ([visible, defaultTab]) => {
-  if (visible && defaultTab) {
-    activeTab.value = defaultTab
-  }
-})
+watch(
+  [() => readerContext.showMobileDrawer.value, () => defaultTabProp.value],
+  ([visible, defaultTab]) => {
+    if (visible && defaultTab) {
+      activeTab.value = normalizeTab(defaultTab)
+    }
+  },
+)
 
 watch(
-  () => props.defaultTab,
+  () => defaultTabProp.value,
   newTab => {
     if (newTab) {
-      activeTab.value = newTab
+      activeTab.value = normalizeTab(newTab)
     }
   },
 )
 
 // 监听当前章节变化，自动滚动
 watch(
-  () => props.currentChapterIndex,
+  () => currentChapterIndex.value,
   async () => {
     await nextTick()
     requestAnimationFrame(() => requestAnimationFrame(() => scrollActiveChapterToTop(true)))
@@ -527,33 +515,70 @@ watch(
     if (tab === 'chapters') {
       await nextTick()
       requestAnimationFrame(() => scrollActiveChapterToTop(true))
+    } else if (tab === 'bookmarks') {
+      await nextTick()
+      try {
+        contentScrollRef.value?.scrollTo({ top: 0 })
+      } catch {}
     }
   },
 )
 
 // 监听抽屉打开，初始滚动
 watch(
-  () => props.visible,
+  () => readerContext.showMobileDrawer.value,
   async visible => {
     if (visible && activeTab.value === 'chapters') {
       await nextTick()
       requestAnimationFrame(() => scrollActiveChapterToTop(false))
     }
+    if (visible && activeTab.value === 'bookmarks') {
+      await nextTick()
+      try {
+        contentScrollRef.value?.scrollTo({ top: 0 })
+      } catch {}
+    }
   },
 )
 
 function handleChapterClick(index: number) {
-  emit('open-chapter', index)
-  emit('close')
+  readerContext.openChapter(index)
+  readerContext.showMobileDrawer.value = false
 }
 
 function handleBookmarkClick(bookmark: Bookmark) {
-  emit('jump-bookmark', bookmark)
-  emit('close')
+  readerContext.jumpToBookmark(bookmark)
+  readerContext.showMobileDrawer.value = false
 }
 
 function handleRemoveBookmark(bookmark: Bookmark) {
-  emit('remove-bookmark', bookmark)
+  readerContext.removeBookmarkConfirm(bookmark)
+}
+
+// Settings update handlers: update injected settings when available, otherwise emit events for parent
+function onUpdateTheme(theme: ThemeKey) {
+  readerContext.settings.value.theme = theme
+}
+
+function onUpdateFontSize(size: number) {
+  readerContext.settings.value.fontSize = size
+}
+
+function onUpdateLineHeight(height: number) {
+  readerContext.settings.value.lineHeight = height
+}
+
+function onUpdateContentWidth(width: number) {
+  readerContext.settings.value.contentWidth = width
+}
+
+function closeDrawer() {
+  readerContext.showMobileDrawer.value = false
+}
+
+function onCacheComplete() {
+  // refresh cache status in page context
+  if (readerContext.loadCacheStatus) readerContext.loadCacheStatus()
 }
 </script>
 

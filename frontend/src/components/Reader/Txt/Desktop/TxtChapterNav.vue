@@ -22,7 +22,3 @@ defineEmits<{
   (e: 'next'): void
 }>()
 </script>
-
-<style scoped>
-/* 组件保持简洁，视觉风格交由父级容器控制 */
-</style>

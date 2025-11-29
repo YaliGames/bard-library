@@ -137,7 +137,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import CacheCore from '../Core/CacheCore.vue'
+import CacheCore from '@/components/Reader/Txt/Core/CacheCore.vue'
 import type { Chapter } from '@/api/txt'
 import type { CachedBook } from '@/utils/txtCache'
 

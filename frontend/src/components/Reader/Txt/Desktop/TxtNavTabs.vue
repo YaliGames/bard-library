@@ -103,8 +103,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import ChapterCore from '../Core/ChapterCore.vue'
-import BookmarkCore from '../Core/BookmarkCore.vue'
+import ChapterCore from '@/components/Reader/Txt/Core/ChapterCore.vue'
+import BookmarkCore from '@/components/Reader/Txt/Core/BookmarkCore.vue'
 import type { Bookmark } from '@/api/types'
 
 type TabKey = 'chapters' | 'bookmarks'
@@ -182,5 +182,3 @@ onMounted(() => {
   requestAnimationFrame(() => scrollActiveChapterToTop(false))
 })
 </script>
-
-<style scoped></style>

@@ -1,267 +1,26 @@
 <template>
-  <section class="flex gap-4 items-start md:p-4 lg:p-6">
-    <!-- 左侧导览 -->
-    <aside
-      class="hidden md:block w-[320px] shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)]"
-    >
-      <div
-        class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden flex flex-col max-h-full"
-      >
-        <div
-          class="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0"
-        >
-          <h3 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">导览</h3>
-          <div class="flex">
-            <el-button @click="showCacheManager = true">
-              <span class="material-symbols-outlined text-base">
-                {{ cachedBook ? 'check' : 'download' }}
-              </span>
-              {{ cachedBook ? '已缓存' : '缓存' }}
-            </el-button>
-            <el-button type="primary" v-permission="'books.edit'" @click="goEditChapters">
-              编辑章节
-            </el-button>
-          </div>
-        </div>
-        <div class="p-2 flex-1 overflow-y-auto">
-          <TxtNavTabs
-            v-model:tab="leftTab"
-            :chapters="chapters"
-            :current-chapter-index="currentChapterIndex"
-            :is-logged-in="isLoggedIn"
-            :filtered-bookmarks="filteredBookmarks"
-            :auto-scroll-category="userSettings.txtReader?.autoScrollCategory"
-            @open-chapter="openChapter"
-            @jump="jumpToBookmark"
-            @remove="removeBookmarkConfirm"
-          />
-        </div>
-      </div>
-    </aside>
-    <!-- 主阅读区 -->
-    <main class="flex-1 min-w-0 pb-20 md:pb-0">
-      <!-- 顶部工具栏（PC 显示） -->
-      <div class="hidden md:flex items-center justify-between mb-3 sticky top-4 z-10">
-        <div
-          class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm w-full"
-        >
-          <div class="flex items-center justify-between px-3 py-2">
-            <h3 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">
-              {{ 'title' in book && book.title ? book.title : '正文' }}
-            </h3>
-            <div class="flex items-center">
-              <TxtChapterNav
-                :has-prev="hasPrevChapter"
-                :has-next="hasNextChapter"
-                @prev="goPrevChapter"
-                @back="backToBook"
-                @next="goNextChapter"
-              />
-            </div>
-            <div class="flex items-center gap-2">
-              <el-button @click="toggleSearch">
-                <span class="material-symbols-outlined text-base">search</span>
-              </el-button>
-              <el-button type="primary" @click="settingsVisible = true">阅读设置</el-button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div
-        class="border border-gray-200 dark:border-gray-700 md:rounded-lg shadow-sm"
-        :style="{
-          '--reader-font-size': settings.fontSize + 'px',
-          '--reader-line-height': String(settings.lineHeight),
-          '--reader-content-width': settings.contentWidth + 'px',
-          '--reader-bg': themeColors[settings.theme].bg,
-          '--reader-fg': themeColors[settings.theme].fg,
-          background: 'var(--reader-bg)',
-          color: 'var(--reader-fg)',
-          padding: '8px 0',
-        }"
-      >
-        <template v-if="loading">
-          <div style="max-width: var(--reader-content-width); margin: 0 auto; padding: 12px 16px">
-            <el-skeleton :rows="8" animated />
-          </div>
-        </template>
-        <template v-else-if="!content">
-          <div style="max-width: var(--reader-content-width); margin: 0 auto; padding: 24px 16px">
-            <el-empty description="选择章节开始阅读">
-              <el-button type="primary" class="md:!hidden" @click="openMobileDrawer('chapters')">
-                打开目录
-              </el-button>
-            </el-empty>
-          </div>
-        </template>
-        <template v-else>
-          <div class="max-w-[var(--reader-content-width)] mx-auto px-4">
-            <div class="overflow-hidden">
-              <TxtReaderContent
-                ref="contentRef"
-                :content="content"
-                :sentences="sentences"
-                :mark-ranges="markRanges"
-                :mark-tick="markTick"
-                :search-highlight="searchHighlight"
-                @selection="onSelectionEvent"
-                @mark-click="onMarkClickEvent"
-              />
-              <div class="px-3 py-2 mb-24 hidden md:block">
-                <TxtChapterNav
-                  :has-prev="hasPrevChapter"
-                  :has-next="hasNextChapter"
-                  @prev="goPrevChapter"
-                  @back="backToBook"
-                  @next="goNextChapter"
-                />
-              </div>
-            </div>
-          </div>
-          <SelectionMenu
-            :show="showSelectionMenu"
-            :x="selectionMenuPos.x"
-            :y="selectionMenuPos.y"
-            :actions="selectionActions"
-          />
-          <HighlightMenu
-            :show="showHighlightMenu"
-            :x="highlightMenuPos.x"
-            :y="highlightMenuPos.y"
-            :note="currentHitNote"
-            :current-color="currentHitColor"
-            @add-note="onAddNote"
-            @pick-color="onPickColor"
-            @delete="onDeleteFromMenu"
-          />
-        </template>
-      </div>
-      <!-- PC 端设置抽屉 -->
-      <el-drawer
-        v-model="settingsVisible"
-        title="阅读设置"
-        direction="rtl"
-        size="320px"
-        class="hidden md:block"
-      >
-        <div class="flex flex-col gap-4">
-          <div>
-            <div class="mb-2">主题</div>
-            <el-radio-group v-model="settings.theme">
-              <el-radio-button label="light">明亮</el-radio-button>
-              <el-radio-button label="sepia">米黄</el-radio-button>
-              <el-radio-button label="dark">深色</el-radio-button>
-            </el-radio-group>
-          </div>
-          <div>
-            <div class="flex justify-between mb-1">
-              <span>字体大小</span>
-              <span>{{ settings.fontSize }}px</span>
-            </div>
-            <el-slider v-model="settings.fontSize" :min="14" :max="24" :step="1" />
-          </div>
-          <div>
-            <div class="flex justify-between mb-1">
-              <span>行高</span>
-              <span>{{ settings.lineHeight.toFixed(1) }}</span>
-            </div>
-            <el-slider v-model="settings.lineHeight" :min="1.4" :max="2.2" :step="0.1" />
-          </div>
-          <div>
-            <div class="flex justify-between mb-1">
-              <span>内容宽度</span>
-              <span>{{ settings.contentWidth }}px</span>
-            </div>
-            <el-slider v-model="settings.contentWidth" :min="560" :max="960" :step="10" />
-          </div>
-        </div>
-      </el-drawer>
-    </main>
-
-    <!-- PC 端搜索面板 -->
-    <SearchPanel
-      ref="searchPanelRef"
-      :visible="searchVisible"
-      :current-chapter-content="content"
-      :current-chapter-index="currentChapterIndex"
-      :chapters="chapters"
-      :sentences="sentences"
-      class="hidden md:block"
-      @close="handleSearchClose"
-      @jump-to-result="handleJumpToSearchResult"
-      @search-chapter="handleChapterSearch"
-      @search-global="handleGlobalSearch"
-    />
-  </section>
-
-  <!-- 移动端搜索抽屉 -->
-  <MobileSearchDrawer
-    ref="mobileSearchDrawerRef"
-    :visible="mobileSearchVisible"
-    :current-chapter-content="content"
-    :current-chapter-index="currentChapterIndex"
-    :chapters="chapters"
-    :sentences="sentences"
-    class="md:hidden"
-    @close="handleMobileSearchClose"
+  <TxtReaderDesktop
+    v-if="!isMobileView"
     @jump-to-result="handleJumpToSearchResult"
     @search-chapter="handleChapterSearch"
     @search-global="handleGlobalSearch"
-  />
+  >
+    <ReaderBody />
+  </TxtReaderDesktop>
 
-  <!-- PC 端缓存管理对话框 -->
-  <CacheManager
-    v-model="showCacheManager"
-    :file-id="fileId"
-    :book-id="bookId"
-    :book-title="'title' in book && book.title ? book.title : `文件 ${fileId}`"
-    :chapters="chapters"
-    :cached-book="cachedBook"
-    @cache-complete="loadCacheStatus"
-    class="hidden md:block"
-  />
-
-  <!-- 移动端底部菜单 -->
-  <MobileBottomBar
-    class="md:hidden"
-    :visible="mobileBottomBarVisible"
-    :cached="!!cachedBook"
-    :has-prev="hasPrevChapter"
-    :has-next="hasNextChapter"
-    @prev="goPrevChapter"
-    @menu="openMobileDrawer('chapters')"
-    @next="goNextChapter"
-    @search="toggleSearch"
-    @settings="openMobileDrawer('settings')"
-  />
-
-  <!-- 移动端目录/书签抽屉 -->
-  <MobileDrawer
-    :visible="showMobileDrawer"
-    :chapters="chapters"
-    :bookmarks="filteredBookmarks"
-    :current-chapter-index="currentChapterIndex"
-    :file-id="fileId"
-    :book-id="bookId"
-    :book-title="'title' in book && book.title ? book.title : `文件 ${fileId}`"
-    :settings="settings"
-    :cached-book="cachedBook"
-    :default-tab="mobileDrawerDefaultTab"
-    :auto-scroll-category="userSettings.txtReader?.autoScrollCategory"
-    @close="showMobileDrawer = false"
-    @open-chapter="openChapter"
-    @jump-bookmark="jumpToBookmark"
-    @remove-bookmark="removeBookmarkConfirm"
-    @cache-complete="loadCacheStatus"
-    @update-theme="theme => (settings.theme = theme as any)"
-    @update-font-size="size => (settings.fontSize = size)"
-    @update-line-height="height => (settings.lineHeight = height)"
-    @update-content-width="width => (settings.contentWidth = width)"
-  />
+  <TxtReaderMobile
+    v-else
+    @jump-to-result="handleJumpToSearchResult"
+    @search-chapter="handleChapterSearch"
+    @search-global="handleGlobalSearch"
+  >
+    <ReaderBody />
+  </TxtReaderMobile>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, watch, computed, onUnmounted, nextTick, provide } from 'vue'
+import type { ReaderContext } from '@/types/readerContext'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { txtApi } from '@/api/txt'
@@ -269,16 +28,9 @@ import { progressApi, type ProgressPayload } from '@/api/progress'
 import { bookmarksApi } from '@/api/bookmarks'
 import type { Book, Bookmark } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
-import HighlightMenu from '@/components/Reader/Shared/HighlightMenu.vue'
-import SelectionMenu from '@/components/Reader/Shared/SelectionMenu.vue'
-import TxtNavTabs from '@/components/Reader/Txt/TxtNavTabs.vue'
-import TxtChapterNav from '@/components/Reader/Txt/TxtChapterNav.vue'
-import TxtReaderContent from '@/components/Reader/Txt/TxtContent.vue'
-import SearchPanel from '@/components/Reader/Shared/SearchPanel.vue'
-import CacheManager from '@/components/Reader/Shared/CacheManager.vue'
-import MobileBottomBar from '@/components/Reader/Mobile/MobileBottomBar.vue'
-import MobileDrawer from '@/components/Reader/Mobile/MobileDrawer.vue'
-import MobileSearchDrawer from '@/components/Reader/Mobile/MobileSearchDrawer.vue'
+import TxtReaderDesktop from '@/components/Reader/Txt/Layout/TxtReaderDesktop.vue'
+import TxtReaderMobile from '@/components/Reader/Txt/Layout/TxtReaderMobile.vue'
+import ReaderBody from '@/components/Reader/Txt/Shared/ReaderBody.vue'
 import { useSettingsStore } from '@/stores/settings'
 import {
   buildSentenceOffsets,
@@ -304,6 +56,22 @@ const fileId = Number(route.params.id)
 const bookId = ref<number>(0)
 const initialChapterIndex = ref<number | undefined>(undefined)
 const LS_LAST_CHAPTER_KEY = (fid: number) => `reader.lastChapter.${fid}`
+
+const isMobileView = ref(typeof window !== 'undefined' ? window.innerWidth < 768 : false)
+
+function updateIsMobileView() {
+  try {
+    isMobileView.value = window.innerWidth < 768
+  } catch {}
+}
+
+onMounted(() => {
+  updateIsMobileView()
+  window.addEventListener('resize', updateIsMobileView)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobileView)
+})
 
 function resolveInitialContext() {
   const pBookRaw = (route.params as any)?.bookId
@@ -597,7 +365,6 @@ async function loadChapters() {
   try {
     const response = await txtApi.listChapters(fileId)
 
-    // 从响应中提取 book（只支持新结构：response.book）
     if (response.book) {
       book.value = response.book
       bookId.value = response.book.id
@@ -845,17 +612,23 @@ async function highlightSelection() {
   const addedBySentence = new Map<number, Array<{ start: number; end: number }>>()
 
   if (selectionText) {
-    // 一次性查找所有匹配，避免重复计算
+    // 一次性查找所有匹配
     const occ = findAllOccurrences(content.value, selectionText)
 
-    // 计算绝对偏移（使用第一个匹配）
+    // 选择最接近用户选中句子的匹配项作为实际创建的锚点：
+    // 优先选中与选中句子范围有交集的匹配；若无，则回退到第一个匹配
+    let chosen: { start: number; end: number } | undefined = undefined
     if (occ.length > 0) {
-      absStart = baseOffset + occ[0].start
-      absEnd = baseOffset + occ[0].end
+      const sentStart = sentenceOffsets[s]?.start ?? 0
+      const sentEnd = sentenceOffsets[e]?.end ?? Infinity
+      chosen = occ.find(o => !(o.end <= sentStart || o.start >= sentEnd)) || occ[0]
+      absStart = baseOffset + chosen.start
+      absEnd = baseOffset + chosen.end
     }
 
-    // 1) 乐观更新：先把 UI 高亮起来
-    for (const r of occ) {
+    // 1) 乐观更新：只高亮用户实际选择的匹配（不要一次性高亮所有匹配）
+    if (chosen) {
+      const r = chosen
       for (let i = 0; i < sentenceOffsets.length; i++) {
         const seg = sentenceOffsets[i]
         if (r.end <= seg.start || r.start >= seg.end) continue
@@ -1262,4 +1035,103 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', onKeyDown)
 })
+
+// 提供一个 readerContext 给子组件，子组件可以通过 inject('readerContext') 访问页面级状态与方法
+const readerContext = {
+  // 基本数据
+  chapters,
+  currentChapterIndex,
+  bookmarks: filteredBookmarks,
+  filteredBookmarks,
+  book,
+  bookId,
+  fileId,
+  bookTitle: computed(() => {
+    try {
+      const b = (book as any).value ?? book
+      const titleFromBook = b && typeof b === 'object' ? b.title : undefined
+      if (titleFromBook) return titleFromBook
+    } catch {}
+    if (cachedBook && (cachedBook as any).value && (cachedBook as any).value.bookTitle) {
+      return (cachedBook as any).value.bookTitle
+    }
+    return `文件 ${fileId}`
+  }),
+
+  // 状态与配置
+  settings,
+  settingsVisible,
+  cachedBook,
+  showCacheManager,
+  loading,
+  themeColors,
+  userSettings,
+
+  // 阅读内容与句子
+  content,
+  sentences,
+  contentRef,
+  sentenceOffsets,
+
+  // 章节/书签视图相关
+  leftTab,
+  mobileDrawerDefaultTab,
+  showMobileDrawer,
+  mobileSearchVisible,
+  mobileBottomBarVisible,
+
+  // 交互状态
+  searchHighlight,
+  markRanges,
+  markTick,
+  showSelectionMenu,
+  selectionMenuPos,
+  selectionActions,
+  showHighlightMenu,
+  highlightMenuPos,
+  currentHitBookmarkId,
+  currentHitNote,
+  currentHitColor,
+
+  // 计算属性 / 帮助
+  isLoggedIn,
+  hasPrevChapter,
+  hasNextChapter,
+  autoScrollCategory: computed(() => userSettings.txtReader?.autoScrollCategory),
+
+  // 引用回调
+  searchPanelRef,
+  mobileSearchDrawerRef,
+  searchVisible,
+
+  // 方法（页面内实现）
+  openChapter,
+  openMobileDrawer,
+  goPrevChapter,
+  goNextChapter,
+  backToBook,
+  goEditChapters,
+  jumpToBookmark,
+  removeBookmarkConfirm,
+  removeBookmark,
+  loadBookmarksForChapter,
+  loadCacheStatus,
+  toggleSearch,
+  handleMobileSearchClose,
+
+  // 搜索/跳转相关
+  handleSearchClose,
+  handleJumpToSearchResult,
+  handleChapterSearch,
+  handleGlobalSearch,
+
+  // 选区 / 高亮相关
+  onSelectionEvent,
+  onMarkClickEvent,
+  onAddNote,
+  onPickColor,
+  onDeleteFromMenu,
+}
+
+provide('readerContext', readerContext as unknown as ReaderContext)
 </script>

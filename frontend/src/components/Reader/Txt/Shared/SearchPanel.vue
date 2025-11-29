@@ -172,7 +172,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import SearchCore from '../Core/SearchCore.vue'
+import SearchCore from '../core/SearchCore.vue'
 import type { SearchResult } from '@/types/reader'
 
 interface Props {

@@ -1,3 +1,30 @@
+<template>
+  <slot
+    :is-cached="isCached"
+    :cache-stats="cacheStats"
+    :cached-books="cachedBooks"
+    :cache-loading="cacheLoading"
+    :handle-cache-current-book="handleCacheCurrentBook"
+    :handle-delete-cache="handleDeleteCache"
+    :handle-clear-all-cache="handleClearAllCache"
+  >
+    <!-- 默认UI -->
+    <div>
+      <div>缓存统计: {{ cacheStats.totalBooks }} 本 / {{ cacheStats.totalSize }}</div>
+      <button @click="handleCacheCurrentBook" :disabled="cacheLoading">
+        {{ cacheLoading ? '缓存中...' : isCached ? '已缓存' : '缓存本书' }}
+      </button>
+      <div v-if="cachedBooks.length > 0">
+        <button @click="handleClearAllCache">清空所有缓存</button>
+        <div v-for="book in cachedBooks" :key="book.fileId">
+          <div>{{ book.bookTitle }}</div>
+          <button @click="handleDeleteCache(book.fileId)">删除</button>
+        </div>
+      </div>
+    </div>
+  </slot>
+</template>
+
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
@@ -181,30 +208,3 @@ defineExpose({
   handleClearAllCache,
 })
 </script>
-
-<template>
-  <slot
-    :is-cached="isCached"
-    :cache-stats="cacheStats"
-    :cached-books="cachedBooks"
-    :cache-loading="cacheLoading"
-    :handle-cache-current-book="handleCacheCurrentBook"
-    :handle-delete-cache="handleDeleteCache"
-    :handle-clear-all-cache="handleClearAllCache"
-  >
-    <!-- 默认UI -->
-    <div>
-      <div>缓存统计: {{ cacheStats.totalBooks }} 本 / {{ cacheStats.totalSize }}</div>
-      <button @click="handleCacheCurrentBook" :disabled="cacheLoading">
-        {{ cacheLoading ? '缓存中...' : isCached ? '已缓存' : '缓存本书' }}
-      </button>
-      <div v-if="cachedBooks.length > 0">
-        <button @click="handleClearAllCache">清空所有缓存</button>
-        <div v-for="book in cachedBooks" :key="book.fileId">
-          <div>{{ book.bookTitle }}</div>
-          <button @click="handleDeleteCache(book.fileId)">删除</button>
-        </div>
-      </div>
-    </div>
-  </slot>
-</template>
