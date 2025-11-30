@@ -377,14 +377,35 @@ async function loadChapters() {
   err.value = ''
   setLoading(true)
   try {
-    const response = await txtApi.listChapters(fileId)
+    // const response = await txtApi.listChapters(fileId)
 
-    if (response.book) {
-      book.value = response.book
-      bookId.value = response.book.id
+    // if (response.book) {
+    //   book.value = response.book
+    //   bookId.value = response.book.id
+    // }
+    
+    let responseChapters: any[] = []
+
+    // 优先使用缓存的章节列表
+    if (cachedBook.value && cachedBook.value.chapters.length > 0) {
+      responseChapters = cachedBook.value.chapters
+      if (cachedBook.value.bookId) {
+        bookId.value = cachedBook.value.bookId
+        if (!book.value || !('id' in book.value)) {
+          book.value = { id: cachedBook.value.bookId, title: cachedBook.value.bookTitle || '' } as any
+        }
+      }
+    } else {
+      // 没有缓存请求API
+      const response = await txtApi.listChapters(fileId)
+      if (response.book) {
+        book.value = response.book
+        bookId.value = response.book.id
+      }
+      responseChapters = response.chapters
     }
 
-    chapters.value = response.chapters
+    chapters.value = responseChapters
     // 优先使用外部明确指定的章节（例如路由参数/历史 state）
     if (typeof initialChapterIndex.value === 'number') {
       await openChapter(initialChapterIndex.value)
