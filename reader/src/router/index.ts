@@ -1,44 +1,35 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: () => import('@/pages/BookList.vue'),
-    },
-    {
-      path: '/books/:id',
-      name: 'book-detail',
-      component: () => import('@/pages/BookDetail.vue'),
-    },
-    {
-      path: '/reader',
-      children: [
+    history: createWebHashHistory(), // Hash history is better for file:// and Capacitor
+    routes: [
         {
-          path: 'txt/:id',
-          name: 'reader-txt',
-          component: () => import('@/pages/Reader/TxtReader.vue'),
+            path: '/',
+            name: 'home',
+            component: HomeView
         },
         {
-          path: 'pdf/:id',
-          name: 'reader-pdf',
-          component: () => import('@/pages/Reader/PdfReader.vue'),
+            path: '/login',
+            name: 'login',
+            component: () => import('../views/LoginView.vue')
         },
         {
-          path: 'epub/:id',
-          name: 'reader-epub',
-          component: () => import('@/pages/Reader/EpubReader.vue'),
+            path: '/books',
+            name: 'books',
+            component: () => import('../views/BookList.vue')
         },
-      ],
-    },
-    {
-      path: '/cache',
-      name: 'cache',
-      component: () => import('@/pages/CacheManagement.vue'),
-    },
-  ],
+        {
+            path: '/read/:id',
+            name: 'read',
+            component: () => import('../views/TxtReader.vue')
+        },
+        {
+            path: '/cache',
+            name: 'cache',
+            component: () => import('../views/CacheManagement.vue')
+        }
+    ]
 })
 
 export default router

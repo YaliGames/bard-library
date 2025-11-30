@@ -1,28 +1,27 @@
-import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
+import path from 'path'
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-  ],
+  plugins: [vue()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': path.resolve(__dirname, './src'),
     },
   },
+  base: './', // Important for Capacitor/offline use
   server: {
-    port: 5174,
-    open: true,
+    port: 5174, // Different port from frontend
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8000', // Assuming backend is on 8000
         changeOrigin: true,
       },
-    },
-  },
+      '/sanctum': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
+  }
 })
