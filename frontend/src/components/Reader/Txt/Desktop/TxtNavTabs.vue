@@ -1,5 +1,5 @@
 <template>
-  <el-tabs v-model="innerTab" stretch class="!mb-1">
+  <el-tabs v-model="innerTab" stretch>
     <el-tab-pane label="章节" name="chapters">
       <ChapterCore
         :chapters="chapters"

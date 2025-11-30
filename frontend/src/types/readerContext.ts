@@ -64,6 +64,9 @@ export interface ReaderContext {
   searchPanelRef: Ref<any>
   mobileSearchDrawerRef: Ref<any>
   searchVisible: Ref<boolean>
+  // right-side tools panel
+  rightPanelOpen: Ref<boolean>
+  rightPanelTab: Ref<'none' | 'search' | 'cache' | 'settings'>
 
   // methods
   openChapter: (index: number) => Promise<void>
@@ -90,6 +93,10 @@ export interface ReaderContext {
   handleJumpToSearchResult: (r: any) => void
   handleChapterSearch: (k: string, cs: boolean, ww: boolean) => void
   handleGlobalSearch: (k: string, cs: boolean, ww: boolean) => Promise<void>
+
+  // right-side panel control
+  openRightPanel: (tab: 'search' | 'cache' | 'settings') => void
+  closeRightPanel: () => void
 
   // selection / highlight
   onSelectionEvent: (p: any) => void

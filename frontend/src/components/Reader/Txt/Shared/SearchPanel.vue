@@ -1,15 +1,8 @@
 <template>
-  <div
-    v-if="visible"
-    :class="[
-      'fixed z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-lg',
-      'md:top-20 md:right-6 md:w-80 md:rounded-lg',
-      'max-md:inset-0 max-md:rounded-none',
-    ]"
-  >
+  <div :class="containerClass">
     <SearchCore
       ref="searchCoreRef"
-      :visible="visible"
+      :visible="true"
       :current-chapter-content="currentChapterContent"
       :current-chapter-index="currentChapterIndex"
       :chapters="chapters"
@@ -39,22 +32,7 @@
           nextResult,
         }"
       >
-        <!-- 标题栏 -->
-        <div
-          class="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700"
-        >
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-            {{ mode === 'chapter' ? '章节搜索' : '全文搜索' }}
-          </h3>
-          <button
-            @click="$emit('close')"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <span class="material-symbols-outlined text-xl">close</span>
-          </button>
-        </div>
-
-        <div class="p-3">
+        <div>
           <!-- 搜索模式切换 -->
           <el-radio-group
             :model-value="mode"
@@ -172,18 +150,18 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import SearchCore from '../core/SearchCore.vue'
+import SearchCore from '@/components/Reader/Txt/Core/SearchCore.vue'
 import type { SearchResult } from '@/types/reader'
 
 interface Props {
-  visible: boolean
+  inline?: boolean
   currentChapterContent: string
   currentChapterIndex: number | null
   chapters: Array<{ index?: number; title?: string | null; offset?: number; length?: number }>
   sentences?: string[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 defineEmits<{
   close: []
@@ -194,6 +172,17 @@ defineEmits<{
 
 const searchInputRef = ref<any>(null)
 const searchCoreRef = ref<InstanceType<typeof SearchCore> | null>(null)
+
+import { computed } from 'vue'
+
+const containerClass = computed(() => {
+  if (props.inline) return ''
+  return [
+    'fixed z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-lg',
+    'md:top-20 md:right-6 md:w-80 md:rounded-lg',
+    'max-md:inset-0 max-md:rounded-none',
+  ]
+})
 
 // 暴露方法供父组件调用
 defineExpose({

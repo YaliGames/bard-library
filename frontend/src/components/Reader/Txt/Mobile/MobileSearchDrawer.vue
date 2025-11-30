@@ -225,7 +225,7 @@
 <script setup lang="ts">
 import { ref, inject } from 'vue'
 import type { ReaderContext } from '@/types/readerContext'
-import SearchCore from '../core/SearchCore.vue'
+import SearchCore from '@/components/Reader/Txt/Core/SearchCore.vue'
 import type { SearchResult } from '@/types/reader'
 
 const readerContext = inject<ReaderContext>('readerContext')!

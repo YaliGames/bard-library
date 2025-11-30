@@ -212,6 +212,20 @@ const selectionActions = computed(() => {
   return acts
 })
 
+// 右侧工具面板状态（用于 Desktop）
+const rightPanelOpen = ref(false)
+const rightPanelTab = ref<'none' | 'search' | 'cache' | 'settings'>('none')
+
+function openRightPanel(tab: 'search' | 'cache' | 'settings') {
+  rightPanelTab.value = tab
+  rightPanelOpen.value = true
+}
+
+function closeRightPanel() {
+  rightPanelOpen.value = false
+  rightPanelTab.value = 'none'
+}
+
 type ThemeKey = 'light' | 'sepia' | 'dark'
 const themeColors: Record<ThemeKey, { bg: string; fg: string }> = {
   light: { bg: '#ffffff', fg: '#333333' },
@@ -480,8 +494,9 @@ async function openChapter(index: number) {
 onMounted(async () => {
   loadSettings()
   resolveInitialContext()
-  await loadChapters()
+  // 先加载本地缓存状态，确保 openChapter 在有缓存时不发起网络请求
   await loadCacheStatus()
+  await loadChapters()
 
   // 移动端滚动监听
   window.addEventListener('scroll', handleMobileScroll)
@@ -877,15 +892,19 @@ function toggleSearch() {
       mobileSearchVisible.value = true
     }
   } else {
-    if (searchVisible.value) {
-      handleSearchClose()
+    if (rightPanelOpen.value) {
+      closeRightPanel()
     } else {
-      searchVisible.value = true
+      openRightPanel('search')
     }
   }
 }
 
 function handleSearchClose() {
+  // close right-side panel (desktop) or mobile panel
+  try {
+    closeRightPanel()
+  } catch {}
   searchVisible.value = false
   searchHighlight.value = null
 }
@@ -932,7 +951,7 @@ async function handleGlobalSearch(keyword: string, caseSensitive: boolean, whole
     if (isMobile) {
       openMobileDrawer('cache')
     } else {
-      showCacheManager.value = true
+        openRightPanel('cache')
     }
     searchPanelRef.value?.setSearching(false)
     mobileSearchDrawerRef.value?.setSearching(false)
@@ -1014,17 +1033,17 @@ function onKeyDown(e: KeyboardEvent) {
   // Ctrl+F 或 Cmd+F：打开章节搜索
   if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.shiftKey) {
     e.preventDefault()
-    searchVisible.value = true
+    openRightPanel('search')
   }
   // Ctrl+Shift+F 或 Cmd+Shift+F：打开全文搜索
   else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
     e.preventDefault()
-    searchVisible.value = true
+    openRightPanel('search')
     // 可以在这里设置默认为全文搜索模式
   }
   // Esc：关闭搜索
-  else if (e.key === 'Escape' && searchVisible.value) {
-    searchVisible.value = false
+  else if (e.key === 'Escape' && rightPanelOpen.value) {
+    closeRightPanel()
   }
 }
 
@@ -1124,6 +1143,12 @@ const readerContext = {
   handleJumpToSearchResult,
   handleChapterSearch,
   handleGlobalSearch,
+
+  // 右侧工具面板（Search / Cache / Settings）
+  rightPanelOpen,
+  rightPanelTab,
+  openRightPanel,
+  closeRightPanel,
 
   // 选区 / 高亮相关
   onSelectionEvent,
