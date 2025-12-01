@@ -1,5 +1,6 @@
 // 轻量 HTTP 封装，适配后端统一响应 { code, data, message }，基于 axios
 import axios, { AxiosError, AxiosInstance } from 'axios'
+import { defaultBackendUrl } from '@/config'
 
 export interface PageMeta {
     current_page: number
@@ -16,7 +17,7 @@ type ApiEnvelope<T> = { code: number; data: T; message: string }
 
 function createClient(): AxiosInstance {
     const instance = axios.create({
-        // baseURL 可留空，项目内大多传入绝对路径（/api/...）
+        baseURL: defaultBackendUrl,
         withCredentials: true, // 启用 Cookie 携带,支持 Sanctum 的 Cookie 认证
     })
 

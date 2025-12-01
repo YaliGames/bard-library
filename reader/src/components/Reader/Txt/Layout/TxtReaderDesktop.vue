@@ -18,13 +18,6 @@
               </span>
               {{ cachedBook ? '已缓存' : '缓存' }}
             </el-button>
-            <el-button
-              type="primary"
-              v-permission="'books.edit'"
-              @click="readerContext.goEditChapters"
-            >
-              编辑章节
-            </el-button>
           </div>
         </div>
         <div class="p-2 flex-1 overflow-y-auto">
@@ -83,7 +76,7 @@
 
 <script setup lang="ts">
 import { inject } from 'vue'
-import type { ReaderContext } from '@/types/readerContext'
+import type { ReaderContext } from '@/types/reader'
 import TxtNavTabs from '@/components/Reader/Txt/Desktop/TxtNavTabs.vue'
 import TxtChapterNav from '@/components/Reader/Txt/Desktop/TxtChapterNav.vue'
 import RightTools from '@/components/Reader/Txt/Desktop/RightTools.vue'
@@ -101,18 +94,6 @@ const leftTab = readerContext.leftTab
 const hasPrevChapter = readerContext.hasPrevChapter
 const hasNextChapter = readerContext.hasNextChapter
 
-const settings = readerContext.settings
-const settingsVisible = readerContext.settingsVisible
-
-const content = readerContext.content
-const sentences = readerContext.sentences
-
-const searchVisible = readerContext.searchVisible
-
 const cachedBook = readerContext.cachedBook
-const showCacheManager = readerContext.showCacheManager
-
-const fileId = readerContext.fileId
-const bookId = readerContext.bookId
 const bookTitle = readerContext.bookTitle
 </script>

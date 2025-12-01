@@ -33,7 +33,7 @@
 
 <script setup lang="ts">
 import { inject, computed } from 'vue'
-import type { ReaderContext } from '@/types/readerContext'
+import type { ReaderContext } from '@/types/reader'
 import MobileSearchDrawer from '@/components/Reader/Txt/Mobile/MobileSearchDrawer.vue'
 import MobileBottomBar from '@/components/Reader/Txt/Mobile/MobileBottomBar.vue'
 import MobileDrawer from '@/components/Reader/Txt/Mobile/MobileDrawer.vue'

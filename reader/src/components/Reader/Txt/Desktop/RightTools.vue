@@ -110,7 +110,7 @@
 
 <script setup lang="ts">
 import { inject, computed } from 'vue'
-import type { ReaderContext } from '@/types/readerContext'
+import type { ReaderContext } from '@/types/reader'
 import SearchPanel from '@/components/Reader/Txt/Shared/SearchPanel.vue'
 import CacheManager from '@/components/Reader/Txt/Shared/CacheManager.vue'
 

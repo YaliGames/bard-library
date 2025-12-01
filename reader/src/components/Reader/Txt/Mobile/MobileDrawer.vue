@@ -411,8 +411,8 @@ import BookmarkCore from '@/components/Reader/Txt/Core/BookmarkCore.vue'
 import CacheCore from '@/components/Reader/Txt/Core/CacheCore.vue'
 import SettingsCore from '@/components/Reader/Txt/Core/SettingsCore.vue'
 import type { Bookmark } from '@/api/types'
-import type { ThemeKey } from '@/types/readerContext'
-import type { ReaderContext } from '@/types/readerContext'
+import type { ThemeKey } from '@/types/reader'
+import type { ReaderContext } from '@/types/reader'
 
 const readerContext = inject<ReaderContext>('readerContext')!
 

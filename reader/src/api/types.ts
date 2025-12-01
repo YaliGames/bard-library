@@ -85,6 +85,16 @@ export interface Bookmark {
     updated_at?: string
 }
 
+export interface Shelf {
+    id: number
+    name: string
+    description?: string
+    public: 0 | 1 | boolean
+    created_at?: string
+    updated_at?: string
+    books_count?: number
+}
+
 export interface PaginatedResponse<T> {
     data: T[]
     current_page: number

@@ -1,5 +1,6 @@
 import { http } from './http'
 import type { Book, FileRec } from './types'
+import { withCache, offlineStorage, getCacheKey } from '@/utils/offline'
 
 // 常量定义
 const BASE = '/api/v1/books'
@@ -124,10 +125,46 @@ export const booksApi = {
      * @returns 分页的书籍列表
      */
     list: async (params?: BookListParams) => {
-        const res = await http.get<Book[] | BookListResponse>(BASE, {
-            params: normalizeBookListParams(params),
-        })
-        return normalizeBookListResponse(res)
+        const normalizedParams = normalizeBookListParams(params)
+        const key = getCacheKey('books-list', normalizedParams)
+
+        // Only cache basic queries (page, sort, order, default rating range)
+        const isBasicQuery = !params || (
+            !params.q &&
+            !params.shelfId &&
+            !params.authorId &&
+            !params.tagId &&
+            !params.read_state &&
+            !params.publisher &&
+            !params.published_from &&
+            !params.published_to &&
+            !params.language &&
+            !params.series_value &&
+            !params.isbn &&
+            (params.min_rating === undefined || params.min_rating === 0) &&
+            (params.max_rating === undefined || params.max_rating === 5)
+        )
+
+        if (isBasicQuery) {
+            return withCache(
+                key,
+                async () => {
+                    const res = await http.get<Book[] | BookListResponse>(BASE, {
+                        params: normalizedParams,
+                    })
+                    return normalizeBookListResponse(res)
+                },
+                offlineStorage.books,
+                true,
+                true // Enable cache notification for book list
+            )
+        } else {
+            // Don't cache filtered queries
+            const res = await http.get<Book[] | BookListResponse>(BASE, {
+                params: normalizedParams,
+            })
+            return normalizeBookListResponse(res)
+        }
     },
 
     /**
@@ -136,7 +173,11 @@ export const booksApi = {
      * @returns 书籍详情
      */
     get: (id: number) => {
-        return http.get<Book>(`${BASE}/${id}`)
+        return withCache(
+            `book-${id}`,
+            () => http.get<Book>(`${BASE}/${id}`),
+            offlineStorage.books
+        )
     },
 
     /**
