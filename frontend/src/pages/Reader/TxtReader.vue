@@ -82,7 +82,7 @@ const search = useReaderSearch(
   contentRef,
   searchPanelRef,
   mobileSearchDrawerRef,
-  () => openRightPanel('cache')
+  () => openRightPanel('cache'),
 )
 
 // Mobile & UI Helpers
@@ -120,7 +120,7 @@ function handleMobileScroll() {
   const viewportHeight = window.innerHeight
   const docHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)
   const distanceToBottom = docHeight - (currentScrollY + viewportHeight)
-  const bottomThreshold = 120 
+  const bottomThreshold = 120
 
   if (distanceToBottom <= bottomThreshold) {
     mobileBottomBarVisible.value = true
@@ -151,11 +151,11 @@ onMounted(async () => {
   await core.loadCacheStatus()
   await core.loadChapters({ keepLoading: true })
   await navigation.initializeNavigation()
-  
+
   window.addEventListener('scroll', handleMobileScroll)
   window.addEventListener('resize', updateIsMobileView)
   document.addEventListener('keydown', onKeyDown)
-  
+
   window.addEventListener('scroll', bookmarks.hideAllMenus, { passive: true })
   window.addEventListener('resize', bookmarks.hideAllMenus)
   document.addEventListener('mousedown', bookmarks.onDocMouseDown)
@@ -186,7 +186,7 @@ const readerContext: ReaderContext = {
   cachedBook: core.cachedBook,
   contentRef, // Use local ref
   bookTitle: core.bookTitle,
-  
+
   // Settings
   settings: settings.settings,
   themeColors: settings.themeColors,
@@ -196,7 +196,7 @@ const readerContext: ReaderContext = {
   updateFontSize: settings.updateFontSize,
   updateLineHeight: settings.updateLineHeight,
   updateContentWidth: settings.updateContentWidth,
-  
+
   // Navigation
   hasPrevChapter: navigation.hasPrevChapter,
   hasNextChapter: navigation.hasNextChapter,
@@ -205,7 +205,7 @@ const readerContext: ReaderContext = {
   goNextChapter: navigation.goNextChapter,
   backToBook: navigation.backToBook,
   goEditChapters: navigation.goEditChapters,
-  
+
   // Bookmarks
   bookmarks: bookmarks.filteredBookmarks,
   filteredBookmarks: bookmarks.filteredBookmarks,
@@ -228,7 +228,7 @@ const readerContext: ReaderContext = {
   removeBookmarkConfirm: bookmarks.removeBookmarkConfirm,
   removeBookmark: bookmarks.removeBookmark,
   loadBookmarksForChapter: bookmarks.loadBookmarksForChapter,
-  
+
   // Search & UI
   searchVisible: search.searchVisible,
   mobileSearchVisible: search.mobileSearchVisible,
@@ -245,29 +245,25 @@ const readerContext: ReaderContext = {
   handleChapterSearch: search.handleChapterSearch,
   handleGlobalSearch: search.handleGlobalSearch,
   handleJumpToSearchResult: search.handleJumpToSearchResult,
-  
+
   // Mobile UI
   showMobileDrawer,
   mobileDrawerDefaultTab,
   openMobileDrawer,
   mobileBottomBarVisible,
-  
+
   // Misc
   isLoggedIn: computed(() => authStore.isLoggedIn),
   autoScrollCategory: computed(() => settingsStore.settings.txtReader?.autoScrollCategory),
   showCacheManager: core.showCacheManager,
   loadCacheStatus: core.loadCacheStatus,
-  
+
   // Left Tab (Legacy support if needed, or remove if unused)
-  leftTab: ref('chapters'), 
+  leftTab: ref('chapters'),
 }
 
 // Expose methods to template via context
-const { 
-  handleJumpToSearchResult, 
-  handleChapterSearch, 
-  handleGlobalSearch 
-} = search
+const { handleJumpToSearchResult, handleChapterSearch, handleGlobalSearch } = search
 
 provide('readerContext', readerContext)
 </script>

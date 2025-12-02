@@ -19,9 +19,7 @@
             isCurrentChapter(c.index) ? 'bg-primary/10 text-primary font-semibold' : '',
           ]"
         >
-          <span
-            :class="['text-xs text-gray-500', isCurrentChapter(c.index) ? 'text-primary' : '']"
-          >
+          <span :class="['text-xs text-gray-500', isCurrentChapter(c.index) ? 'text-primary' : '']">
             #{{ c.index }}
           </span>
           <span class="truncate">{{ c.title || '(无标题)' }}</span>

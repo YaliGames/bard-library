@@ -9,7 +9,7 @@ import { ElMessage } from 'element-plus'
 
 export function useReaderCore(fileId: number) {
   const { loading, setLoading } = useSimpleLoading(true)
-  
+
   const bookId = ref<number>(0)
   const bookTitle = ref<string>('')
   const book = ref<Book | {}>({})
@@ -17,7 +17,7 @@ export function useReaderCore(fileId: number) {
   const content = ref('')
   const sentences = ref<string[]>([])
   const sentenceOffsets = shallowRef<Array<{ start: number; end: number }>>([])
-  
+
   const cachedBook = ref<CachedBook | null>(null)
   const showCacheManager = ref(false)
   const err = ref('')
@@ -46,11 +46,11 @@ export function useReaderCore(fileId: number) {
   async function loadChapterContent(index: number) {
     if (index < 0) return
     if (chapters.value.length > 0 && index >= chapters.value.length) return
-    
+
     try {
       setLoading(true)
       let chapterContent = ''
-      
+
       if (cachedBook.value && cachedBook.value.contents.has(index)) {
         chapterContent = cachedBook.value.contents.get(index)!
         if (cachedBook.value.bookId && !bookId.value) {
@@ -68,7 +68,7 @@ export function useReaderCore(fileId: number) {
       content.value = chapterContent
       sentences.value = splitByLines(chapterContent)
       sentenceOffsets.value = buildSentenceOffsets(sentences.value)
-      
+
       if (typeof window !== 'undefined') {
         nextTick(() => {
           window.scrollTo(0, 0)
@@ -115,6 +115,6 @@ export function useReaderCore(fileId: number) {
     resolveInitialContext,
     loadChapters,
     loadChapterContent,
-    loadCacheStatus
+    loadCacheStatus,
   }
 }

@@ -27,11 +27,7 @@
             class="sticky top-0 z-10 bg-white/80 backdrop-blur px-2 pt-1 pb-2 flex items-center justify-between"
           >
             <span class="text-xs text-gray-500">排序</span>
-            <el-radio-group
-              :model-value="sortMode"
-              @update:model-value="setSortMode"
-              size="small"
-            >
+            <el-radio-group :model-value="sortMode" @update:model-value="setSortMode" size="small">
               <el-radio-button label="article">章节顺序</el-radio-button>
               <el-radio-button label="created">创建时间</el-radio-button>
             </el-radio-group>

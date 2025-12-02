@@ -13,7 +13,7 @@ import type {
   SelectionEventPayload,
   MarkClickEventPayload,
   ColorPickPayload,
-  SearchResult
+  SearchResult,
 } from '@/types/reader'
 
 export interface ReaderContext {

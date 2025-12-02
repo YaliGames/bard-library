@@ -1,7 +1,12 @@
 import { ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { extractSearchPreview, buildSearchRegex } from '@/utils/reader'
-import type { SearchResult, SearchHighlightOptions, TxtContentInstance, SearchPanelInstance } from '@/types/reader'
+import type {
+  SearchResult,
+  SearchHighlightOptions,
+  TxtContentInstance,
+  SearchPanelInstance,
+} from '@/types/reader'
 import type { useReaderCore } from '@/composables/reader/useReaderCore'
 import type { useReaderNavigation } from '@/composables/reader/useReaderNavigation'
 
@@ -12,7 +17,7 @@ export function useReaderSearch(
   contentRef: Ref<TxtContentInstance | null>,
   searchPanelRef: Ref<SearchPanelInstance | null>,
   mobileSearchDrawerRef: Ref<SearchPanelInstance | null>,
-  openCachePanel: () => void
+  openCachePanel: () => void,
 ) {
   const searchVisible = ref(false)
   const mobileSearchVisible = ref(false)
@@ -24,25 +29,25 @@ export function useReaderSearch(
       return
     }
     searchHighlight.value = { keyword, caseSensitive, wholeWord }
-    
+
     const results: SearchResult[] = []
     const regex = buildSearchRegex(keyword, caseSensitive, wholeWord)
     const content = core.content.value
     const matches = [...content.matchAll(regex)]
-    
+
     const currentIdx = nav.currentChapterIndex.value || 0
     const title = core.chapters.value[currentIdx]?.title
-    
+
     matches.forEach(m => {
       results.push({
         chapterIndex: currentIdx,
         chapterTitle: title,
         position: m.index!,
         matchLength: m[0].length,
-        preview: extractSearchPreview(content, m.index!, m[0])
+        preview: extractSearchPreview(content, m.index!, m[0]),
       })
     })
-    
+
     searchPanelRef.value?.setGlobalResults(results)
     mobileSearchDrawerRef.value?.setGlobalResults(results)
   }
@@ -69,10 +74,10 @@ export function useReaderSearch(
       // 简单的分片处理以避免阻塞 UI
       const chunkSize = 10
       const chapters = core.chapters.value
-      
+
       for (let i = 0; i < chapters.length; i += chunkSize) {
         await new Promise(resolve => setTimeout(resolve, 0)) // Yield to UI
-        
+
         const end = Math.min(i + chunkSize, chapters.length)
         for (let j = i; j < end; j++) {
           const chapter = chapters[j]
@@ -90,13 +95,13 @@ export function useReaderSearch(
               chapterTitle: chapter.title,
               position: match.index,
               matchLength: match[0].length,
-              preview: extractSearchPreview(content, match.index, match[0])
+              preview: extractSearchPreview(content, match.index, match[0]),
             })
             count++
           }
         }
       }
-      
+
       searchPanelRef.value?.setGlobalResults(results)
       mobileSearchDrawerRef.value?.setGlobalResults(results)
     } catch (e) {
@@ -109,7 +114,7 @@ export function useReaderSearch(
 
   function handleJumpToSearchResult(result: SearchResult) {
     const targetChapterIndex = result.chapterIndex
-    
+
     if (targetChapterIndex !== nav.currentChapterIndex.value) {
       nav.openChapter(targetChapterIndex).then(() => {
         // 等待内容加载和渲染
@@ -117,7 +122,7 @@ export function useReaderSearch(
           contentRef.value?.scrollToTarget({
             matchPosition: result.position,
             matchLength: result.matchLength,
-            isSearchJump: true
+            isSearchJump: true,
           })
         }, 100)
       })
@@ -125,10 +130,10 @@ export function useReaderSearch(
       contentRef.value?.scrollToTarget({
         matchPosition: result.position,
         matchLength: result.matchLength,
-        isSearchJump: true
+        isSearchJump: true,
       })
     }
-    
+
     // 移动端关闭搜索抽屉
     if (mobileSearchVisible.value) {
       mobileSearchVisible.value = false
@@ -158,6 +163,6 @@ export function useReaderSearch(
     handleJumpToSearchResult,
     toggleSearch,
     handleSearchClose,
-    handleMobileSearchClose
+    handleMobileSearchClose,
   }
 }

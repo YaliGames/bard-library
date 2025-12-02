@@ -12,13 +12,13 @@ export function useReaderBookmarks(
   fileId: number,
   core: ReturnType<typeof useReaderCore>,
   nav: ReturnType<typeof useReaderNavigation>,
-  contentRef: Ref<TxtContentInstance | null>
+  contentRef: Ref<TxtContentInstance | null>,
 ) {
   const authStore = useAuthStore()
   const isLoggedIn = computed(() => authStore.isLoggedIn)
 
   const bookmarks = ref<Bookmark[]>([])
-  
+
   const filteredBookmarks = computed(() => {
     if (!core.bookId.value || !fileId || bookmarks.value.length === 0) return []
     return bookmarks.value.filter(b => {
@@ -33,22 +33,27 @@ export function useReaderBookmarks(
   })
 
   // 句内精准标注：sentence index -> array of segments
-  const markRanges = reactive(new Map<number, Array<{ start: number; end: number; bookmarkId?: number; color?: string | null }>>())
+  const markRanges = reactive(
+    new Map<
+      number,
+      Array<{ start: number; end: number; bookmarkId?: number; color?: string | null }>
+    >(),
+  )
   const markTick = ref(0)
 
   // 选区状态
   const selectionRange = ref<{ start: number; end: number } | null>(null)
   const selectionTextBuffer = ref<string | null>(null)
-  
+
   // 菜单状态
   const showSelectionMenu = ref(false)
   const selectionMenuPos = ref({ x: 0, y: 0 })
   const showHighlightMenu = ref(false)
   const highlightMenuPos = ref({ x: 0, y: 0 })
-  
+
   const currentHitBookmarkId = ref<number | null>(null)
-  const currentHitBookmark = computed(() => 
-    bookmarks.value.find(b => b.id === currentHitBookmarkId.value)
+  const currentHitBookmark = computed(() =>
+    bookmarks.value.find(b => b.id === currentHitBookmarkId.value),
   )
   const currentHitNote = computed(() => currentHitBookmark.value?.note || '')
   const currentHitColor = computed(() => currentHitBookmark.value?.color || null)
@@ -100,16 +105,19 @@ export function useReaderBookmarks(
   }
 
   // 监听 bookId 变化，自动加载书签
-  watch(() => core.bookId.value, (newVal) => {
-    if (newVal) {
-      loadBookmarks()
-    }
-  })
+  watch(
+    () => core.bookId.value,
+    newVal => {
+      if (newVal) {
+        loadBookmarks()
+      }
+    },
+  )
 
   function rebuildMarkRanges() {
     markRanges.clear()
     if (!core.sentenceOffsets.value.length) return
-    
+
     const currentIdx = nav.currentChapterIndex.value
     if (currentIdx === null) return
 
@@ -117,19 +125,23 @@ export function useReaderBookmarks(
       try {
         const loc = JSON.parse(b.location || '{}')
         if (loc?.format !== 'txt') continue
-        
+
         if (typeof loc.absStart === 'number' && typeof loc.absEnd === 'number') {
           const mapped = mapAbsToChapter(loc.absStart, loc.absEnd, core.chapters.value)
           if (!mapped || mapped.chapterIndex !== currentIdx) continue
-          
-          const segs = splitRangeToSegments(mapped.localStart, mapped.localEnd, core.sentenceOffsets.value)
+
+          const segs = splitRangeToSegments(
+            mapped.localStart,
+            mapped.localEnd,
+            core.sentenceOffsets.value,
+          )
           for (const seg of segs) {
             const arr = markRanges.get(seg.idx) || []
             arr.push({
               start: seg.start,
               end: seg.end,
               bookmarkId: b.id,
-              color: b.color || null
+              color: b.color || null,
             })
             markRanges.set(seg.idx, arr)
           }
@@ -160,8 +172,9 @@ export function useReaderBookmarks(
   }
 
   async function addBookmark(color?: string) {
-    if (!selectionRange.value || !core.bookId.value || nav.currentChapterIndex.value === null) return
-    
+    if (!selectionRange.value || !core.bookId.value || nav.currentChapterIndex.value === null)
+      return
+
     const currentIdx = nav.currentChapterIndex.value
     const chap = core.chapters.value[currentIdx]
     if (!chap) return
@@ -214,7 +227,7 @@ export function useReaderBookmarks(
       markRanges.set(i, cur)
     }
     markTick.value++
-    
+
     // 关闭菜单
     selectionRange.value = null
     showSelectionMenu.value = false
@@ -223,16 +236,19 @@ export function useReaderBookmarks(
       const payload: Partial<Bookmark> = {
         location: JSON.stringify({ format: 'txt', fileId, absStart, absEnd, selectionText }),
         file_id: fileId,
-        color: color || null
+        color: color || null,
       }
       const b = await bookmarksApi.create(core.bookId.value, payload, fileId)
       bookmarks.value.push(b)
-      
+
       // 回填 ID
       for (const [i, arrAdded] of addedBySentence.entries()) {
         const cur = markRanges.get(i) || []
         for (const seg of cur) {
-          if (arrAdded.some(a => a.start === seg.start && a.end === seg.end) && seg.bookmarkId == null) {
+          if (
+            arrAdded.some(a => a.start === seg.start && a.end === seg.end) &&
+            seg.bookmarkId == null
+          ) {
             seg.bookmarkId = b.id
             seg.color = b.color || null
           }
@@ -247,7 +263,9 @@ export function useReaderBookmarks(
       for (const [i, arrAdded] of addedBySentence.entries()) {
         const cur = markRanges.get(i) || []
         if (cur.length === 0) continue
-        const filtered = cur.filter(r => !arrAdded.some(a => a.start === r.start && a.end === r.end))
+        const filtered = cur.filter(
+          r => !arrAdded.some(a => a.start === r.start && a.end === r.end),
+        )
         if (filtered.length > 0) markRanges.set(i, filtered)
         else markRanges.delete(i)
       }
@@ -462,6 +480,6 @@ export function useReaderBookmarks(
     onPickColor,
     onDeleteFromMenu,
     jumpToBookmark,
-    onDocMouseDown
+    onDocMouseDown,
   }
 }

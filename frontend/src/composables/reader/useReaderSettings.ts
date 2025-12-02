@@ -70,6 +70,6 @@ export function useReaderSettings() {
     updateTheme,
     updateFontSize,
     updateLineHeight,
-    updateContentWidth
+    updateContentWidth,
   }
 }
