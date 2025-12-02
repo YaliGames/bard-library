@@ -38,17 +38,21 @@ export interface SearchPanelInstance {
 }
 
 export interface SelectionEventPayload {
-  range: { start: number; end: number }
-  text: string
-  rect: DOMRect
+  show: boolean
+  x?: number
+  y?: number
+  range?: { start: number; end: number } | null
+  text?: string | null
 }
 
 export interface MarkClickEventPayload {
-  bookmarkId: number
-  rect: DOMRect
+  show: boolean
+  x?: number
+  y?: number
+  bookmarkId?: number | null
 }
 
-export type ColorPickPayload = string | { target: { value: string } }
+export type ColorPickPayload = string | Event
 
 /**
  * 搜索结果接口

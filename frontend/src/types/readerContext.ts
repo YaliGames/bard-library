@@ -33,6 +33,7 @@ export interface ReaderContext {
   cachedBook: Ref<CachedBook | null>
   showCacheManager: Ref<boolean>
   loading: Ref<boolean>
+  err: Ref<string>
   themeColors: Record<ThemeKey, { bg: string; fg: string }>
   userSettings: UserSettings
 
@@ -40,7 +41,7 @@ export interface ReaderContext {
   content: Ref<string>
   sentences: Ref<string[]>
   contentRef: Ref<TxtContentInstance | null>
-  sentenceOffsets: Array<{ start: number; end: number }>
+  sentenceOffsets: Ref<Array<{ start: number; end: number }>>
 
   // drawer / mobile
   leftTab: Ref<'chapters' | 'bookmarks'>
@@ -87,7 +88,7 @@ export interface ReaderContext {
   backToBook: () => void
   goEditChapters: () => void
   jumpToBookmark: (b: Bookmark) => Promise<void>
-  removeBookmarkConfirm: (b: Bookmark) => Promise<void>
+  removeBookmarkConfirm: (b: Bookmark) => void
   removeBookmark: (b: Bookmark) => Promise<void>
   loadBookmarksForChapter: () => Promise<void>
   loadCacheStatus: () => Promise<void>

@@ -101,18 +101,6 @@ const leftTab = readerContext.leftTab
 const hasPrevChapter = readerContext.hasPrevChapter
 const hasNextChapter = readerContext.hasNextChapter
 
-const settings = readerContext.settings
-const settingsVisible = readerContext.settingsVisible
-
-const content = readerContext.content
-const sentences = readerContext.sentences
-
-const searchVisible = readerContext.searchVisible
-
 const cachedBook = readerContext.cachedBook
-const showCacheManager = readerContext.showCacheManager
-
-const fileId = readerContext.fileId
-const bookId = readerContext.bookId
 const bookTitle = readerContext.bookTitle
 </script>
