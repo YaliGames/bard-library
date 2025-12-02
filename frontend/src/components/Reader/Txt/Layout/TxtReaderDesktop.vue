@@ -28,7 +28,7 @@
           </div>
         </div>
         <div class="p-2 flex-1 overflow-y-auto">
-          <TxtNavTabs
+          <NavTabs
             v-model:tab="leftTab"
             :chapters="chapters"
             :current-chapter-index="currentChapterIndex"
@@ -54,7 +54,7 @@
               {{ bookTitle || '正文' }}
             </h3>
             <div class="flex items-center">
-              <TxtChapterNav
+              <ChapterNav
                 :has-prev="hasPrevChapter"
                 :has-next="hasNextChapter"
                 @prev="readerContext.goPrevChapter"
@@ -84,8 +84,8 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 import type { ReaderContext } from '@/types/readerContext'
-import TxtNavTabs from '@/components/Reader/Txt/Desktop/TxtNavTabs.vue'
-import TxtChapterNav from '@/components/Reader/Txt/Desktop/TxtChapterNav.vue'
+import NavTabs from '@/components/Reader/Txt/Desktop/NavTabs.vue'
+import ChapterNav from '@/components/Reader/Txt/Desktop/ChapterNav.vue'
 import RightTools from '@/components/Reader/Txt/Desktop/RightTools.vue'
 
 const readerContext = inject<ReaderContext>('readerContext')!
