@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import {
   escapeHtml,
   clampRanges,
@@ -76,15 +76,25 @@ const selectionTextBuffer = ref<string | null>(null)
 // -----------------------------
 // HTML 渲染器：将句子及其 mark 范围渲染为安全 HTML
 // -----------------------------
+const activeSearchRegex = computed(() => {
+  if (!props.searchHighlight) return null
+  const { keyword, caseSensitive, wholeWord } = props.searchHighlight
+  try {
+    return buildSearchRegex(keyword, caseSensitive, wholeWord)
+  } catch {
+    return null
+  }
+})
+
 function getSentenceHtml(i: number, s: string): string {
   const ranges = props.markRanges.get(i)
   const allRanges: Array<any> = []
   if (ranges && ranges.length) allRanges.push(...ranges)
 
-  if (props.searchHighlight) {
+  if (activeSearchRegex.value) {
     try {
-      const { keyword, caseSensitive, wholeWord } = props.searchHighlight
-      const regex = buildSearchRegex(keyword, caseSensitive, wholeWord)
+      const regex = activeSearchRegex.value
+      regex.lastIndex = 0
       let m
       while ((m = regex.exec(s)) !== null) {
         allRanges.push({
