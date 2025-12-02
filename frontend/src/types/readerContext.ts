@@ -2,8 +2,19 @@ import type { Ref } from 'vue'
 import type { Book, Bookmark } from '@/api/types'
 import type { Chapter } from '@/api/txt'
 import type { CachedBook } from '@/utils/txtCache'
-
-export type ThemeKey = 'light' | 'sepia' | 'dark'
+import type { UserSettings } from '@/api/settings'
+import type {
+  ThemeKey,
+  ReaderSettings,
+  SearchHighlightOptions,
+  SelectionAction,
+  TxtContentInstance,
+  SearchPanelInstance,
+  SelectionEventPayload,
+  MarkClickEventPayload,
+  ColorPickPayload,
+  SearchResult
+} from '@/types/reader'
 
 export interface ReaderContext {
   // basic data
@@ -17,18 +28,18 @@ export interface ReaderContext {
   bookTitle: Ref<string>
 
   // settings / UI state
-  settings: Ref<{ fontSize: number; lineHeight: number; contentWidth: number; theme: ThemeKey }>
+  settings: Ref<ReaderSettings>
   settingsVisible: Ref<boolean>
   cachedBook: Ref<CachedBook | null>
   showCacheManager: Ref<boolean>
   loading: Ref<boolean>
   themeColors: Record<ThemeKey, { bg: string; fg: string }>
-  userSettings: any
+  userSettings: UserSettings
 
   // content
   content: Ref<string>
   sentences: Ref<string[]>
-  contentRef: Ref<any>
+  contentRef: Ref<TxtContentInstance | null>
   sentenceOffsets: Array<{ start: number; end: number }>
 
   // drawer / mobile
@@ -39,7 +50,7 @@ export interface ReaderContext {
   mobileBottomBarVisible: Ref<boolean>
 
   // interaction state
-  searchHighlight: Ref<any>
+  searchHighlight: Ref<SearchHighlightOptions | null>
   markRanges: Map<
     number,
     Array<{ start: number; end: number; bookmarkId?: number; color?: string | null }>
@@ -47,7 +58,7 @@ export interface ReaderContext {
   markTick: Ref<number>
   showSelectionMenu: Ref<boolean>
   selectionMenuPos: Ref<{ x: number; y: number }>
-  selectionActions: Ref<any>
+  selectionActions: Ref<SelectionAction[]>
   showHighlightMenu: Ref<boolean>
   highlightMenuPos: Ref<{ x: number; y: number }>
   currentHitBookmarkId: Ref<number | null>
@@ -61,8 +72,8 @@ export interface ReaderContext {
   autoScrollCategory: Ref<boolean | undefined>
 
   // refs for panels
-  searchPanelRef: Ref<any>
-  mobileSearchDrawerRef: Ref<any>
+  searchPanelRef: Ref<SearchPanelInstance | null>
+  mobileSearchDrawerRef: Ref<SearchPanelInstance | null>
   searchVisible: Ref<boolean>
   // right-side tools panel
   rightPanelOpen: Ref<boolean>
@@ -90,7 +101,7 @@ export interface ReaderContext {
 
   // search handlers
   handleSearchClose: () => void
-  handleJumpToSearchResult: (r: any) => void
+  handleJumpToSearchResult: (r: SearchResult) => void
   handleChapterSearch: (k: string, cs: boolean, ww: boolean) => void
   handleGlobalSearch: (k: string, cs: boolean, ww: boolean) => Promise<void>
 
@@ -99,9 +110,9 @@ export interface ReaderContext {
   closeRightPanel: () => void
 
   // selection / highlight
-  onSelectionEvent: (p: any) => void
-  onMarkClickEvent: (p: any) => void
+  onSelectionEvent: (p: SelectionEventPayload) => void
+  onMarkClickEvent: (p: MarkClickEventPayload) => void
   onAddNote: () => Promise<void>
-  onPickColor: (c: any) => Promise<void>
+  onPickColor: (c: ColorPickPayload) => Promise<void>
   onDeleteFromMenu: () => void
 }

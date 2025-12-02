@@ -21,6 +21,16 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, onUnmounted, nextTick, provide } from 'vue'
 import type { ReaderContext } from '@/types/readerContext'
+import type {
+  ReaderSettings,
+  SearchHighlightOptions,
+  TxtContentInstance,
+  SelectionAction,
+  ThemeKey,
+  SearchPanelInstance,
+  SearchResult,
+} from '@/types/reader'
+import type { Chapter } from '@/api/txt'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { txtApi } from '@/api/txt'
@@ -43,7 +53,6 @@ import {
 } from '@/utils/reader'
 import { useSimpleLoading } from '@/composables/useLoading'
 import { getCachedBook, type CachedBook } from '@/utils/txtCache'
-import type { SearchResult } from '@/types/reader'
 
 const route = useRoute()
 const router = useRouter()
@@ -113,12 +122,6 @@ function resolveInitialContext() {
   } catch {}
 }
 
-interface Chapter {
-  index: number
-  title?: string | null
-  offset: number
-  length: number
-}
 const chapters = ref<Chapter[]>([])
 const content = ref('')
 const sentences = ref<string[]>([])
@@ -127,30 +130,13 @@ let sentenceOffsets: Array<{ start: number; end: number }> = []
 const err = ref('')
 const currentChapterIndex = ref<number | null>(null)
 const settingsVisible = ref(false)
-const contentRef = ref<{
-  scrollToTarget: (opts: {
-    startSid?: number
-    endSid?: number
-    selectionText?: string
-    isSearchJump?: boolean
-    matchPosition?: number
-    matchLength?: number
-  }) => void
-} | null>(null)
-const searchPanelRef = ref<{
-  setGlobalResults: (results: any[]) => void
-  setSearching: (value: boolean) => void
-} | null>(null)
-const mobileSearchDrawerRef = ref<{
-  setGlobalResults: (results: any[]) => void
-  setSearching: (value: boolean) => void
-} | null>(null)
+const contentRef = ref<TxtContentInstance | null>(null)
+const searchPanelRef = ref<SearchPanelInstance | null>(null)
+const mobileSearchDrawerRef = ref<SearchPanelInstance | null>(null)
 const leftTab = ref<'chapters' | 'bookmarks'>('chapters')
 const searchVisible = ref(false) // PC 端搜索
 const mobileSearchVisible = ref(false) // 移动端搜索
-const searchHighlight = ref<{ keyword: string; caseSensitive: boolean; wholeWord: boolean } | null>(
-  null,
-) // 当前搜索配置
+const searchHighlight = ref<SearchHighlightOptions | null>(null) // 当前搜索配置
 const showCacheManager = ref(false)
 const cachedBook = ref<CachedBook | null>(null)
 const showMobileDrawer = ref(false)
@@ -179,7 +165,7 @@ const currentHitBookmark = computed(() =>
 const currentHitNote = computed(() => currentHitBookmark.value?.note || '')
 const currentHitColor = computed(() => currentHitBookmark.value?.color || null)
 const selectionActions = computed(() => {
-  const acts: Array<{ key: string; label: string; onClick: () => void }> = []
+  const acts: SelectionAction[] = []
   if (isLoggedIn.value) {
     if (selectionRange.value) {
       acts.push({
@@ -226,7 +212,6 @@ function closeRightPanel() {
   rightPanelTab.value = 'none'
 }
 
-type ThemeKey = 'light' | 'sepia' | 'dark'
 const themeColors: Record<ThemeKey, { bg: string; fg: string }> = {
   light: { bg: '#ffffff', fg: '#333333' },
   sepia: { bg: '#f5ecd9', fg: '#3b2f1e' },
@@ -234,12 +219,7 @@ const themeColors: Record<ThemeKey, { bg: string; fg: string }> = {
 }
 
 const SETTINGS_KEY = 'reader.settings.txt'
-const settings = ref<{
-  fontSize: number
-  lineHeight: number
-  contentWidth: number
-  theme: ThemeKey
-}>({
+const settings = ref<ReaderSettings>({
   fontSize: 16,
   lineHeight: 1.7,
   contentWidth: 720,
@@ -284,7 +264,7 @@ const filteredBookmarks = computed(() => {
     try {
       const loc = JSON.parse(b.location || '{}')
       // 优先使用 location.fileId；若没有，则回退到条目上的 file_id 字段
-      const fid = Number(loc?.fileId ?? (b as any).file_id ?? 0)
+      const fid = Number(loc?.fileId ?? b.file_id ?? 0)
       return fid === fileId
     } catch {
       return false
@@ -353,7 +333,7 @@ async function loadBookmarksForChapter() {
               start: seg.start,
               end: seg.end,
               bookmarkId: b.id,
-              color: (b as any).color || null,
+              color: b.color || null,
             })
             markRanges.set(seg.idx, arr)
           }
@@ -693,7 +673,7 @@ async function highlightSelection() {
     const payload: Partial<Bookmark> = {
       // 以绝对偏移作为稳定锚点；保留 selectionText 便于渲染高亮
       location: JSON.stringify({ format: 'txt', fileId: fileId, absStart, absEnd, selectionText }),
-      file_id: fileId as any,
+      file_id: fileId,
     }
     const b = await bookmarksApi.create(bookId.value, payload, fileId)
     bookmarks.value.push(b)
@@ -706,7 +686,7 @@ async function highlightSelection() {
           seg.bookmarkId == null
         ) {
           seg.bookmarkId = b.id
-          seg.color = (b as any).color || null
+          seg.color = b.color || null
         }
       }
       markRanges.set(i, cur)
