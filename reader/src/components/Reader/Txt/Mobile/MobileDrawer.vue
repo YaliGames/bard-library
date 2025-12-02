@@ -393,7 +393,7 @@
         <!-- 关闭按钮 -->
         <div class="p-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <button
-            @click="closeDrawer"
+            @click="$emit('close')"
             class="w-full py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             关闭
