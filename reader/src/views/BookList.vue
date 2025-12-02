@@ -1,13 +1,18 @@
 <template>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">书库</h1>
-        <div class="mt-1 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-4">
-          <span>已缓存</span>
-        </div>
+    <!-- 标题栏 -->
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">书库</h1>
+      <div class="flex items-center gap-2">
+        <button
+          @click="showFilterDrawer = true"
+          class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          title="筛选"
+        >
+          <span class="material-symbols-outlined">filter_list</span>
+        </button>
       </div>
-    </div> -->
+    </div>
 
     <!-- Cache notification banner -->
     <div
@@ -20,6 +25,7 @@
       </div>
     </div>
 
+    <!-- Filter & Sort -->
     <BookFilter
       v-model="filters"
       v-model:sort="sort"
@@ -34,7 +40,9 @@
       :showLanguage="enableAdvancedFilters"
       :showSeries="enableAdvancedFilters"
       :showIsbn="enableAdvancedFilters"
+      :showMarkReadButton="false"
       @search="searchPage(1)"
+      class="hidden md:block"
     />
 
     <BookGrid
@@ -45,6 +53,29 @@
       @author-click="filterByAuthor"
       @toggle-read="toggleRead"
     />
+
+    <!-- 移动端筛选弹窗 -->
+    <BookFilterDrawer
+      v-model="showFilterDrawer"
+      :filters="filters"
+      :sort="sort"
+      :order="order"
+      :showShelves="enableShelfFilter"
+      :showTags="enableTagFilter"
+      :showAuthor="enableAuthorFilter"
+      :showReadState="enableReadStateFilter"
+      :showRating="enableRatingFilter"
+      :showPublisher="enableAdvancedFilters"
+      :showPublishedAt="enableAdvancedFilters"
+      :showLanguage="enableAdvancedFilters"
+      :showSeries="enableAdvancedFilters"
+      :showIsbn="enableAdvancedFilters"
+      @update:filters="filters = $event"
+      @update:sort="sort = $event"
+      @update:order="order = $event"
+      @search="searchPage(1)"
+      @reset="resetFilters"
+    />
   </div>
 </template>
 
@@ -53,6 +84,7 @@ import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import BookGrid from '@/components/Book/BookGrid.vue'
 import BookFilter, { type FiltersModel } from '@/components/Book/BookFilter.vue'
+import BookFilterDrawer from '@/components/Book/BookFilterDrawer.vue'
 import { booksApi } from '@/api/books'
 import type { Book } from '@/api/types'
 import { usePagination } from '@/composables/usePagination'
@@ -72,6 +104,7 @@ const route = useRoute()
 const offlineStore = useOfflineStore()
 
 const showCacheNotification = ref(false)
+const showFilterDrawer = ref(false)
 
 const filters = ref<FiltersModel>({
   q: '',

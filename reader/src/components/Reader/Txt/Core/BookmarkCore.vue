@@ -108,9 +108,9 @@ function handleBookmarkClick(bookmark: Bookmark) {
   emit('jump-to-bookmark', bookmark)
 }
 
-// 方法：处理删除书签
-function handleRemoveBookmark(bookmark: Bookmark) {
-  emit('remove-bookmark', bookmark)
+// 方法：检查书签是否为离线书签
+function isOfflineBookmark(b: Bookmark): boolean {
+  return typeof b.id === 'string' && (b as any).synced === false
 }
 
 // 暴露给父组件
@@ -123,6 +123,7 @@ defineExpose({
   getBookmarkPreview,
   handleBookmarkClick,
   handleRemoveBookmark,
+  isOfflineBookmark,
 })
 </script>
 
@@ -157,8 +158,9 @@ defineExpose({
         @click="handleBookmarkClick(bookmark)"
         class="p-2 mb-1 border rounded cursor-pointer hover:bg-gray-50"
       >
-        <div class="text-xs text-gray-500">
-          {{ getBookmarkChapter(bookmark).title }}
+        <div class="text-xs text-gray-500 flex items-center justify-between">
+          <span>{{ getBookmarkChapter(bookmark).title }}</span>
+          <span v-if="isOfflineBookmark(bookmark)" class="text-orange-500 text-xs">离线</span>
         </div>
         <div class="text-sm">{{ getBookmarkPreview(bookmark) }}</div>
         <button @click.stop="handleRemoveBookmark(bookmark)" class="text-xs text-red-500">

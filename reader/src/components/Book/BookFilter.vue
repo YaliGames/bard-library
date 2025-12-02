@@ -21,7 +21,10 @@
     </div>
 
     <!-- 条件卡片 -->
-    <div v-if="hasAnyAdvanced" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-4">
+    <div v-if="hasAnyAdvanced" :class="[
+      'rounded-lg p-4 mb-4',
+      showBackground ? 'bg-white dark:bg-gray-800 shadow-sm' : ''
+    ]">
       <div class="flex items-center justify-between mb-4">
         <div class="text-lg font-medium my-2 text-gray-900 dark:text-gray-100">筛选条件</div>
         <button
@@ -220,6 +223,7 @@ const props = withDefaults(
     enableExpand?: boolean
     defaultExpanded?: boolean
     searchPlaceholder?: string
+    showBackground?: boolean
   }>(),
   {
     sort: 'created',
@@ -239,6 +243,7 @@ const props = withDefaults(
     enableExpand: true,
     defaultExpanded: false,
     searchPlaceholder: '请输入搜索关键字...',
+    showBackground: true,
   },
 )
 

@@ -59,11 +59,11 @@ const defaultConfig: AppConfig = {
 
 // Try to import local config
 let localConfigOverrides: Partial<AppConfig> = {}
-try {
-    // @ts-ignore - config.local may not exist
-    const localModule = await import('./config.local')
+const localConfigModules = import.meta.glob('./config.local.ts', { eager: true })
+if (Object.keys(localConfigModules).length > 0) {
+    const localModule = localConfigModules['./config.local.ts'] as { config?: Partial<AppConfig> }
     localConfigOverrides = localModule.config || {}
-} catch (e) {
+} else {
     // Local config doesn't exist or failed to load, use defaults
     console.log('[Config] No local config found, using defaults')
 }

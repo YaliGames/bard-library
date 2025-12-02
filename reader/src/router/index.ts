@@ -25,14 +25,14 @@ const router = createRouter({
                     component: () => import('../views/BookList.vue')
                 },
                 {
-                    path: 'cache',
-                    name: 'cache',
-                    component: () => import('../views/CacheManagement.vue')
+                    path: 'cache-books',
+                    name: 'cache-books',
+                    component: () => import('../views/CacheBookList.vue')
                 },
                 {
-                    path: 'cache-settings',
-                    name: 'cache-settings',
-                    component: () => import('../views/CacheSettings.vue')
+                    path: 'cache-management',
+                    name: 'cache-management',
+                    component: () => import('../views/CacheManagement.vue')
                 }
             ]
         },

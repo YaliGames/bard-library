@@ -1,4 +1,5 @@
 ﻿<template>
+  <div class="overflow-auto h-full">
   <TxtReaderDesktop
     v-if="!isMobileView"
     @jump-to-result="handleJumpToSearchResult"
@@ -16,6 +17,7 @@
   >
     <ReaderBody />
   </TxtReaderMobile>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -43,6 +45,7 @@ import {
 } from '@/utils/reader'
 import { useSimpleLoading } from '@/composables/useLoading'
 import { getCachedBook, type CachedBook } from '@/utils/txtCache'
+import { bookmarkCache, type OfflineBookmark } from '@/utils/cacheManager'
 
 const route = useRoute()
 const router = useRouter()
@@ -309,20 +312,32 @@ const pendingScroll = ref<{
 async function loadBookmarksForChapter() {
   if (!isLoggedIn.value || !bookId.value || currentChapterIndex.value == null) return
   try {
-    let bookmarksResponse
+    let serverBookmarks: Bookmark[] = []
+    let offlineBookmarks: OfflineBookmark[] = []
+
+    // 尝试加载在线书签
     try {
-      bookmarksResponse = await bookmarksApi.list(bookId.value, fileId)
+      const bookmarksResponse = await bookmarksApi.list(bookId.value, fileId)
+      serverBookmarks = bookmarksResponse.bookmarks || []
+      // 只在 book 信息还未加载时才从 bookmarks 接口获取
+      if (!book.value || !('title' in book.value)) {
+        book.value = bookmarksResponse.book || {}
+      }
     } catch (e) {
-      console.warn('Failed to load bookmarks (offline?):', e)
-      return // 离线或失败时直接返回，不中断流程
-    }
-    const list = bookmarksResponse.bookmarks || []
-    // 只在 book 信息还未加载时才从 bookmarks 接口获取
-    if (!book.value || !('title' in book.value)) {
-      book.value = bookmarksResponse.book || {}
+      console.warn('Failed to load server bookmarks (offline?):', e)
     }
 
-    bookmarks.value = list.filter(b => {
+    // 加载离线书签
+    try {
+      offlineBookmarks = await bookmarkCache.getBookmarks(bookId.value, fileId)
+    } catch (e) {
+      console.warn('Failed to load offline bookmarks:', e)
+    }
+
+    // 合并书签列表（在线书签优先）
+    const allBookmarks = [...serverBookmarks, ...offlineBookmarks.filter(ob => !ob.synced)]
+
+    bookmarks.value = allBookmarks.filter(b => {
       if (!b.location) return false
       try {
         const loc = JSON.parse(b.location)
@@ -334,6 +349,7 @@ async function loadBookmarksForChapter() {
         return false
       }
     })
+
     markRanges.clear()
     for (const b of bookmarks.value) {
       try {
@@ -357,7 +373,7 @@ async function loadBookmarksForChapter() {
             arr.push({
               start: seg.start,
               end: seg.end,
-              bookmarkId: b.id,
+              bookmarkId: typeof b.id === 'string' ? parseInt(b.id) : b.id,
               color: (b as any).color || null,
             })
             markRanges.set(seg.idx, arr)
@@ -688,31 +704,59 @@ async function highlightSelection() {
   selectionRange.value = null
   hideSelectionMenu()
 
-  // 2) 调后端，成功则保持，不成功则回滚
+  // 2) 创建书签（支持离线）
+  const isOnline = navigator.onLine
+  const bookmarkData = {
+    chapter_index: currentChapterIndex.value,
+    position: s,
+    location: JSON.stringify({ format: 'txt', fileId: fileId, absStart, absEnd, selectionText }),
+    file_id: fileId as any,
+  }
+
   try {
-    const payload: Partial<Bookmark> = {
-      // 以绝对偏移作为稳定锚点；保留 selectionText 便于渲染高亮
-      location: JSON.stringify({ format: 'txt', fileId: fileId, absStart, absEnd, selectionText }),
-      file_id: fileId as any,
-    }
-    const b = await bookmarksApi.create(bookId.value, payload, fileId)
-    bookmarks.value.push(b)
-    // 回填 id/color
-    for (const [i, arrAdded] of addedBySentence.entries()) {
-      const cur = markRanges.get(i) || []
-      for (const seg of cur) {
-        if (
-          arrAdded.some(a => a.start === seg.start && a.end === seg.end) &&
-          seg.bookmarkId == null
-        ) {
-          seg.bookmarkId = b.id
-          seg.color = (b as any).color || null
+    if (isOnline) {
+      // 在线模式：调用API
+      const b = await bookmarksApi.create(bookId.value, bookmarkData, fileId)
+      bookmarks.value.push(b)
+      // 回填 id/color
+      for (const [i, arrAdded] of addedBySentence.entries()) {
+        const cur = markRanges.get(i) || []
+        for (const seg of cur) {
+          if (
+            arrAdded.some(a => a.start === seg.start && a.end === seg.end) &&
+            seg.bookmarkId == null
+          ) {
+            seg.bookmarkId = b.id
+            seg.color = (b as any).color || null
+          }
         }
+        markRanges.set(i, cur)
       }
-      markRanges.set(i, cur)
+      markTick.value++
+    } else {
+      // 离线模式：保存到本地缓存
+      const offlineBookmark = await bookmarkCache.saveBookmark(bookId.value, fileId, bookmarkData)
+      bookmarks.value.push(offlineBookmark as any)
+      // 回填离线ID
+      for (const [i, arrAdded] of addedBySentence.entries()) {
+        const cur = markRanges.get(i) || []
+        for (const seg of cur) {
+          if (
+            arrAdded.some(a => a.start === seg.start && a.end === seg.end) &&
+            seg.bookmarkId == null
+          ) {
+            seg.bookmarkId = parseInt(offlineBookmark.id)
+            seg.color = null
+          }
+        }
+        markRanges.set(i, cur)
+      }
+      markTick.value++
+      // 显示离线提示
+      ElMessage.info('书签已保存到本地，网络恢复后将自动同步')
     }
-    markTick.value++
-  } catch {
+  } catch (error) {
+    console.error('Failed to create bookmark:', error)
     // 回滚已添加的高亮
     for (const [i, arrAdded] of addedBySentence.entries()) {
       const cur = markRanges.get(i) || []
@@ -722,6 +766,7 @@ async function highlightSelection() {
       else markRanges.delete(i)
     }
     markTick.value++
+    ElMessage.error(isOnline ? '创建书签失败' : '离线保存书签失败')
   }
 }
 
@@ -808,13 +853,34 @@ async function removeBookmarkConfirm(b: Bookmark) {
 
 async function removeBookmark(b: Bookmark) {
   try {
-    await bookmarksApi.remove(bookId.value, b.id)
-    // 从本地列表移除并刷新高亮
-    bookmarks.value = bookmarks.value.filter(x => x.id !== b.id)
-    markRanges.clear()
-    await loadBookmarksForChapter()
-    markTick.value++
-  } catch {}
+    const bookmarkId = typeof b.id === 'string' ? b.id : b.id.toString()
+
+    // 检查是否是离线书签
+    const offlineBookmarks = await bookmarkCache.getBookmarks(bookId.value, fileId)
+    const isOfflineBookmark = offlineBookmarks.some(ob => ob.id === bookmarkId && !ob.synced)
+
+    if (isOfflineBookmark) {
+      // 删除离线书签
+      await bookmarkCache.deleteBookmark(bookId.value, fileId, bookmarkId)
+      // 从本地列表移除并刷新高亮
+      bookmarks.value = bookmarks.value.filter(x => x.id !== b.id)
+      markRanges.clear()
+      await loadBookmarksForChapter()
+      markTick.value++
+      ElMessage.success('离线书签已删除')
+    } else {
+      // 删除在线书签
+      await bookmarksApi.remove(bookId.value, b.id)
+      // 从本地列表移除并刷新高亮
+      bookmarks.value = bookmarks.value.filter(x => x.id !== b.id)
+      markRanges.clear()
+      await loadBookmarksForChapter()
+      markTick.value++
+    }
+  } catch (error) {
+    console.error('Failed to remove bookmark:', error)
+    ElMessage.error('删除书签失败')
+  }
 }
 
 function hideSelectionMenu() {
@@ -847,25 +913,72 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', onDocMouseDown)
 })
 
-// 更新本地书签信息
-function updateLocalBookmark(updated: Bookmark) {
-  const idx = bookmarks.value.findIndex(b => b.id === updated.id)
-  if (idx >= 0) {
-    bookmarks.value[idx] = Object.assign({}, bookmarks.value[idx], updated)
+// 上传离线书签
+async function uploadOfflineBookmarks() {
+  if (!isLoggedIn.value || !bookId.value || !navigator.onLine) return
+
+  try {
+    await bookmarkCache.uploadOfflineBookmarks(bookId.value, fileId)
+    // 重新加载书签列表
+    await loadBookmarksForChapter()
+    ElMessage.success('离线书签已同步完成')
+  } catch (error) {
+    console.error('Failed to upload offline bookmarks:', error)
+    ElMessage.error('同步离线书签失败')
   }
 }
+
+// 监听网络状态变化
+function onOnline() {
+  console.log('Network is back online, uploading offline bookmarks...')
+  uploadOfflineBookmarks()
+}
+
+onMounted(() => {
+  window.addEventListener('online', onOnline)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('online', onOnline)
+})
 
 async function onAddNote() {
   try {
     if (!isLoggedIn.value || !bookId.value || !currentHitBookmark.value) return
     const text = window.prompt('添加/修改批注', currentHitBookmark.value.note || '')
     if (text == null) return
-    const updated = await bookmarksApi.update(bookId.value, currentHitBookmark.value.id, {
-      note: text,
-    })
-    updateLocalBookmark(updated)
+
+    const bookmarkId = typeof currentHitBookmark.value.id === 'string'
+      ? currentHitBookmark.value.id
+      : currentHitBookmark.value.id.toString()
+
+    // 检查是否是离线书签
+    const offlineBookmarks = await bookmarkCache.getBookmarks(bookId.value, fileId)
+    const isOfflineBookmark = offlineBookmarks.some(ob => ob.id === bookmarkId && !ob.synced)
+
+    if (isOfflineBookmark) {
+      // 更新离线书签
+      const updatedBookmark = { ...currentHitBookmark.value, note: text }
+      updateLocalBookmark(updatedBookmark)
+      // 由于是离线书签，需要手动更新缓存
+      const bookmarkIndex = offlineBookmarks.findIndex(ob => ob.id === bookmarkId)
+      if (bookmarkIndex >= 0) {
+        offlineBookmarks[bookmarkIndex].note = text
+        await bookmarkCache.saveBookmark(bookId.value, fileId, offlineBookmarks[bookmarkIndex])
+      }
+    } else {
+      // 更新在线书签
+      const updated = await bookmarksApi.update(bookId.value, currentHitBookmark.value.id, {
+        note: text,
+      })
+      updateLocalBookmark(updated)
+    }
+
     hideHighlightMenu()
-  } catch {}
+  } catch (error) {
+    console.error('Failed to update bookmark note:', error)
+    ElMessage.error('更新批注失败')
+  }
 }
 
 async function onPickColor(color: string | Event) {
@@ -873,24 +986,62 @@ async function onPickColor(color: string | Event) {
     if (!isLoggedIn.value || !bookId.value || !currentHitBookmark.value) return
     const picked = typeof color === 'string' ? color : (color as any)?.target?.value
     if (!picked) return
-    const updated = await bookmarksApi.update(bookId.value, currentHitBookmark.value.id, {
-      color: picked,
-    })
-    updateLocalBookmark(updated)
-    // 更新 markRanges 中颜�?
-    for (const [sid, arr] of markRanges.entries()) {
-      let changed = false
-      for (const seg of arr) {
-        if (seg.bookmarkId === updated.id) {
-          seg.color = (updated as any).color || null
-          changed = true
+
+    const bookmarkId = typeof currentHitBookmark.value.id === 'string'
+      ? currentHitBookmark.value.id
+      : currentHitBookmark.value.id.toString()
+
+    // 检查是否是离线书签
+    const offlineBookmarks = await bookmarkCache.getBookmarks(bookId.value, fileId)
+    const isOfflineBookmark = offlineBookmarks.some(ob => ob.id === bookmarkId && !ob.synced)
+
+    if (isOfflineBookmark) {
+      // 更新离线书签
+      const updatedBookmark = { ...currentHitBookmark.value, color: picked }
+      updateLocalBookmark(updatedBookmark)
+      // 更新 markRanges 中的颜色
+      for (const [sid, arr] of markRanges.entries()) {
+        let changed = false
+        for (const seg of arr) {
+          if (seg.bookmarkId === currentHitBookmark.value.id) {
+            seg.color = picked
+            changed = true
+          }
         }
+        if (changed) markRanges.set(sid, arr)
       }
-      if (changed) markRanges.set(sid, arr)
+      markTick.value++
+      // 手动更新缓存
+      const bookmarkIndex = offlineBookmarks.findIndex(ob => ob.id === bookmarkId)
+      if (bookmarkIndex >= 0) {
+        offlineBookmarks[bookmarkIndex].color = picked
+        await bookmarkCache.saveBookmark(bookId.value, fileId, offlineBookmarks[bookmarkIndex])
+      }
+    } else {
+      // 更新在线书签
+      const updated = await bookmarksApi.update(bookId.value, currentHitBookmark.value.id, {
+        color: picked,
+      })
+      updateLocalBookmark(updated)
+      // 更新 markRanges 中的颜色
+      for (const [sid, arr] of markRanges.entries()) {
+        let changed = false
+        for (const seg of arr) {
+          if (seg.bookmarkId === updated.id) {
+            seg.color = (updated as any).color || null
+            changed = true
+          }
+        }
+        if (changed) markRanges.set(sid, arr)
+      }
+      markTick.value++
     }
-    markTick.value++
+
     hideHighlightMenu()
-  } catch {}
+  } catch (error) {
+    console.error('Failed to update bookmark color:', error)
+    ElMessage.error('更新颜色失败')
+  }
 }
 
 // ==================== 移动端抽屉辅助函�?====================

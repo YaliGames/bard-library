@@ -82,7 +82,8 @@ const isMobile = computed(() => width.value < 640) // sm breakpoint
 const navItems = [
   { name: '首页', path: '/', icon: 'home' },
   { name: '书库', path: '/books', icon: 'library_books' },
-  { name: '离线书架', path: '/cache', icon: 'cloud_off' },
+  { name: '离线书架', path: '/cache-books', icon: 'cloud_off' },
+  { name: '缓存管理', path: '/cache-management', icon: 'settings' },
 ]
 
 const pageTitle = computed(() => {

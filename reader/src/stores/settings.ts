@@ -5,7 +5,7 @@ export const useSettingsStore = defineStore('settings', () => {
     const settings = ref({
         bookList: {
             showReadTag: true,
-            showMarkReadButton: true
+            showMarkReadButton: false
         },
         preferences: {
             expandFilterMenu: false
