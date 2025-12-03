@@ -1,4 +1,4 @@
-import { offlineStorage } from './offline'
+import { storage } from './storage'
 import type { Book } from '@/api/types'
 import type { BookListResponse } from '@/api/books'
 
@@ -12,12 +12,12 @@ export async function getCachedBookListPages(): Promise<{
     bookCount: number
     cachedAt: number
 }[]> {
-    const keys = await offlineStorage.books.keys()
+    const keys = await storage.books.keys()
     const bookListKeys = keys.filter(k => k.startsWith('books-list?'))
 
     const pages = await Promise.all(
         bookListKeys.map(async (key) => {
-            const data = await offlineStorage.books.getItem<BookListResponse>(key)
+            const data = await storage.books.getItem<BookListResponse>(key)
             if (!data) return null
 
             // Parse key to extract params
@@ -44,14 +44,14 @@ export async function getCachedBookListPages(): Promise<{
  * Get all cached books from all pages
  */
 export async function getAllCachedBooks(): Promise<Book[]> {
-    const keys = await offlineStorage.books.keys()
+    const keys = await storage.books.keys()
     const bookListKeys = keys.filter(k => k.startsWith('books-list?'))
 
     const allBooks: Book[] = []
     const bookMap = new Map<number, Book>()
 
     for (const key of bookListKeys) {
-        const data = await offlineStorage.books.getItem<BookListResponse>(key)
+        const data = await storage.books.getItem<BookListResponse>(key)
         if (data && data.data) {
             data.data.forEach(book => {
                 if (!bookMap.has(book.id)) {

@@ -525,6 +525,14 @@ onMounted(async () => {
   await loadCacheStatus()
   await loadChapters()
 
+  // 尝试同步离线书签
+  try {
+    const { bookmarkCache } = await import('@/utils/bookmarkCache')
+    await bookmarkCache.sync(bookmarksApi)
+  } catch (e) {
+    console.warn('Sync bookmarks failed:', e)
+  }
+
   // 移动端滚动监听
   window.addEventListener('scroll', handleMobileScroll)
 })

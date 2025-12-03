@@ -1,19 +1,9 @@
-import localforage from 'localforage'
-
-// Configure localforage instances
-const bookStore = localforage.createInstance({
-    name: 'bard-reader',
-    storeName: 'books',
-})
-
-const metaStore = localforage.createInstance({
-    name: 'bard-reader',
-    storeName: 'meta', // authors, tags, shelves
-})
+import { storage } from './storage'
+import type { LocalForage } from 'localforage'
 
 export const offlineStorage = {
-    books: bookStore,
-    meta: metaStore,
+    books: storage.books,
+    meta: storage.meta,
 }
 
 // Helper to generate cache keys
@@ -42,7 +32,7 @@ export function resetCachedDataFlag() {
 export async function withCache<T>(
     key: string,
     fetcher: () => Promise<T>,
-    store: LocalForage = metaStore,
+    store: LocalForage = storage.meta,
     networkFirst = true,
     notifyOnCache = false
 ): Promise<T> {

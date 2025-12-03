@@ -105,40 +105,35 @@ export async function cacheBook(
  * 获取缓存的书籍
  */
 export async function getCachedBook(fileId: number): Promise<CachedBook | null> {
-    try {
-        const db = await getDB()
+    const db = await getDB()
 
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME], 'readonly')
-            const store = transaction.objectStore(STORE_NAME)
-            const request = store.get(fileId)
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly')
+        const store = transaction.objectStore(STORE_NAME)
+        const request = store.get(fileId)
 
-            request.onsuccess = () => {
-                const data = request.result as CachedBookData | undefined
-                if (!data) {
-                    resolve(null)
-                    return
-                }
-
-                // 检查版本号
-                if (data.version !== CACHE_VERSION) {
-                    // 版本不匹配,删除旧缓存
-                    deleteCachedBook(fileId).catch(() => { })
-                    resolve(null)
-                    return
-                }
-
-                resolve({
-                    ...data,
-                    contents: new Map(Object.entries(data.contents).map(([k, v]) => [Number(k), v])),
-                })
+        request.onsuccess = () => {
+            const data = request.result as CachedBookData | undefined
+            if (!data) {
+                resolve(null)
+                return
             }
-            request.onerror = () => reject(request.error)
-        })
-    } catch (error) {
-        console.error('Failed to get cached book:', error)
-        return null
-    }
+
+            // 检查版本号
+            if (data.version !== CACHE_VERSION) {
+                // 版本不匹配,删除旧缓存
+                deleteCachedBook(fileId).catch(() => { })
+                resolve(null)
+                return
+            }
+
+            resolve({
+                ...data,
+                contents: new Map(Object.entries(data.contents).map(([k, v]) => [Number(k), v])),
+            })
+        }
+        request.onerror = () => reject(request.error)
+    })
 }
 
 /**
@@ -171,38 +166,33 @@ export async function getAllCachedBooks(): Promise<
         size: number // 估算大小(字节)
     }>
 > {
-    try {
-        const db = await getDB()
+    const db = await getDB()
 
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME], 'readonly')
-            const store = transaction.objectStore(STORE_NAME)
-            const request = store.getAll()
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly')
+        const store = transaction.objectStore(STORE_NAME)
+        const request = store.getAll()
 
-            request.onsuccess = () => {
-                const books = request.result as CachedBookData[]
-                resolve(
-                    books.map(book => {
-                        // 估算大小
-                        const size = JSON.stringify(book.contents).length
-                        return {
-                            fileId: book.fileId,
-                            bookId: book.bookId,
-                            bookTitle: book.bookTitle,
-                            fileName: book.fileName,
-                            chapterCount: book.chapters.length,
-                            cachedAt: book.cachedAt,
-                            size,
-                        }
-                    }),
-                )
-            }
-            request.onerror = () => reject(request.error)
-        })
-    } catch (error) {
-        console.error('Failed to get all cached books:', error)
-        return []
-    }
+        request.onsuccess = () => {
+            const books = request.result as CachedBookData[]
+            resolve(
+                books.map(book => {
+                    // 估算大小
+                    const size = JSON.stringify(book.contents).length
+                    return {
+                        fileId: book.fileId,
+                        bookId: book.bookId,
+                        bookTitle: book.bookTitle,
+                        fileName: book.fileName,
+                        chapterCount: book.chapters.length,
+                        cachedAt: book.cachedAt,
+                        size,
+                    }
+                }),
+            )
+        }
+        request.onerror = () => reject(request.error)
+    })
 }
 
 /**
