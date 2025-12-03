@@ -5,12 +5,12 @@
       <span class="font-bold text-lg">{{ systemName }}</span>
     </div>
 
-    <div class="hidden md:flex items-center gap-4 ml-4">
+    <div class="hidden md:flex items-center gap-1 ml-2">
       <template v-for="item in menuItems" :key="item.id">
         <router-link
           v-if="!item.external"
           :to="item.path || '/'"
-          class="nav-link"
+          class="text-white no-underline text-sm hover:bg-white/5 px-3 py-2 rounded transition-colors [&.router-link-active]:bg-white/10 [&.router-link-active]:font-bold"
           v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
         >
           {{ item.label }}
@@ -18,7 +18,7 @@
         <a
           v-else
           :href="item.path"
-          class="nav-link"
+          class="text-white no-underline text-sm hover:bg-white/5 px-3 py-2 rounded transition-colors"
           target="_blank"
           rel="noopener"
           v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
@@ -31,7 +31,7 @@
     <span class="flex-1"></span>
 
     <button
-      class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40"
+      class="md:hidden inline-flex items-center justify-center w-10 h-10 text-white rounded hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40"
       aria-label="打开菜单"
       @click="mobileOpen = true"
     >
@@ -41,7 +41,7 @@
     <template v-if="!user && !loadingUser" class="hidden md:block">
       <router-link
         to="/login"
-        class="hidden md:inline-block px-3 py-1 rounded bg-white/10 hover:bg-white/20"
+        class="text-white no-underline text-sm hover:bg-white/5 px-3 py-2 rounded transition-colors"
       >
         登录
       </router-link>
@@ -60,7 +60,9 @@
 
     <template v-else>
       <el-dropdown trigger="hover" class="hidden md:block">
-        <div class="el-dropdown-link flex items-center gap-2 cursor-pointer text-white">
+        <div
+          class="el-dropdown-link flex items-center gap-2 cursor-pointer text-white hover:bg-white/5 px-2 py-1 rounded transition-colors"
+        >
           <el-avatar :size="28">{{ avatarLetter }}</el-avatar>
           <span class="text-sm">{{ user?.name || user?.email }}</span>
         </div>
@@ -102,13 +104,19 @@
         <template v-for="item in menuItems" :key="item.id">
           <button
             v-if="!item.external"
-            class="drawer-link"
+            class="w-full text-left px-3 py-2.5 rounded-lg bg-white text-gray-800 hover:bg-gray-100"
             @click="go(item.path || '/')"
             v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
           >
             {{ item.label }}
           </button>
-          <a v-else class="drawer-link" :href="item.path" target="_blank" rel="noopener">
+          <a
+            v-else
+            class="w-full text-left px-3 py-2.5 rounded-lg bg-white text-gray-800 hover:bg-gray-100"
+            :href="item.path"
+            target="_blank"
+            rel="noopener"
+          >
             {{ item.label }}
           </a>
         </template>
@@ -117,7 +125,12 @@
       <div class="border-t my-3"></div>
 
       <div v-if="!user && !loadingUser" class="py-1">
-        <button class="drawer-link" @click="go('/login')">登录</button>
+        <button
+          class="w-full text-left px-3 py-2.5 rounded-lg bg-white text-gray-800 hover:bg-gray-100"
+          @click="go('/login')"
+        >
+          登录
+        </button>
       </div>
       <div v-else-if="loadingUser">
         <el-skeleton animated>
@@ -130,14 +143,23 @@
         </el-skeleton>
       </div>
       <div v-else class="flex flex-col gap-2">
-        <div class="flex items-center gap-2 text-gray-600 mb-1">
+        <div
+          class="flex items-center gap-2 text-gray-600 mb-1 cursor-pointer"
+          @click="userMenuExpanded = !userMenuExpanded"
+        >
           <el-avatar :size="28">{{ avatarLetter }}</el-avatar>
           <span class="text-sm">{{ user?.name || user?.email }}</span>
+          <span
+            class="material-symbols-outlined text-lg transition-transform ml-auto"
+            :class="{ 'rotate-180': userMenuExpanded }"
+          >
+            expand_more
+          </span>
         </div>
-        <template v-for="item in userMenuItems" :key="item.id">
+        <template v-if="userMenuExpanded" v-for="item in userMenuItems" :key="item.id">
           <button
             v-if="item.action === 'logout'"
-            class="drawer-link text-red-600"
+            class="w-full text-left px-3 py-2.5 rounded-lg bg-white text-red-600 hover:bg-gray-100"
             @click="logoutAndGo"
             v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
           >
@@ -145,7 +167,7 @@
           </button>
           <button
             v-else
-            class="drawer-link"
+            class="w-full text-left px-3 py-2.5 rounded-lg bg-white text-gray-800 hover:bg-gray-100"
             @click="item.path ? go(item.path) : null"
             v-show="!item.requiresAdminPermission || hasAnyAdminPermission"
           >
@@ -156,6 +178,7 @@
     </div>
   </el-drawer>
 </template>
+
 <script setup lang="ts">
 import { ref, onMounted, computed, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
@@ -178,11 +201,10 @@ const setAllSettings = settingsStore.setAll
 const user = computed(() => authStore.user)
 const { loading: loadingUser, setLoading: setLoadingUser } = useSimpleLoading(false)
 const mobileOpen = ref(false)
+const userMenuExpanded = ref(false)
 
-// 使用新的权限系统
 const { hasAnyPermission } = usePermission()
 
-// 检查是否有任何管理权限
 const hasAnyAdminPermission = computed(() => {
   return hasAnyPermission([
     'books.view',
@@ -219,7 +241,6 @@ const userMenuItems = computed(() => {
 const fetchUserFailed = ref(false)
 
 async function fetchUser() {
-  // Cookie 认证: 如果有缓存的用户信息,调用 /me 验证 Session
   if (!authStore.user) {
     fetchUserFailed.value = false
     return
@@ -230,11 +251,9 @@ async function fetchUser() {
     authStore.setUser(me)
     fetchUserFailed.value = false
   } catch (e: any) {
-    // Session 过期,清除用户信息
     authStore.logout()
     fetchUserFailed.value = true
     handleError(e, { context: 'NavBar.fetchUser', showToast: false })
-    // 如果是认证错误,跳转登录页
     const status = e?.status || e?.response?.status
     if (status === 401 || status === 403) {
       const redirect = encodeURIComponent(
@@ -249,11 +268,7 @@ async function fetchUser() {
 
 onMounted(fetchUser)
 
-// Cookie 认证: 不再需要监听 token 变化
-// main.ts 已经在 app 初始化时验证 Session
-
 function handleUserMenuItem(item: any) {
-  // 支持 action=logout 与基于 path 的导航
   if (!item) return
   if (item.action === 'logout') {
     logoutAndGo()
@@ -265,9 +280,7 @@ function handleUserMenuItem(item: any) {
   }
 }
 
-// 登录后首次拉取用户设置
 watchEffect(async () => {
-  // Cookie 认证: 只要有用户就尝试获取设置
   if (user.value) {
     try {
       const remote = await settingsApi.get()
@@ -290,31 +303,3 @@ async function logoutAndGo() {
   router.push({ name: 'login' })
 }
 </script>
-<style scoped>
-.nav-link {
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: none;
-  font-size: 14px;
-}
-
-.nav-link:hover {
-  text-decoration: underline;
-}
-
-a.router-link-active.nav-link {
-  font-weight: 700;
-}
-
-.drawer-link {
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fff;
-  color: #333;
-}
-
-.drawer-link:hover {
-  background: #f2f3f5;
-}
-</style>
