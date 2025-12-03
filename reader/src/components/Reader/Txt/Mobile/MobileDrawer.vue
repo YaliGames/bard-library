@@ -393,8 +393,8 @@
         <!-- 关闭按钮 -->
         <div class="p-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <button
-            @click="$emit('close')"
-            class="w-full py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            @click="closeDrawer"
+            class="w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             关闭
           </button>
@@ -412,7 +412,7 @@ import CacheCore from '@/components/Reader/Txt/Core/CacheCore.vue'
 import SettingsCore from '@/components/Reader/Txt/Core/SettingsCore.vue'
 import type { Bookmark } from '@/api/types'
 import type { ThemeKey } from '@/types/reader'
-import type { ReaderContext } from '@/types/reader'
+import type { ReaderContext } from '@/types/readerContext'
 
 const readerContext = inject<ReaderContext>('readerContext')!
 

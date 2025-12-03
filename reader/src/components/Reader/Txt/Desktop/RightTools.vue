@@ -1,10 +1,17 @@
 <template>
-  <aside v-show="panelOpen" class="hidden md:block w-[320px] shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)]">
-    <div class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden flex flex-col max-h-full">
-      <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+  <aside
+    v-show="panelOpen"
+    class="hidden md:block w-[320px] shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)]"
+  >
+    <div
+      class="bg-white dark:bg-[var(--el-bg-color-overlay)] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden flex flex-col max-h-full"
+    >
+      <div
+        class="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0"
+      >
         <h3 class="m-0 text-base font-semibold text-gray-800 dark:text-gray-200">工具</h3>
         <div class="flex items-center gap-2">
-          <el-button size="mini" @click="closePanel">
+          <el-button size="small" @click="closePanel">
             <span class="material-symbols-outlined text-base">close</span>
           </el-button>
         </div>
@@ -15,7 +22,11 @@
           <button
             type="button"
             class="flex-1 p-2 text-sm font-medium transition-colors whitespace-nowrap border-b-2"
-            :class="readerContext.rightPanelTab.value === 'search' ? 'text-primary border-primary' : 'text-gray-600 dark:text-gray-400 border-gray-200'"
+            :class="
+              readerContext.rightPanelTab.value === 'search'
+                ? 'text-primary border-primary'
+                : 'text-gray-600 dark:text-gray-400 border-gray-200'
+            "
             @click="readerContext.rightPanelTab.value = 'search'"
           >
             搜索
@@ -23,7 +34,11 @@
           <button
             type="button"
             class="flex-1 p-2 text-sm font-medium transition-colors whitespace-nowrap border-b-2"
-            :class="readerContext.rightPanelTab.value === 'cache' ? 'text-primary border-primary' : 'text-gray-600 dark:text-gray-400 border-gray-200'"
+            :class="
+              readerContext.rightPanelTab.value === 'cache'
+                ? 'text-primary border-primary'
+                : 'text-gray-600 dark:text-gray-400 border-gray-200'
+            "
             @click="readerContext.rightPanelTab.value = 'cache'"
           >
             缓存
@@ -31,7 +46,11 @@
           <button
             type="button"
             class="flex-1 p-2 text-sm font-medium transition-colors whitespace-nowrap border-b-2"
-            :class="readerContext.rightPanelTab.value === 'settings' ? 'text-primary border-primary' : 'text-gray-600 dark:text-gray-400 border-gray-200'"
+            :class="
+              readerContext.rightPanelTab.value === 'settings'
+                ? 'text-primary border-primary'
+                : 'text-gray-600 dark:text-gray-400 border-gray-200'
+            "
             @click="readerContext.rightPanelTab.value = 'settings'"
           >
             设置
@@ -110,7 +129,7 @@
 
 <script setup lang="ts">
 import { inject, computed } from 'vue'
-import type { ReaderContext } from '@/types/reader'
+import type { ReaderContext } from '@/types/readerContext'
 import SearchPanel from '@/components/Reader/Txt/Shared/SearchPanel.vue'
 import CacheManager from '@/components/Reader/Txt/Shared/CacheManager.vue'
 
@@ -130,7 +149,7 @@ const cacheVisible = computed({
     try {
       if (v) readerContext.rightPanelTab.value = 'cache'
       else if (readerContext.rightPanelTab.value === 'cache')
-      readerContext.rightPanelTab.value = 'none'
+        readerContext.rightPanelTab.value = 'none'
     } catch {}
   },
 })

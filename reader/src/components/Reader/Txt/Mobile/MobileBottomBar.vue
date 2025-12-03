@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { inject, computed } from 'vue'
-import type { ReaderContext } from '@/types/reader'
+import type { ReaderContext } from '@/types/readerContext'
 
 const readerContext = inject<ReaderContext>('readerContext')!
 

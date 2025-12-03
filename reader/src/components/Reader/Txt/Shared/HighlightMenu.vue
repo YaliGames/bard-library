@@ -1,89 +1,80 @@
 <template>
-  <div v-if="show" :style="wrapperStyle" @mousedown.stop>
-    <div class="flex flex-col gap-1">
-      <div class="flex items-center gap-2">
+  <Teleport to="body">
+    <div
+      v-if="show"
+      class="fixed z-[100] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2 min-w-[200px]"
+      :style="{ left: x + 'px', top: y + 'px' }"
+      @mousedown.stop
+    >
+      <!-- 颜色选择 -->
+      <div class="flex justify-between gap-2">
         <button
-          class="px-2 py-1 rounded-md text-sm text-white bg-transparent hover:bg-white/10"
-          @click="$emit('add-note')"
-        >
-          添加批注
-        </button>
+          v-for="color in colors"
+          :key="color"
+          class="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-600 hover:scale-110 transition-transform"
+          :style="{ backgroundColor: color }"
+          :class="{ 'ring-2 ring-offset-1 ring-blue-500': currentColor === color }"
+          @click="$emit('pick-color', color)"
+        ></button>
+      </div>
+
+      <!-- 笔记输入 -->
+      <textarea
+        v-model="noteContent"
+        placeholder="添加笔记..."
+        class="w-full h-20 text-sm p-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 resize-none outline-none focus:border-blue-500"
+        @keydown.stop
+      ></textarea>
+
+      <!-- 操作按钮 -->
+      <div class="flex justify-between items-center">
         <button
-          class="px-2 py-1 rounded-md text-sm text-red-300 bg-transparent hover:bg-red-600/10"
           @click="$emit('delete')"
+          class="text-xs text-red-500 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
         >
           删除
         </button>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-gray-300">颜色</span>
-          <div class="flex items-center gap-1.5">
-            <button
-              v-for="c in palette"
-              :key="c"
-              class="w-5 h-5 rounded-full border"
-              :style="swatchStyle(c)"
-              @click="$emit('pick-color', c)"
-            />
-          </div>
-        </div>
+        <button
+          @click="saveNote"
+          class="text-xs text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded"
+        >
+          保存
+        </button>
       </div>
-      <div
-        class="text-xs text-gray-200 max-w-[360px] whitespace-pre-wrap"
-        v-if="note && note.trim()"
-      >
-        {{ note }}
-      </div>
-      <div class="text-xs text-gray-400 max-w-[360px] whitespace-pre-wrap" v-else>暂无批注</div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps<{
   show: boolean
   x: number
   y: number
-  note?: string | null
-  palette?: string[]
-  currentColor?: string | null
-}>()
-defineEmits<{
-  (e: 'add-note'): void
-  (e: 'pick-color', color: string): void
-  (e: 'close'): void
-  (e: 'delete'): void
+  note?: string
+  currentColor?: string
 }>()
 
-const defaultPalette = ['#FAD878', '#A0E7E5', '#B4F8C8', '#FBE7C6', '#FFD6E7', '#C9C9FF']
-const palette = props.palette && props.palette.length ? props.palette : defaultPalette
+const emit = defineEmits<{
+  'add-note': [note: string]
+  'pick-color': [color: string]
+  'delete': []
+}>()
 
-const wrapperStyle = computed(
-  () =>
-    ({
-      position: 'fixed',
-      left: `${props.x}px`,
-      top: `${props.y}px`,
-      transform: 'translate(-50%, -100%)',
-      background: '#333',
-      color: '#fff',
-      borderRadius: '8px',
-      padding: '8px 10px',
-      boxShadow: '0 4px 12px rgba(0,0,0,.25)',
-      zIndex: 1000,
-      userSelect: 'none',
-      maxWidth: '520px',
-    }) as const,
+const colors = ['#ffeb3b', '#ff9800', '#f44336', '#4caf50', '#2196f3']
+const noteContent = ref('')
+
+watch(
+  () => props.show,
+  (val) => {
+    if (val) {
+      noteContent.value = props.note || ''
+    }
+  }
 )
 
-function swatchStyle(c: string) {
-  const sel = (props.currentColor || '').toLowerCase() === c.toLowerCase()
-  return {
-    background: c,
-    borderColor: sel ? '#fff' : 'rgba(255,255,255,.45)',
-    outline: sel ? '2px solid #fff' : 'none',
-    cursor: 'pointer',
-  }
+function saveNote() {
+  emit('add-note', noteContent.value)
 }
 </script>

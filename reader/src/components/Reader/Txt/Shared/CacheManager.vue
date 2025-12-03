@@ -1,5 +1,5 @@
 <template>
-  <div v-if="props.inline">
+  <div :class="['flex flex-col h-full', inline ? '' : 'p-4']">
     <CacheCore
       :file-id="fileId"
       :book-id="bookId"
@@ -19,108 +19,80 @@
           handleClearAllCache,
         }"
       >
-        <div class="space-y-4">
-          <!-- 统计信息 -->
-          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <div class="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {{ cacheStats.totalBooks }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">已缓存书籍</div>
-              </div>
-              <div>
-                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {{ cacheStats.totalSize }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">占用空间</div>
-              </div>
-              <div>
-                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {{ isCached ? '✓' : '✗' }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">当前书籍</div>
-              </div>
+        <!-- 统计信息 -->
+        <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <div class="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <div class="text-lg font-semibold text-primary">{{ cacheStats.totalBooks }}</div>
+              <div class="text-xs text-gray-500">已缓存书籍</div>
+            </div>
+            <div>
+              <div class="text-lg font-semibold text-primary">{{ cacheStats.totalSize }}</div>
+              <div class="text-xs text-gray-500">占用空间</div>
             </div>
           </div>
+        </div>
 
-          <!-- 当前书籍操作 -->
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg px-2">
-            <h3 class="text-sm font-semibold mb-3 text-gray-800 dark:text-gray-200">当前书籍</h3>
-            <div
-              class="group flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+        <!-- 当前书籍操作 -->
+        <div class="mb-4">
+          <div class="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">当前书籍</div>
+          <div class="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-700 rounded">
+            <div class="truncate flex-1 mr-2 text-sm">{{ bookTitle }}</div>
+            <button
+              v-if="!isCached"
+              @click="handleCacheCurrentBook"
+              :disabled="cacheLoading"
+              class="px-3 py-1.5 bg-primary text-white text-xs rounded hover:bg-primary-dark disabled:opacity-50"
             >
-              <div>
-                <div class="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                  {{ bookTitle }}
-                </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">{{ chapters.length }} 章</div>
-              </div>
-              <div class="flex gap-2">
-                <el-button
-                  v-if="!isCached"
-                  type="primary"
-                  size="small"
-                  :loading="cacheLoading"
-                  @click="handleCacheCurrentBook"
-                >
-                  <span class="material-symbols-outlined text-base mr-1">download</span>
-                  缓存到本地
-                </el-button>
-                <el-button
-                  v-else
-                  type="danger"
-                  size="small"
-                  link
-                  class="opacity-0 group-hover:opacity-100 transition-opacity"
-                  @click="handleDeleteCache(fileId)"
-                >
-                  删除
-                </el-button>
-              </div>
-            </div>
+              {{ cacheLoading ? '缓存中...' : '缓存' }}
+            </button>
+            <button
+              v-else
+              @click="handleDeleteCache(fileId)"
+              class="px-3 py-1.5 bg-red-50 text-red-600 text-xs rounded hover:bg-red-100"
+            >
+              删除
+            </button>
+          </div>
+        </div>
+
+        <!-- 所有缓存列表 -->
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-medium text-gray-700 dark:text-gray-300">缓存列表</div>
+            <button
+              v-if="cachedBooks.length > 0"
+              @click="handleClearAllCache"
+              class="text-xs text-red-500 hover:text-red-600"
+            >
+              清空所有
+            </button>
           </div>
 
-          <!-- 缓存列表 -->
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg px-2">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">所有缓存</h3>
-              <el-button
-                type="danger"
-                size="small"
-                :disabled="cachedBooks.length === 0"
-                @click="handleClearAllCache"
-              >
-                <span class="material-symbols-outlined text-base mr-1">delete</span>
-                删除所有缓存
-              </el-button>
+          <div class="flex-1 overflow-y-auto space-y-2">
+            <div v-if="cachedBooks.length === 0" class="text-center py-8 text-xs text-gray-400">
+              暂无缓存书籍
             </div>
-            <div v-if="cachedBooks.length === 0" class="text-center py-4 text-gray-400">
-              暂无缓存
-            </div>
-            <div v-else class="space-y-2 max-h-64 overflow-y-auto">
-              <div
-                v-for="book in cachedBooks"
-                :key="book.fileId"
-                class="group flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <div class="flex-1 min-w-0">
-                  <div class="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+            <div
+              v-for="book in cachedBooks"
+              :key="book.fileId"
+              class="p-2 border border-gray-100 dark:border-gray-800 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 group"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0 mr-2">
+                  <div class="text-sm font-medium truncate text-gray-800 dark:text-gray-200">
                     {{ book.bookTitle || book.fileName }}
                   </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                  <div class="text-xs text-gray-500">
                     {{ book.chapterCount }} 章 · {{ book.size }}
                   </div>
                 </div>
-                <el-button
-                  type="danger"
-                  size="small"
-                  link
-                  class="opacity-0 group-hover:opacity-100 transition-opacity"
+                <button
                   @click="handleDeleteCache(book.fileId)"
+                  class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
                 >
-                  删除
-                </el-button>
+                  <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
               </div>
             </div>
           </div>
@@ -128,173 +100,34 @@
       </template>
     </CacheCore>
   </div>
-
-  <el-dialog
-    v-else
-    v-model="visible"
-    title="本地缓存管理"
-    width="600px"
-    :close-on-click-modal="false"
-  >
-    <CacheCore
-      :file-id="fileId"
-      :book-id="bookId"
-      :book-title="bookTitle"
-      :chapters="chapters"
-      :cached-book="cachedBook"
-      @cache-complete="emit('cache-complete')"
-    >
-      <template
-        #default="{
-          isCached,
-          cacheStats,
-          cachedBooks,
-          cacheLoading,
-          handleCacheCurrentBook,
-          handleDeleteCache,
-          handleClearAllCache,
-        }"
-      >
-        <div class="space-y-4">
-          <!-- 统计信息 -->
-          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <div class="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {{ cacheStats.totalBooks }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">已缓存书籍</div>
-              </div>
-              <div>
-                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {{ cacheStats.totalSize }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">占用空间</div>
-              </div>
-              <div>
-                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {{ isCached ? '✓' : '✗' }}
-                </div>
-                <div class="text-sm text-gray-600 dark:text-gray-400">当前书籍</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 当前书籍操作 -->
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <h3 class="text-sm font-semibold mb-3 text-gray-800 dark:text-gray-200">当前书籍</h3>
-            <div
-              class="group flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <div>
-                <div class="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                  {{ bookTitle }}
-                </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">{{ chapters.length }} 章</div>
-              </div>
-              <div class="flex gap-2">
-                <el-button
-                  v-if="!isCached"
-                  type="primary"
-                  size="small"
-                  :loading="cacheLoading"
-                  @click="handleCacheCurrentBook"
-                >
-                  <span class="material-symbols-outlined text-base mr-1">download</span>
-                  缓存到本地
-                </el-button>
-                <el-button
-                  v-else
-                  type="danger"
-                  size="small"
-                  link
-                  class="opacity-0 group-hover:opacity-100 transition-opacity"
-                  @click="handleDeleteCache(fileId)"
-                >
-                  删除
-                </el-button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 缓存列表 -->
-          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">所有缓存</h3>
-              <el-button
-                type="danger"
-                size="small"
-                :disabled="cachedBooks.length === 0"
-                @click="handleClearAllCache"
-              >
-                <span class="material-symbols-outlined text-base mr-1">delete</span>
-                删除所有缓存
-              </el-button>
-            </div>
-            <div v-if="cachedBooks.length === 0" class="text-center py-4 text-gray-400">
-              暂无缓存
-            </div>
-            <div v-else class="space-y-2 max-h-64 overflow-y-auto">
-              <div
-                v-for="book in cachedBooks"
-                :key="book.fileId"
-                class="group flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <div class="flex-1 min-w-0">
-                  <div class="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-                    {{ book.bookTitle || book.fileName }}
-                  </div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ book.chapterCount }} 章 · {{ book.size }}
-                  </div>
-                </div>
-                <el-button
-                  type="danger"
-                  size="small"
-                  link
-                  class="opacity-0 group-hover:opacity-100 transition-opacity"
-                  @click="handleDeleteCache(book.fileId)"
-                >
-                  删除
-                </el-button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 操作按钮 -->
-          <div class="flex justify-end">
-            <el-button @click="emit('update:modelValue', false)">关闭</el-button>
-          </div>
-        </div>
-      </template>
-    </CacheCore>
-  </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import CacheCore from '@/components/Reader/Txt/Core/CacheCore.vue'
-import type { Chapter } from '@/api/txt'
 import type { CachedBook } from '@/utils/txtCache'
 
+interface Chapter {
+  title?: string | null
+  index: number
+  offset: number
+  length: number
+}
+
 interface Props {
-  modelValue: boolean
+  inline?: boolean
   fileId: number
   bookId?: number
   bookTitle: string
   chapters: Chapter[]
   cachedBook: CachedBook | null
-  inline?: boolean
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  'cache-complete': []
-}>()
-
-const visible = computed({
-  get: () => props.modelValue,
-  set: (value: boolean) => emit('update:modelValue', value),
+const props = withDefaults(defineProps<Props>(), {
+  inline: false,
 })
+
+const emit = defineEmits<{
+  'cache-complete': []
+  'update:modelValue': [value: boolean]
+}>()
 </script>

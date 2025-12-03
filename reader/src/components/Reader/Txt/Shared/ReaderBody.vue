@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { inject, computed } from 'vue'
-import type { ReaderContext } from '@/types/reader'
+import type { ReaderContext } from '@/types/readerContext'
 import TxtContent from '@/components/Reader/Txt/Shared/TxtContent.vue'
 import SelectionMenu from '@/components/Reader/Txt/Shared/SelectionMenu.vue'
 import HighlightMenu from '@/components/Reader/Txt/Shared/HighlightMenu.vue'

@@ -105,6 +105,11 @@ export function clampRanges<T extends RangeLike>(ranges: Array<T>, maxLen: numbe
         .filter((r: any) => r.end > r.start) as Array<T>
 }
 
+/**
+ * 将文件级的绝对区间 [absStart, absEnd) 映射到所属章节以及章节内的局部区间。
+ * chapters 应包含 offset（在全文中的起始绝对位置）和 length（章节长度）。
+ * 返回 null 表示无法映射到任何章节。
+ */
 export function mapAbsToChapter(
     absStart: number,
     absEnd: number,
@@ -117,6 +122,7 @@ export function mapAbsToChapter(
         const len = Number(ch.length || 0)
         const chStart = off
         const chEnd = off + len
+        // 只要 absStart 落在章节范围内，就认为该区间属于此章节（书签通常不会跨章节）
         if (absStart >= chStart && absStart < chEnd) {
             const localStart = Math.max(0, absStart - chStart)
             const localEnd = Math.max(0, Math.min(len, absEnd - chStart))
@@ -126,6 +132,10 @@ export function mapAbsToChapter(
     return null
 }
 
+/**
+ * 将章节内的局部区间 [localStart, localEnd) 拆分成若干句子的范围，
+ * 返回数组，每项包含 sentenceIndex（句子索引）和 start/end（句内偏移，半开区间）。
+ */
 export function splitRangeToSegments(
     localStart: number,
     localEnd: number,
@@ -167,11 +177,13 @@ export function mergeRanges<T extends RangeLike & { bookmarkId?: number; color?:
     return res
 }
 
+// 优先级：搜索高亮 > 书签高亮
 export function splitOverlappingRanges<
     T extends RangeLike & { bookmarkId?: number; color?: string | null; isSearch?: boolean },
 >(ranges: Array<T>): Array<T> {
     if (ranges.length === 0) return []
 
+    // 创建所有边界点的事件列表
     interface Event {
         pos: number
         type: 'start' | 'end'
@@ -184,6 +196,7 @@ export function splitOverlappingRanges<
         events.push({ pos: r.end, type: 'end', range: r })
     }
 
+    // 按位置排序，start 优先于 end
     events.sort((a, b) => {
         if (a.pos !== b.pos) return a.pos - b.pos
         return a.type === 'start' ? -1 : 1
@@ -196,7 +209,9 @@ export function splitOverlappingRanges<
     for (let i = 0; i < events.length; i++) {
         const evt = events[i]
 
+        // 如果位置有变化且有活动范围，输出一个片段
         if (evt.pos > lastPos && activeRanges.size > 0) {
+            // 选择优先级最高的范围（搜索 > 书签）
             const active = Array.from(activeRanges)
             const searchRange = active.find(r => (r as any).isSearch)
             const chosen = searchRange || active[0]
@@ -208,6 +223,7 @@ export function splitOverlappingRanges<
             })
         }
 
+        // 更新活动范围集合
         if (evt.type === 'start') {
             activeRanges.add(evt.range)
         } else {
@@ -229,11 +245,13 @@ export function escapeHtml(s: string): string {
         .replace(/'/g, '&#39;')
 }
 
+// 构建搜索正则表达式
 export function buildSearchRegex(
     keyword: string,
     caseSensitive: boolean,
     wholeWord: boolean,
 ): RegExp {
+    // 转义特殊字符
     let pattern = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
     if (wholeWord) {
@@ -244,6 +262,7 @@ export function buildSearchRegex(
     return new RegExp(pattern, flags)
 }
 
+// 提取搜索预览，带高亮的 HTML 片段
 export function extractSearchPreview(
     content: string,
     position: number,
@@ -254,14 +273,17 @@ export function extractSearchPreview(
     const start = Math.max(0, position - contextLength)
     const end = Math.min(content.length, position + matchLength + contextLength)
 
+    // 从原始内容中提取三个部分（在添加省略号和清理之前）
     const beforeMatch = content.substring(start, position)
     const matchPart = content.substring(position, position + matchLength)
     const afterMatch = content.substring(position + matchLength, end)
 
+    // HTML 转义并清理换行符
     const escapeAndClean = (str: string) => {
         return escapeHtml(str).replace(/\n/g, ' ')
     }
 
+    // 构建预览，添加省略号
     let result = ''
     if (start > 0) result += '...'
     result += escapeAndClean(beforeMatch)

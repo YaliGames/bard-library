@@ -1,51 +1,35 @@
 <template>
-  <div v-if="show" :style="wrapperStyle" @mousedown.stop>
-    <template v-for="act in actions" :key="act.key">
-      <button class="btn" @click="act.onClick()">{{ act.label }}</button>
-    </template>
-  </div>
+  <Teleport to="body">
+    <div
+      v-if="show"
+      class="fixed z-[100] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-1 flex gap-1"
+      :style="{ left: x + 'px', top: y + 'px' }"
+      @mousedown.stop
+    >
+      <button
+        v-for="action in actions"
+        :key="action.label"
+        @click="action.handler"
+        class="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center gap-1"
+      >
+        <span v-if="action.icon" class="material-symbols-outlined text-base">{{ action.icon }}</span>
+        {{ action.label }}
+      </button>
+    </div>
+  </Teleport>
 </template>
+
 <script setup lang="ts">
-import { computed } from 'vue'
-
-export interface SelectionAction {
-  key: string
+interface Action {
   label: string
-  onClick: () => void
+  icon?: string
+  handler: () => void
 }
 
-const props = defineProps<{ show: boolean; x: number; y: number; actions: SelectionAction[] }>()
-
-const wrapperStyle = computed(
-  () =>
-    ({
-      position: 'fixed',
-      left: `${props.x}px`,
-      top: `${props.y}px`,
-      transform: 'translate(-50%, -100%)',
-      background: '#333',
-      color: '#fff',
-      borderRadius: '8px',
-      padding: '6px 8px',
-      boxShadow: '0 4px 12px rgba(0,0,0,.25)',
-      zIndex: 1000,
-      display: 'flex',
-      gap: '6px',
-      alignItems: 'center',
-      userSelect: 'none',
-    }) as const,
-)
+defineProps<{
+  show: boolean
+  x: number
+  y: number
+  actions: Action[]
+}>()
 </script>
-<style scoped>
-.btn {
-  background: transparent;
-  color: #fff;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-</style>
