@@ -302,10 +302,16 @@ export function useReaderBookmarks(
     hideHighlightMenu()
   }
 
-  async function onAddNote() {
+  async function onAddNote(noteText?: string) {
     if (!isLoggedIn.value || !core.bookId.value || !currentHitBookmark.value) return
-    const text = window.prompt('添加/修改批注', currentHitBookmark.value.note || '')
-    if (text == null) return
+
+    let text = noteText
+    if (text === undefined) {
+      const promptText = window.prompt('添加/修改批注', currentHitBookmark.value.note || '')
+      if (promptText == null) return
+      text = promptText
+    }
+
     try {
       const updated = await bookmarksApi.update(core.bookId.value, currentHitBookmark.value.id, {
         note: text,
