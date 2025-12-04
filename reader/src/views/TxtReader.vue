@@ -1,21 +1,23 @@
 ﻿<template>
-  <TxtReaderDesktop
-    v-if="!isMobileView"
-    @jump-to-result="handleJumpToSearchResult"
-    @search-chapter="handleChapterSearch"
-    @search-global="handleGlobalSearch"
-  >
-    <ReaderBody />
-  </TxtReaderDesktop>
+  <div class="overflow-auto h-full">
+    <TxtReaderDesktop
+      v-if="!isMobileView"
+      @jump-to-result="handleJumpToSearchResult"
+      @search-chapter="handleChapterSearch"
+      @search-global="handleGlobalSearch"
+    >
+      <ReaderBody />
+    </TxtReaderDesktop>
 
-  <TxtReaderMobile
-    v-else
-    @jump-to-result="handleJumpToSearchResult"
-    @search-chapter="handleChapterSearch"
-    @search-global="handleGlobalSearch"
-  >
-    <ReaderBody />
-  </TxtReaderMobile>
+    <TxtReaderMobile
+      v-else
+      @jump-to-result="handleJumpToSearchResult"
+      @search-chapter="handleChapterSearch"
+      @search-global="handleGlobalSearch"
+    >
+      <ReaderBody />
+    </TxtReaderMobile>
+  </div>
 </template>
 
 <script setup lang="ts">
