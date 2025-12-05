@@ -405,13 +405,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { metadataApi, scrapingTasksApi } from '@/api'
 import type { MetadataProvider } from '@/api/metadata'
 
 const router = useRouter()
+const route = useRoute()
 
 function back() {
   router.back()
@@ -466,6 +467,17 @@ onMounted(async () => {
     providers.value = await metadataApi.listProviders()
     if (providers.value.length > 0 && !provider.value) {
       provider.value = providers.value[0].id
+    }
+
+    // 检查 URL query 参数
+    const queryProvider = route.query.provider as string
+    const queryKeyword = route.query.query as string
+
+    if (queryProvider && queryKeyword) {
+      provider.value = queryProvider
+      query.value = queryKeyword
+      await nextTick()
+      await handleSearch()
     }
   } catch {
     ElMessage.error('加载提供商列表失败')
