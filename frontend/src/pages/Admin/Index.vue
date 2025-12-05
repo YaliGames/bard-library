@@ -1,103 +1,101 @@
 <template>
-  <section class="container mx-auto px-4 py-4 max-w-7xl">
-    <h2 class="text-xl font-semibold mb-3">管理中心</h2>
-    <p class="text-gray-600 mb-4">按功能分类，快速抵达你要去的地方。</p>
-
-    <!-- 常用功能 -->
-    <div v-if="favoritePages.length > 0" class="mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-medium">常用功能</h3>
-        <el-button v-if="favoritePages.length > 0" text size="small" @click="clearAllFavorites">
-          清空全部
-        </el-button>
+  <div class="min-h-screen bg-gray-50/50 p-4 sm:p-6 lg:p-8">
+    <!-- 头部区域：问候与搜索 -->
+    <div class="mb-8 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800 tracking-tight">{{ greeting }}，管理员</h1>
+        <p class="mt-1 text-sm text-gray-500">今天是 {{ currentDate }}，准备好管理图书馆了吗？</p>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="page in favoritePages" :key="page.key" class="relative">
-          <router-link class="block" :to="page.to">
-            <el-card shadow="hover" class="h-full">
-              <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-3xl text-primary">{{ page.icon }}</span>
-                <div class="flex-1 min-w-0">
-                  <div class="font-medium mb-1">{{ page.title }}</div>
-                  <div class="text-sm text-gray-500">{{ page.desc }}</div>
-                </div>
-              </div>
-            </el-card>
-          </router-link>
-          <el-button
-            class="absolute top-2 right-2"
-            size="small"
-            circle
-            @click.prevent="toggleFavorite(page.key)"
-          >
-            <span
-              class="material-symbols-outlined text-yellow-500"
-              style="font-variation-settings: 'FILL' 1"
-            >
-              star
-            </span>
-          </el-button>
+
+      <div class="w-full md:w-80">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索功能 / 描述..."
+          clearable
+          size="large"
+          class="nav-search"
+        >
+          <template #prefix>
+            <el-icon class="text-gray-400">
+              <span class="material-symbols-outlined">search</span>
+            </el-icon>
+          </template>
+        </el-input>
+      </div>
+    </div>
+
+    <!-- 快捷访问区域 (仅当有收藏时显示) -->
+    <transition name="el-fade-in">
+      <div v-if="favoriteItems.length > 0 && !searchQuery" class="mb-8">
+        <div class="mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined">link</span>
+          <h2 class="text-lg font-medium text-gray-700">快捷访问</h2>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          <NavCard
+            v-for="item in favoriteItems"
+            :key="'fav-' + item.key"
+            :item="item"
+            is-favorite
+            @toggle-fav="toggleFavorite"
+          />
+        </div>
+      </div>
+    </transition>
+
+    <!-- 主功能区域 -->
+    <div v-if="!searchQuery" class="space-y-8">
+      <div v-for="(group, groupKey) in groupedPages" :key="groupKey">
+        <!-- 分类标题 -->
+        <div class="mb-4 flex items-center gap-2 border-l-4 border-blue-500 pl-3">
+          <h2 class="text-lg font-bold text-gray-800">{{ categoryMap[groupKey] || groupKey }}</h2>
+          <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+            {{ group.length }}
+          </span>
+        </div>
+
+        <!-- 卡片网格 -->
+        <div
+          class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+        >
+          <NavCard
+            v-for="item in group"
+            :key="item.key"
+            :item="item"
+            :is-favorite="favorites.includes(item.key)"
+            @toggle-fav="toggleFavorite"
+          />
         </div>
       </div>
     </div>
 
-    <!-- 分类页面 -->
-    <div v-for="category in categories" :key="category.key" class="mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-medium">{{ category.title }}</h3>
+    <!-- 搜索结果显示 -->
+    <div v-else>
+      <div class="mb-4 text-sm text-gray-500">搜索结果：共 {{ searchResults.length }} 项</div>
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <NavCard
+          v-for="item in searchResults"
+          :key="item.key"
+          :item="item"
+          :is-favorite="favorites.includes(item.key)"
+          @toggle-fav="toggleFavorite"
+        />
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="page in category.pages" :key="page.key" class="relative">
-          <router-link class="block" :to="page.to">
-            <el-card shadow="hover" class="h-full">
-              <div class="flex items-start gap-3">
-                <span class="material-symbols-outlined text-3xl text-primary">{{ page.icon }}</span>
-                <div class="flex-1 min-w-0">
-                  <div class="font-medium mb-1">{{ page.title }}</div>
-                  <div class="text-sm text-gray-500">{{ page.desc }}</div>
-                </div>
-              </div>
-            </el-card>
-          </router-link>
-          <el-button
-            class="absolute top-2 right-2"
-            size="small"
-            circle
-            @click.prevent="toggleFavorite(page.key)"
-          >
-            <span
-              class="material-symbols-outlined"
-              :class="isFavorite(page.key) ? 'text-yellow-500' : 'text-gray-400'"
-              :style="isFavorite(page.key) ? 'font-variation-settings: \'FILL\' 1' : ''"
-            >
-              star
-            </span>
-          </el-button>
-        </div>
-      </div>
+      <el-empty
+        v-if="searchResults.length === 0"
+        description="没有找到相关功能，换个关键词试试？"
+      />
     </div>
-  </section>
+  </div>
 </template>
+
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import type { RouteLocationRaw } from 'vue-router'
-import { usePermission } from '@/composables/usePermission'
-import { ElMessageBox } from 'element-plus'
-
-const { hasPermission } = usePermission()
-
-interface AdminCard {
-  key: string
-  title: string
-  desc: string
-  icon: string
-  to: RouteLocationRaw
-  permission?: string
-  category: 'createBook' | 'books' | 'fields' | 'users' | 'system'
-}
+import { ref, computed, onMounted, watch } from 'vue'
+import dayjs from 'dayjs'
+import NavCard, { type AdminCard } from '@/components/Admin/NavCard.vue'
 
 const allPages: AdminCard[] = [
-  // 图书管理
+  // 图书管理 - Create
   {
     key: 'create-book',
     title: '新建图书',
@@ -125,7 +123,7 @@ const allPages: AdminCard[] = [
     permission: 'files.upload',
     category: 'createBook',
   },
-  // 图书管理
+  // 图书管理 - Manage
   {
     key: 'books-all',
     title: '图书列表',
@@ -162,7 +160,6 @@ const allPages: AdminCard[] = [
     permission: 'metadata.batch_scrape',
     category: 'books',
   },
-
   // 字段管理
   {
     key: 'authors',
@@ -191,7 +188,6 @@ const allPages: AdminCard[] = [
     permission: 'series.view',
     category: 'fields',
   },
-
   // 用户管理
   {
     key: 'users',
@@ -211,7 +207,6 @@ const allPages: AdminCard[] = [
     permission: 'roles.view',
     category: 'users',
   },
-
   // 系统设置
   {
     key: 'sys',
@@ -224,91 +219,94 @@ const allPages: AdminCard[] = [
   },
 ]
 
-// 收藏状态（存储在 localStorage）
-const STORAGE_KEY = 'admin-favorites'
+const categoryMap: Record<string, string> = {
+  createBook: '内容生产',
+  books: '馆藏管理',
+  fields: '元数据维护',
+  users: '人员与权限',
+  system: '系统配置',
+}
+
+const searchQuery = ref('')
 const favorites = ref<string[]>([])
 
-// 加载收藏
-function loadFavorites() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    favorites.value = stored ? JSON.parse(stored) : []
-  } catch {
-    favorites.value = []
+onMounted(() => {
+  const saved = localStorage.getItem('admin-nav-favorites')
+  if (saved) {
+    favorites.value = JSON.parse(saved)
   }
-}
+})
 
-// 保存收藏
-function saveFavorites() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites.value))
-}
+watch(
+  favorites,
+  val => {
+    localStorage.setItem('admin-nav-favorites', JSON.stringify(val))
+  },
+  { deep: true },
+)
 
-// 判断是否收藏
-function isFavorite(key: string) {
-  return favorites.value.includes(key)
-}
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 6) return '夜深了'
+  if (hour < 12) return '早上好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  return '晚上好'
+})
 
-// 切换收藏
-function toggleFavorite(key: string) {
-  if (isFavorite(key)) {
-    favorites.value = favorites.value.filter(k => k !== key)
+const currentDate = dayjs().format('YYYY年MM月DD日')
+
+const toggleFavorite = (key: string) => {
+  const index = favorites.value.indexOf(key)
+  if (index > -1) {
+    favorites.value.splice(index, 1)
   } else {
     favorites.value.push(key)
   }
-  saveFavorites()
 }
 
-// 清空所有收藏
-async function clearAllFavorites() {
-  try {
-    await ElMessageBox.confirm('确认清空所有常用功能？', '清空确认', {
-      type: 'warning',
-      confirmButtonText: '清空',
-      cancelButtonText: '取消',
-    })
-    favorites.value = []
-    saveFavorites()
-  } catch {
-    // 用户取消
-  }
-}
-
-// 过滤有权限的页面
-const visiblePages = computed(() => {
-  return allPages.filter(page => {
-    return page.permission ? hasPermission(page.permission) : true
-  })
+const favoriteItems = computed(() => {
+  return allPages.filter(p => favorites.value.includes(p.key))
 })
 
-// 收藏的页面
-const favoritePages = computed(() => {
-  return visiblePages.value.filter(page => isFavorite(page.key))
+const searchResults = computed(() => {
+  if (!searchQuery.value) return []
+  const query = searchQuery.value.toLowerCase()
+  return allPages.filter(
+    p => p.title.toLowerCase().includes(query) || p.desc.toLowerCase().includes(query),
+  )
 })
 
-// 分类定义
-interface Category {
-  key: string
-  title: string
-  pages: AdminCard[]
-}
+const groupedPages = computed(() => {
+  const groups: Record<string, AdminCard[]> = {}
+  const orderedKeys = Object.keys(categoryMap)
 
-const categories = computed<Category[]>(() => {
-  const categoryMap = {
-    createBook: { key: 'createBook', title: '创建图书', pages: [] as AdminCard[] },
-    books: { key: 'books', title: '图书管理', pages: [] as AdminCard[] },
-    fields: { key: 'fields', title: '字段管理', pages: [] as AdminCard[] },
-    users: { key: 'users', title: '用户管理', pages: [] as AdminCard[] },
-    system: { key: 'system', title: '系统设置', pages: [] as AdminCard[] },
-  }
-
-  visiblePages.value.forEach(page => {
-    categoryMap[page.category].pages.push(page)
+  orderedKeys.forEach(key => {
+    groups[key] = []
   })
 
-  return Object.values(categoryMap).filter(cat => cat.pages.length > 0)
-})
+  allPages.forEach(page => {
+    if (!groups[page.category]) groups[page.category] = []
+    groups[page.category].push(page)
+  })
 
-onMounted(() => {
-  loadFavorites()
+  Object.keys(groups).forEach(key => {
+    if (groups[key].length === 0) delete groups[key]
+  })
+
+  return groups
 })
 </script>
+
+<style scoped>
+:deep(.nav-search .el-input__wrapper) {
+  border-radius: 9999px; /* full rounded */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  background-color: white;
+}
+:deep(.nav-search .el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #3b82f6; /* blue-500 */
+}
+</style>
