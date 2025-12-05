@@ -18,42 +18,42 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
-    component: () => import('./pages/Login.vue'),
+    component: () => import('./pages/Auth/Login.vue'),
   },
   {
     path: '/register',
     name: 'register',
-    component: () => import('./pages/Register.vue'),
+    component: () => import('./pages/Auth/Register.vue'),
   },
   {
     path: '/forgot',
     name: 'forgot',
-    component: () => import('./pages/ForgotPassword.vue'),
+    component: () => import('./pages/Auth/ForgotPassword.vue'),
   },
   {
     path: '/reset',
     name: 'reset',
-    component: () => import('./pages/ResetPassword.vue'),
+    component: () => import('./pages/Auth/ResetPassword.vue'),
   },
   {
     path: '/shelf',
     name: 'shelf',
-    component: () => import('./pages/ShelfList.vue'),
+    component: () => import('./pages/Shelf/List.vue'),
   },
   {
     path: '/books',
     name: 'books',
-    component: () => import('./pages/BookList.vue'),
+    component: () => import('./pages/Book/List.vue'),
   },
   {
     path: '/shelf/:id',
     name: 'shelf-detail',
-    component: () => import('./pages/ShelfDetail.vue'),
+    component: () => import('./pages/Shelf/Detail.vue'),
   },
   {
     path: '/books/:id',
     name: 'book-detail',
-    component: () => import('./pages/BookDetail.vue'),
+    component: () => import('./pages/Book/Detail.vue'),
   },
   {
     path: '/reader',
@@ -84,17 +84,17 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'profile',
         name: 'user-profile',
-        component: () => import('./pages/Profile.vue'),
+        component: () => import('./pages/Account/Profile.vue'),
       },
       {
         path: 'settings',
         name: 'user-settings',
-        component: () => import('./pages/UserSettings.vue'),
+        component: () => import('./pages/Account/Settings.vue'),
       },
       {
         path: 'cache',
         name: 'user-cache',
-        component: () => import('./pages/CacheManagement.vue'),
+        component: () => import('./pages/Account/Cache.vue'),
       },
     ],
   },
@@ -120,37 +120,37 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'upload',
         name: 'admin-upload',
-        component: () => import('./pages/Admin/BookUpload.vue'),
+        component: () => import('./pages/Admin/Books/Upload.vue'),
         meta: { permission: 'files.upload', requireAllPermissions: true },
       },
       {
         path: 'books',
         name: 'admin-book-list',
-        component: () => import('./pages/Admin/BookList.vue'),
+        component: () => import('./pages/Admin/Books/List.vue'),
         meta: { permission: 'books.view' },
       },
       {
         path: 'books/:id',
         name: 'admin-book-edit',
-        component: () => import('./pages/Admin/BookEdit.vue'),
+        component: () => import('./pages/Admin/Books/Edit.vue'),
         meta: { permission: 'books.edit|books.create' },
       },
       {
         path: 'authors',
         name: 'admin-author-list',
-        component: () => import('./pages/Admin/AuthorList.vue'),
+        component: () => import('./pages/Admin/Metadata/Authors.vue'),
         meta: { permission: 'authors.view' },
       },
       {
         path: 'tags',
         name: 'admin-tag-list',
-        component: () => import('./pages/Admin/TagList.vue'),
+        component: () => import('./pages/Admin/Metadata/Tags.vue'),
         meta: { permission: 'tags.view' },
       },
       {
         path: 'series',
         name: 'admin-series-list',
-        component: () => import('./pages/Admin/SeriesList.vue'),
+        component: () => import('./pages/Admin/Metadata/Series.vue'),
         meta: { permission: 'series.view' },
       },
       {
@@ -168,19 +168,19 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'users',
         name: 'admin-user-list',
-        component: () => import('./pages/Admin/UserList.vue'),
+        component: () => import('./pages/Admin/Users/List.vue'),
         meta: { permission: 'users.view' },
       },
       {
         path: 'roles',
         name: 'admin-role-list',
-        component: () => import('./pages/Admin/RoleList.vue'),
+        component: () => import('./pages/Admin/Users/Roles.vue'),
         meta: { permission: 'roles.view' },
       },
       {
         path: 'txt/chapters/:id?',
         name: 'admin-txt-chapters',
-        component: () => import('./pages/Admin/TxtChapters.vue'),
+        component: () => import('./pages/Admin/Books/TxtChapters.vue'),
         meta: { permission: 'books.edit' },
       },
       {

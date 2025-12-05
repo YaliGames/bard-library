@@ -60,9 +60,7 @@
             {{ item.icon }}
           </span>
 
-          <span
-            class="text-sm font-medium text-slate-700 group-hover:text-blue-700 text-center"
-          >
+          <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700 text-center">
             {{ item.title }}
           </span>
 

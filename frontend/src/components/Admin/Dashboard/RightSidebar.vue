@@ -9,9 +9,7 @@
       <div class="space-y-3">
         <el-input placeholder="978-7-xxx-xxxx" v-model="quickSearch">
           <template #prefix>
-            <span class="material-symbols-outlined text-gray-400 text-[18px] mt-0.5">
-              search
-            </span>
+            <span class="material-symbols-outlined text-gray-400 text-[18px] mt-0.5">search</span>
           </template>
         </el-input>
 
@@ -40,9 +38,7 @@
         <div>
           <div class="flex justify-between text-xs mb-1.5">
             <span class="flex items-center gap-1">
-              <span class="material-symbols-outlined text-[14px] text-slate-400">
-                hard_drive
-              </span>
+              <span class="material-symbols-outlined text-[14px] text-slate-400">hard_drive</span>
               存储空间
             </span>
             <span class="font-mono text-slate-500">128GB / 512GB</span>
