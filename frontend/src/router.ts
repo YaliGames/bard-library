@@ -106,6 +106,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, permission: 'books.view|users.view|settings.view|files.view' },
     children: [
       {
+        path: 'dashboard',
+        name: 'admin-dashboard',
+        component: () => import('./pages/Admin/Dashboard.vue'),
+        meta: { permission: 'books.view|users.view|settings.view|files.view' },
+      },
+      {
         path: 'index',
         name: 'admin-index',
         component: () => import('./pages/Admin/Index.vue'),

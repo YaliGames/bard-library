@@ -10,7 +10,7 @@ export const navMenu: NavItem[] = [
   { id: 'home', label: '首页', path: '/' },
   { id: 'books', label: '书库', path: '/books' },
   { id: 'shelf', label: '书架', path: '/shelf' },
-  { id: 'admin', label: '管理入口', path: '/admin/index', requiresAdminPermission: true },
+  { id: 'admin', label: '管理入口', path: '/admin/dashboard', requiresAdminPermission: true },
 ]
 
 export default navMenu
@@ -36,6 +36,7 @@ export const userMenu: UserMenuItem[] = [
     divided: true,
     requiresAdminPermission: true,
   },
-  { id: 'admin', label: '管理入口', path: '/admin/index', requiresAdminPermission: true },
+  { id: 'admin', label: '管理入口', path: '/admin/dashboard', requiresAdminPermission: true },
+  { id: 'admin-old', label: '旧版管理', path: '/admin/index', requiresAdminPermission: true },
   { id: 'logout', label: '退出登录', action: 'logout', divided: true },
 ]
