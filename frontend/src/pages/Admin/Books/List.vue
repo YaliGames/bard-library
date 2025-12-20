@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <h2 class="text-xl font-semibold">图书管理</h2>
       <div class="flex items-center gap-2 flex-wrap">
-        <el-button class="hidden sm:inline-flex" @click="goLibrary">
+        <el-button @click="goLibrary">
           <span class="material-symbols-outlined mr-1 text-lg">library_books</span>
           前往书库
         </el-button>
@@ -37,41 +37,36 @@
           新建
         </el-button>
 
-        <el-button circle class="sm:hidden" @click="goLibrary" title="前往书库">
-          <span class="material-symbols-outlined text-lg">library_books</span>
-        </el-button>
-        <el-button
-          v-permission="'files.upload'"
-          type="primary"
-          plain
-          circle
-          class="sm:hidden"
-          @click="goQuickUpload"
-          title="快速上传"
-        >
-          <span class="material-symbols-outlined text-lg">upload</span>
-        </el-button>
-        <el-button
-          v-permission="'metadata.batch_scrape'"
-          type="primary"
-          plain
-          circle
-          class="sm:hidden"
-          @click="goScrapingTasks"
-          title="快速刮削"
-        >
-          <span class="material-symbols-outlined text-lg">cloud_download</span>
-        </el-button>
-        <el-button
-          v-permission="'books.create'"
-          type="primary"
-          circle
-          class="sm:hidden"
-          @click="goCreateNew"
-          title="新建"
-        >
-          <span class="material-symbols-outlined text-lg">add</span>
-        </el-button>
+        <el-dropdown class="sm:hidden" trigger="click" @command="handleCommand">
+          <el-button type="primary">
+            <span class="material-symbols-outlined text-lg">add</span>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-permission="'books.create'"
+                command="create"
+              >
+                <span class="material-symbols-outlined mr-2 text-lg align-middle">add</span>
+                <span class="align-middle">新建</span>
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-permission="'files.upload'"
+                command="upload"
+              >
+                <span class="material-symbols-outlined mr-2 text-lg align-middle">upload</span>
+                <span class="align-middle">快速上传</span>
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-permission="'metadata.batch_scrape'"
+                command="scrape"
+              >
+                <span class="material-symbols-outlined mr-2 text-lg align-middle">cloud_download</span>
+                <span class="align-middle">快速刮削</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
 
@@ -412,6 +407,20 @@ function goScrapingTasks() {
 }
 function goLibrary() {
   router.push({ name: 'books' })
+}
+
+function handleCommand(command: string) {
+  switch (command) {
+    case 'create':
+      goCreateNew()
+      break
+    case 'upload':
+      goQuickUpload()
+      break
+    case 'scrape':
+      goScrapingTasks()
+      break
+  }
 }
 
 onMounted(() => loadPage(1))
