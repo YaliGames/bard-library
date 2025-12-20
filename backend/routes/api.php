@@ -106,11 +106,6 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}/cover', [CoversController::class, 'clear'])
                 ->middleware('permission:books.edit');
         });
-
-        // 用户为书籍设置书架（需登录）：管理员可设置任意书架，普通用户仅能设置自己的书架
-        Route::middleware(['session', 'auth'])->group(function () {
-            Route::post('/{id}/shelves', [ShelvesController::class, 'setShelvesForBook']);
-        });
     });
     
     // 管理：系统设置（需相应权限）
@@ -259,7 +254,9 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', [ShelvesController::class, 'destroy'])
                 ->middleware('permission:shelves.delete');
             // 设置书架书籍 - 需要 shelves.edit 权限
-            Route::post('/{id}/books', [ShelvesController::class, 'setBooks'])
+            Route::post('/{id}/books', [ShelvesController::class, 'attachBooks'])
+                ->middleware('permission:shelves.edit');
+            Route::delete('/{id}/books', [ShelvesController::class, 'detachBooks'])
                 ->middleware('permission:shelves.edit');
         });
     });

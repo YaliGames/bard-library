@@ -184,16 +184,6 @@ export const booksApi = {
   },
 
   /**
-   * 设置书籍所属书架
-   * @param id - 书籍 ID
-   * @param shelf_ids - 书架 ID 列表
-   * @returns 更新后的书籍
-   */
-  setShelves: (id: number, shelf_ids: number[]) => {
-    return http.post<Book>(`${BASE}/${id}/shelves`, { shelf_ids })
-  },
-
-  /**
    * 设置书籍作者
    * @param id - 书籍 ID
    * @param author_ids - 作者 ID 列表

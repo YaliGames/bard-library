@@ -239,7 +239,8 @@ class ShelvesController extends Controller
         return response()->noContent();
     }
 
-    public function setBooks(Request $request, int $id)
+    // 批量添加书籍
+    public function attachBooks(Request $request, int $id)
     {
         $s = Shelf::findOrFail($id);
         $user = $this->userResolver->user($request);
@@ -254,53 +255,45 @@ class ShelvesController extends Controller
         if (!$hasManageAll && !$isOwner) {
             return response()->json(['message' => 'Permission denied'], 403);
         }
+        
         $payload = $request->validate([
             'book_ids' => ['present','array'],
             'book_ids.*' => ['integer'],
         ]);
-        $s->books()->sync($payload['book_ids']);
-        return $s->load('books');
+        
+        if (!empty($payload['book_ids'])) {
+            $s->books()->syncWithoutDetaching($payload['book_ids']);
+        }
+        
+        return response()->json(['message' => 'Success']);
     }
 
-    public function setShelvesForBook(Request $request, int $bookId)
+    // 批量移除书籍
+    public function detachBooks(Request $request, int $id)
     {
-        $b = Book::findOrFail($bookId);
+        $s = Shelf::findOrFail($id);
         $user = $this->userResolver->user($request);
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
         
+        // 权限检查
         $hasManageAll = $user->can('shelves.manage_all');
+        $isOwner = (int)$s->user_id === (int)$user->id;
+        
+        if (!$hasManageAll && !$isOwner) {
+            return response()->json(['message' => 'Permission denied'], 403);
+        }
         
         $payload = $request->validate([
-            'shelf_ids' => ['present','array'],
-            'shelf_ids.*' => ['integer'],
+            'book_ids' => ['present','array'],
+            'book_ids.*' => ['integer'],
         ]);
-        $ids = $payload['shelf_ids'];
-
-        // 有 manage_all 权限可以操作所有书架
-        if ($hasManageAll) {
-            $b->shelves()->sync($ids);
-            return $b->load('shelves');
+        
+        if (!empty($payload['book_ids'])) {
+            $s->books()->detach($payload['book_ids']);
         }
-
-        // 普通用户：仅能操作自己的书架，且仅影响自己的关联，不影响他人的书架
-        $userShelfIds = Shelf::query()->where('user_id', $user->id)->pluck('id')->all();
-        // 校验传入 ID 均为用户自己的书架
-        $invalid = array_diff($ids, $userShelfIds);
-        if (!empty($invalid)) {
-            return response()->json(['message' => '包含无权限的书架'], 403);
-        }
-        // 计算需要附加和移除的（仅限用户自己的书架范围内）
-        $currentUserShelfIds = $b->shelves()->whereIn('shelf_id', $userShelfIds)->pluck('shelf_id')->all();
-        $toAttach = array_values(array_diff($ids, $currentUserShelfIds));
-        $toDetach = array_values(array_diff($currentUserShelfIds, $ids));
-        if ($toDetach) {
-            $b->shelves()->detach($toDetach);
-        }
-        if ($toAttach) {
-            $b->shelves()->syncWithoutDetaching($toAttach);
-        }
-        return $b->load('shelves');
+        
+        return response()->json(['message' => 'Success']);
     }
 }

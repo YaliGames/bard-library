@@ -50,9 +50,6 @@ export const shelvesApi = {
   show: async (id: number): Promise<Shelf> => {
     return http.get<Shelf>(`/api/v1/shelves/${id}`)
   },
-  setBooks: (id: number, bookIds: number[]) => {
-    return http.post<Shelf>(`/api/v1/shelves/${id}/books`, { book_ids: bookIds })
-  },
   createRaw: (payload: Partial<Shelf> & Record<string, any>) => {
     return http.post<Shelf>('/api/v1/shelves', payload)
   },
@@ -61,5 +58,12 @@ export const shelvesApi = {
   },
   remove: (id: number) => {
     return http.delete<void>(`/api/v1/shelves/${id}`)
+  },
+  attachBooks: (id: number, bookIds: number[]) => {
+    return http.post<void>(`/api/v1/shelves/${id}/books`, { book_ids: bookIds })
+  },
+  detachBooks: (id: number, bookIds: number[]) => {
+    // Axios delete supports `data` property
+    return http.delete<void>(`/api/v1/shelves/${id}/books`, { data: { book_ids: bookIds } })
   },
 }

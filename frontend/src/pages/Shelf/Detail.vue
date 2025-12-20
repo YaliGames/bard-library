@@ -1,137 +1,129 @@
 <template>
   <section class="book-list">
     <div class="container mx-auto px-4 py-4 max-w-7xl">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold">书架 · {{ shelf?.name || '#' + shelfId }}</h2>
-        <div class="flex items-center gap-2">
-          <el-button v-if="canManage" type="primary" @click="toggleEdit">
-            {{ isEditing ? '退出编辑' : '编辑' }}
+      <!-- 顶部导航栏 -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <el-button circle class="shrink-0" @click="back">
+            <span class="material-symbols-outlined text-xl">arrow_back</span>
           </el-button>
-          <el-button @click="back">
-            <span class="material-symbols-outlined mr-1 text-lg">arrow_back</span>
-            返回
-          </el-button>
+          <div class="flex flex-col overflow-hidden min-w-[200px]">
+            <el-skeleton animated :loading="shelfLoading">
+              <template #template>
+                <div class="flex flex-col gap-2 py-1">
+                  <el-skeleton-item variant="h3" style="width: 150px" />
+                  <el-skeleton-item variant="text" style="width: 200px" />
+                </div>
+              </template>
+              <template #default>
+                <h2 class="text-xl font-bold truncate flex items-center gap-2">
+                  {{ shelf?.name }}
+                  <el-tag v-if="shelf?.is_public" size="small" type="success" effect="plain" round>
+                    公开
+                  </el-tag>
+                  <el-tag v-else-if="shelf" size="small" type="info" effect="plain" round>
+                    私有
+                  </el-tag>
+                </h2>
+                <div class="text-xs text-gray-500 truncate" v-if="shelf?.description">
+                  {{ shelf.description }}
+                </div>
+              </template>
+            </el-skeleton>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <template v-if="canManage">
+            <el-button v-if="!isManagingBooks" type="primary" @click="openAddDialog">
+              <span class="material-symbols-outlined mr-1 text-lg">add</span>
+              添加书籍
+            </el-button>
+
+            <el-button :type="isManagingBooks ? 'success' : 'default'" @click="toggleManageBooks">
+              <span class="material-symbols-outlined mr-1 text-lg">
+                {{ isManagingBooks ? 'check' : 'edit_square' }}
+              </span>
+              {{ isManagingBooks ? '完成' : '批量管理' }}
+            </el-button>
+
+            <el-tooltip content="书架设置" placement="bottom">
+              <el-button circle @click="openSettings">
+                <span class="material-symbols-outlined text-xl">settings</span>
+              </el-button>
+            </el-tooltip>
+          </template>
         </div>
       </div>
 
-      <!-- 未授权/不存在 显示错误提示 -->
       <el-result v-if="shelfError && !shelfLoading" icon="warning" :title="shelfError">
         <template #extra>
           <el-button type="primary" @click="back">返回</el-button>
         </template>
       </el-result>
-      <template v-if="shelfError && !shelfLoading">
-        <div class="h-4"></div>
-      </template>
+
       <template v-if="!shelfError">
-        <!-- 书架信息 -->
-        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <el-skeleton animated :loading="shelfLoading">
-            <template #template>
-              <el-skeleton-item variant="text" class="w-[40%] h-[18px]" />
-              <el-skeleton-item variant="text" class="w-[70%] h-[14px]" />
-              <div class="flex items-center justify-between mt-2">
-                <el-skeleton-item variant="text" class="w-[50%] h-[18px]" />
-              </div>
-            </template>
-            <template v-if="!isEditing">
-              <div class="text-gray-700 text-sm leading-6">
-                <div class="mb-1">
-                  <span class="text-gray-500">名称：</span>
-                  <span class="font-medium">{{ shelf?.name || '未命名书架' }}</span>
-                  <el-tag v-if="shelf?.is_public" size="small" type="success" class="ml-2">
-                    公开
-                  </el-tag>
-                  <el-tag v-else size="small" class="ml-2">私有</el-tag>
-                </div>
-                <div class="mb-1">
-                  <span class="text-gray-500">简介：</span>
-                  <span>{{ shelf?.description || '暂无简介' }}</span>
-                </div>
-                <div class="mt-2 text-gray-400">更多信息区域 · 占位</div>
-              </div>
-            </template>
-            <template v-else>
-              <div class="space-y-3">
-                <el-form label-width="90px">
-                  <el-form-item label="名称">
-                    <el-input v-model="form.name" maxlength="190" />
-                  </el-form-item>
-                  <el-form-item label="描述">
-                    <el-input v-model="form.description" type="textarea" maxlength="500" />
-                  </el-form-item>
-                  <el-form-item v-if="canSetPublic" label="公开">
-                    <el-switch v-model="form.is_public" />
-                  </el-form-item>
-                  <el-form-item v-if="canSetGlobal" label="全局书架">
-                    <div>
-                      <el-switch v-model="form.global" />
-                      <div
-                        class="text-xs text-red-500 mt-1"
-                        v-if="form?.global && !form?.is_public"
-                      >
-                        请注意，未开启公开模式的全局书架将无法被除管理员外的任何用户访问
-                      </div>
-                      <div
-                        class="text-xs text-gray-500 mt-1"
-                        v-else-if="form?.global && form?.is_public"
-                      >
-                        全局书架不属于任何用户，所有用户可见
-                      </div>
-                    </div>
-                  </el-form-item>
-                </el-form>
-                <div class="flex justify-end gap-2">
-                  <el-button v-if="canDelete" type="danger" @click="deleteShelf">
-                    删除书架
-                  </el-button>
-                  <el-button type="primary" @click="saveShelf">保存</el-button>
-                </div>
-              </div>
-            </template>
-          </el-skeleton>
-        </div>
-
-        <template v-if="userSettings.shelfDetail?.showFilters ?? true">
-          <BookFilters
-            v-model="filters"
-            :showShelves="false"
-            :showTags="true"
-            :showAuthor="true"
-            :showReadState="true"
-            :showRating="true"
-            :enableExpand="true"
-            :defaultExpanded="userSettings.preferences?.expandFilterMenu"
-            @search="searchPage(1)"
-            @reset="resetFilters"
-            class="mb-4"
-          />
-        </template>
-
-        <!-- 排序控件（与书库页一致） -->
-        <div class="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <div
+          class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4"
+        >
+          <div class="w-full md:w-auto flex-1">
+            <BookFilters
+              v-if="userSettings.shelfDetail?.showFilters ?? true"
+              v-model="filters"
+              :showShelves="false"
+              :showTags="true"
+              :showAuthor="true"
+              :showReadState="true"
+              :showRating="true"
+              :enableExpand="true"
+              :defaultExpanded="userSettings.preferences?.expandFilterMenu"
+              @search="searchPage(1)"
+              @reset="resetFilters"
+            />
+          </div>
           <SortControl v-model:sort="sort" v-model:order="order" @change="() => searchPage(1)" />
         </div>
-      </template>
 
-      <BookGrid
-        v-if="!shelfError"
-        :data="data"
-        :loading="loading"
-        :meta="meta"
-        :editable="isEditing"
-        :show-add-button="true"
-        @page-change="searchPage"
-        @author-click="filterByAuthor"
-        @toggle-read="toggleRead"
-        @add-click="openAddDialog"
-        @remove-click="confirmRemove"
-      />
+        <el-alert v-if="isManagingBooks" type="info" show-icon :closable="false" class="mb-4">
+          <template #title>
+            <div class="flex items-center justify-between w-full">
+              <span>
+                管理模式已开启，点击书籍封面上的删除图标可将其从书架移除（不会删除书籍本身）。
+              </span>
+            </div>
+          </template>
+        </el-alert>
+
+        <BookGrid
+          :data="data"
+          :loading="loading"
+          :meta="meta"
+          :editable="isManagingBooks"
+          :show-add-button="canManage && !isManagingBooks"
+          @page-change="searchPage"
+          @author-click="filterByAuthor"
+          @toggle-read="toggleRead"
+          @add-click="openAddDialog"
+          @remove-click="confirmRemove"
+        />
+      </template>
     </div>
   </section>
 
-  <!-- 添加书籍对话框 -->
-  <AddBooksDialog v-model="addVisible" :exclude-book-ids="currentBookIds" @add="handleBookAdded" />
+  <AddBooksDialog
+    v-if="canManage"
+    v-model="addVisible"
+    :exclude-book-ids="currentBookIds"
+    @add="handleBookAdded"
+  />
+
+  <ShelfSettingsDialog
+    v-if="shelf && canManage"
+    v-model="settingsVisible"
+    :shelf="shelf"
+    @updated="fetchShelfInfo"
+    @deleted="onShelfDeleted"
+  />
 </template>
 
 <script setup lang="ts">
@@ -140,6 +132,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import BookFilters from '@/components/Book/Filters.vue'
 import BookGrid from '@/components/Book/BookGrid.vue'
+import ShelfSettingsDialog from '@/components/Shelf/ShelfSettingsDialog.vue'
 import AddBooksDialog from '@/components/Shelf/AddBooksDialog.vue'
 import SortControl from '@/components/SortControl.vue'
 import { booksApi } from '@/api/books'
@@ -175,26 +168,6 @@ const canManage = computed(() => {
   // 书架所有者可以编辑自己的书架(需要 shelves.edit 权限)
   const isOwner = (shelf.value.user_id ?? 0) === (authStore.user?.id ?? -1)
   return isOwner && hasPermission('shelves.edit')
-})
-
-// 是否可以设置公开属性(需要特殊权限或manage_all)
-const canSetPublic = computed(() => {
-  return hasPermission('shelves.create_public') || hasPermission('shelves.manage_all')
-})
-
-// 是否可以设置全局书架(需要特殊权限或manage_all)
-const canSetGlobal = computed(() => {
-  return hasPermission('shelves.create_global') || hasPermission('shelves.manage_all')
-})
-
-// 是否可以删除当前书架
-const canDelete = computed(() => {
-  if (!shelf.value) return false
-  // 有 manage_all 权限可以删除任何书架
-  if (hasPermission('shelves.manage_all')) return true
-  // 所有者可以删除自己的书架(需要 shelves.delete 权限)
-  const isOwner = (shelf.value.user_id ?? 0) === (authStore.user?.id ?? -1)
-  return isOwner && hasPermission('shelves.delete')
 })
 
 // 统一的筛选模型（固定 shelfId）
@@ -262,64 +235,20 @@ function back() {
   router.back()
 }
 
-// 编辑模式切换与表单
-const isEditing = ref(false)
-const form = ref<{ name: string; description?: string; is_public?: boolean; global?: boolean }>({
-  name: '',
-})
-function toggleEdit() {
-  if (!canManage.value) return
-  isEditing.value = !isEditing.value
-  if (isEditing.value && shelf.value) {
-    form.value = {
-      name: shelf.value.name,
-      description: shelf.value.description || '',
-      is_public: shelf.value.is_public,
-      global: shelf.value.user_id === null,
-    }
-  }
-}
-async function saveShelf() {
-  if (!shelf.value) return
-  try {
-    const payload: Record<string, any> = {
-      name: form.value.name.trim(),
-      description: form.value.description || '',
-    }
-    // 只有有权限时才发送这些字段
-    if (canSetPublic.value && form.value.is_public !== undefined) {
-      payload.is_public = !!form.value.is_public
-    }
-    if (canSetGlobal.value && form.value.global !== undefined) {
-      payload.global = !!form.value.global
-    }
-    await shelvesApi.updateRaw(shelf.value.id, payload)
-    await fetchShelfInfo()
-    handleSuccess('已保存')
-  } catch (e: any) {
-    handleError(e, { context: 'ShelfDetail.saveShelf' })
-  }
+// 书籍管理模式
+const isManagingBooks = ref(false)
+function toggleManageBooks() {
+  isManagingBooks.value = !isManagingBooks.value
 }
 
-async function deleteShelf() {
-  if (!shelf.value) return
-  try {
-    await ElMessageBox.confirm('确认删除该书架？该操作不可恢复', '删除确认', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    })
-  } catch {
-    return
-  }
-  try {
-    await shelvesApi.remove(shelf.value.id)
-    handleSuccess('已删除')
-    // 删除后跳转到书架列表
-    router.push({ name: 'user-shelves' })
-  } catch (e: any) {
-    handleError(e, { context: 'ShelfDetail.deleteShelf' })
-  }
+// 设置弹窗
+const settingsVisible = ref(false)
+function openSettings() {
+  settingsVisible.value = true
+}
+
+function onShelfDeleted() {
+  router.push({ name: 'user-shelves' })
 }
 
 function filterByAuthor(id: number) {
@@ -402,21 +331,24 @@ function openAddDialog() {
   addVisible.value = true
 }
 
-// 当书籍添加成功时的回调
+// 书籍添加成功回调
 async function handleBookAdded(book: Book) {
-  // 将书籍添加到当前列表
-  if (!data.value.find(x => x.id === book.id)) {
-    data.value.push(book)
+  try {
+    if (data.value.find(x => x.id === book.id)) {
+      return
+    }
+    await shelvesApi.attachBooks(shelfId.value, [book.id])
+    data.value.unshift(book)
+    handleSuccess('已添加书籍')
+  } catch (e: any) {
+    handleError(e, { context: 'ShelfDetail.handleBookAdded' })
   }
 }
 
 // 从书架移除
 async function removeFromShelf(b: Book) {
-  if (!shelf.value) return
   try {
-    const newBookIds = data.value.filter(book => book.id !== b.id).map(book => book.id)
-    await shelvesApi.setBooks(shelf.value.id, newBookIds)
-    // 本页列表移除该书
+    await shelvesApi.detachBooks(shelfId.value, [b.id])
     data.value = data.value.filter(x => x.id !== b.id)
     handleSuccess('已移出')
   } catch (e: any) {

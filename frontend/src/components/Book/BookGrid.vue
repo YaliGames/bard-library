@@ -109,11 +109,11 @@
         <!-- 编辑模式的删除悬浮层 -->
         <slot name="item-overlay" :book="book" v-if="editable">
           <div
-            class="absolute inset-0 rounded-lg bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+            class="absolute inset-0 rounded-lg bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center pointer-events-none"
           >
             <div
               @click.prevent="emit('remove-click', book)"
-              class="rounded-full p-2 bg-white cursor-pointer hover:bg-danger hover:text-white flex items-center justify-center"
+              class="rounded-full p-2 bg-white cursor-pointer hover:bg-danger hover:text-white flex items-center justify-center pointer-events-auto"
             >
               <span class="material-symbols-outlined">delete</span>
             </div>
