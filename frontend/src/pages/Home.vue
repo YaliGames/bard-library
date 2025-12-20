@@ -143,188 +143,217 @@
             </li>
           </ul>
         </div>
-
         <div
-          class="lg:w-1/2 w-full relative h-[500px] flex items-center justify-center perspective-1000"
+          class="lg:w-1/2 w-full relative h-[650px] flex items-center justify-center perspective-1000"
         >
           <!-- 1. Laptop -->
-          <div class="absolute animate-float-slow w-[90%] max-w-[500px] z-10">
+          <div class="absolute animate-float-slow w-[95%] max-w-[600px] z-10 -translate-y-20">
+            <!-- 加深加厚的设备外框 -->
             <div
-              class="relative bg-slate-900/95 backdrop-blur-xl border border-indigo-400/40 rounded-t-xl p-2 shadow-2xl shadow-indigo-900/50 aspect-[16/10] flex flex-col group transition-all duration-500 hover:shadow-indigo-500/20"
+              class="relative bg-slate-950 border-[2px] border-slate-800 rounded-t-2xl p-2 shadow-2xl flex flex-col group transition-all duration-500"
             >
+              <!-- 顶部系统栏 -->
               <div
-                class="flex-1 bg-slate-800/80 rounded-lg overflow-hidden relative border border-white/5 flex"
+                class="h-8 flex items-center px-4 bg-slate-900/50 rounded-t-xl mb-1 border-b border-slate-800/50"
               >
+                <div class="flex gap-2">
+                  <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/40"></div>
+                  <div
+                    class="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500/40"
+                  ></div>
+                  <div
+                    class="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/40"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- 应用内容 -->
+              <div
+                class="flex-1 bg-slate-900 rounded-lg overflow-hidden flex border border-indigo-500/30"
+              >
+                <!-- 侧边栏 -->
                 <div
-                  class="w-16 border-r border-white/5 bg-slate-900/50 flex flex-col items-center py-4 gap-4"
+                  class="w-16 bg-slate-950 border-r border-slate-800 flex flex-col items-center py-6 gap-6"
                 >
                   <div
-                    class="w-6 h-6 rounded bg-indigo-500/80 shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                    class="w-8 h-8 rounded-lg bg-indigo-500 shadow-lg shadow-indigo-500/50"
                   ></div>
-                  <div class="w-8 h-[1px] bg-white/10 my-1"></div>
-                  <div
-                    class="w-5 h-5 rounded bg-slate-700/50 hover:bg-slate-600 transition-colors"
-                  ></div>
-                  <div class="w-5 h-5 rounded bg-slate-700/50"></div>
-                  <div class="w-5 h-5 rounded bg-slate-700/50"></div>
-                  <div class="mt-auto w-5 h-5 rounded-full bg-slate-600/50"></div>
-                </div>
-
-                <div class="flex-1 flex flex-col">
-                  <div
-                    class="h-10 border-b border-white/5 flex items-center justify-between px-4 bg-slate-800/50"
-                  >
-                    <div class="h-2 w-24 bg-slate-700/50 rounded-full"></div>
-                    <div class="flex gap-2">
-                      <div class="w-20 h-6 bg-slate-900/50 rounded-md border border-white/5"></div>
-                    </div>
-                  </div>
-
-                  <div class="flex-1 p-5 flex gap-6 overflow-hidden">
-                    <div class="w-1/3 flex flex-col gap-3">
-                      <div
-                        class="aspect-[2/3] w-full rounded-md bg-gradient-to-br from-slate-700 to-slate-800 border border-white/10 shadow-lg relative overflow-hidden group-hover:border-indigo-400/50 transition-colors"
-                      >
-                        <div
-                          class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"
-                        ></div>
-                        <div class="absolute bottom-3 left-3 w-1/2 h-2 bg-white/20 rounded"></div>
-                      </div>
-                      <div class="h-2 w-3/4 bg-slate-700/50 rounded"></div>
-                      <div class="h-2 w-1/2 bg-slate-700/50 rounded"></div>
-                      <div class="mt-2 flex gap-2">
-                        <div
-                          class="h-6 flex-1 bg-amber-500 border border-amber-600/30 rounded text-xs flex items-center justify-center text-amber-500"
-                        ></div>
-                      </div>
-                    </div>
-                    <div class="flex-1 space-y-3 pt-2">
-                      <div class="h-4 w-1/3 bg-slate-600/50 rounded mb-4"></div>
-                      <div class="space-y-2 opacity-60">
-                        <div class="h-2 w-full bg-slate-500 rounded"></div>
-                        <div class="h-2 w-full bg-slate-500 rounded"></div>
-                        <div class="h-2 w-5/6 bg-slate-500 rounded"></div>
-                        <div class="h-2 w-full bg-slate-500 rounded"></div>
-                        <div class="h-2 w-4/5 bg-slate-500 rounded"></div>
-                      </div>
-                      <div class="space-y-2 opacity-40 mt-4">
-                        <div class="h-2 w-full bg-slate-500 rounded"></div>
-                        <div class="h-2 w-2/3 bg-slate-500 rounded"></div>
-                      </div>
-                    </div>
-                  </div>
+                  <div class="w-6 h-6 rounded bg-slate-800"></div>
                 </div>
 
                 <div
-                  class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none"
-                ></div>
+                  class="flex-1 p-6 flex flex-col gap-6 bg-gradient-to-br from-slate-900 to-slate-800 overflow-hidden"
+                >
+                  <!-- 上部：左封面右信息 -->
+                  <div class="flex gap-6">
+                    <div
+                      class="w-32 h-44 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-2xl border border-white/5 shrink-0"
+                    ></div>
+                    <!-- 封面 -->
+                    <div class="flex-1 space-y-4 pt-2">
+                      <div class="h-6 w-3/4 bg-slate-400/60 rounded"></div>
+                      <!-- 标题 -->
+                      <div class="h-3 w-1/4 bg-indigo-400/30 rounded-full"></div>
+                      <!-- 元数据 -->
+                      <div class="space-y-2">
+                        <div class="h-2 w-full bg-slate-700/50 rounded"></div>
+                        <div class="h-2 w-5/6 bg-slate-700/50 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 下部：章节、按钮、进度 -->
+                  <div class="flex-1 flex gap-6">
+                    <div class="flex-1 space-y-2">
+                      <!-- 章节列表 -->
+                      <div
+                        class="h-8 w-full bg-slate-800/80 rounded border border-slate-700/50"
+                      ></div>
+                      <div
+                        class="h-8 w-full bg-slate-800/80 rounded border border-slate-700/50"
+                      ></div>
+                      <div
+                        class="h-8 w-full bg-slate-800/80 rounded border border-slate-700/50"
+                      ></div>
+                    </div>
+                    <div class="w-48 space-y-4">
+                      <div
+                        class="h-12 w-full bg-indigo-500 rounded-xl shadow-lg flex items-center justify-center"
+                      >
+                        <!-- 阅读按钮 -->
+                        <div class="w-16 h-2 bg-slate-900/20 rounded-full"></div>
+                      </div>
+                      <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] text-amber-500 font-bold">
+                          <span>82%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <div class="h-full w-[82%] bg-amber-500"></div>
+                          <!-- 进度条 -->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div
-              class="h-3 bg-slate-800 border-t border-indigo-500/20 rounded-b-lg mx-auto w-[98%] shadow-[0_20px_40px_rgba(0,0,0,0.6)] relative"
-            >
-              <div
-                class="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-slate-700 rounded-b-sm"
-              ></div>
-            </div>
+              class="h-3 bg-slate-800 border-x border-b border-slate-700 rounded-b-2xl mx-auto w-[99%] shadow-2xl"
+            ></div>
           </div>
 
           <!-- 2. Tablet -->
-          <div class="absolute -right-8 bottom-16 w-[180px] md:w-[220px] animate-float-medium z-20">
+          <div
+            class="absolute -right-10 bottom-24 w-[240px] md:w-[320px] animate-float-medium z-20"
+          >
             <div
-              class="bg-slate-900/95 backdrop-blur-xl border border-indigo-400/40 rounded-xl p-2 shadow-[0_20px_50px_rgba(30,27,75,0.5)] aspect-[3/4] flex flex-col transform rotate-[-6deg] hover:rotate-0 transition-transform duration-500 group"
+              class="bg-slate-950 border-[2px] border-slate-800 rounded-[2.5rem] p-3 shadow-2xl aspect-[3/4] flex flex-col transform rotate-[-4deg] hover:rotate-0 transition-all duration-700 group"
             >
-              <div class="w-1 h-1 rounded-full bg-slate-600 mx-auto mb-2 opacity-50"></div>
+              <div class="h-6 flex justify-center items-center">
+                <div class="w-1.5 h-1.5 rounded-full bg-slate-800"></div>
+              </div>
+
               <div
-                class="flex-1 bg-slate-800/80 rounded-lg overflow-hidden relative border border-white/5 flex flex-col"
+                class="flex-1 bg-slate-900 rounded-[1.8rem] overflow-hidden flex flex-col border border-indigo-500/30"
               >
-                <div class="h-8 border-b border-white/5 flex items-center px-3 gap-2 bg-slate-800">
-                  <div class="w-4 h-4 rounded bg-indigo-500/50"></div>
-                  <div class="flex-1 h-2 bg-slate-700/50 rounded-full"></div>
-                </div>
-                <div class="flex-1 flex">
+                <!-- 上部：左封面右信息 -->
+                <div class="p-5 flex gap-5 border-b border-slate-800/50 bg-slate-900/50">
                   <div
-                    class="w-8 border-r border-white/5 bg-slate-900/30 flex flex-col items-center py-3 gap-3"
-                  >
-                    <div class="w-4 h-4 rounded-full bg-slate-700/50"></div>
-                    <div
-                      class="w-4 h-4 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"
-                    ></div>
-                  </div>
-                  <div class="flex-1 p-3 grid grid-cols-2 gap-2 content-start">
-                    <div
-                      class="aspect-[2/3] rounded bg-gradient-to-br from-indigo-900 to-slate-800 border border-indigo-500/30 group-hover:border-amber-500/50 transition-colors"
-                    ></div>
-                    <div class="aspect-[2/3] rounded bg-slate-700/30 border border-white/5"></div>
-                    <div class="aspect-[2/3] rounded bg-slate-700/30 border border-white/5"></div>
-                    <div class="aspect-[2/3] rounded bg-slate-700/30 border border-white/5"></div>
+                    class="w-24 h-32 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-xl border border-white/5 shrink-0"
+                  ></div>
+                  <!-- 封面 -->
+                  <div class="flex-1 space-y-3 pt-1">
+                    <div class="h-5 w-full bg-slate-400/60 rounded-full"></div>
+                    <!-- 标题 -->
+                    <div class="h-2.5 w-1/2 bg-indigo-400/30 rounded-full"></div>
+                    <div class="h-2 w-full bg-slate-800 rounded"></div>
+                    <div class="h-2 w-2/3 bg-slate-800 rounded"></div>
                   </div>
                 </div>
-                <div
-                  class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none"
-                ></div>
+                <!-- 下部：章节、按钮、进度 -->
+                <div class="flex-1 p-5 flex flex-col gap-4">
+                  <div class="space-y-2 flex-1">
+                    <!-- 章节列表 -->
+                    <div
+                      class="h-10 w-full bg-slate-800/80 rounded-lg border border-slate-700/50"
+                    ></div>
+                    <div
+                      class="h-10 w-full bg-slate-800/80 rounded-lg border border-slate-700/50"
+                    ></div>
+                    <div
+                      class="h-10 w-full bg-slate-800/80 rounded-lg border border-slate-700/50"
+                    ></div>
+                  </div>
+                  <div class="space-y-3">
+                    <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div class="h-full w-[45%] bg-amber-500"></div>
+                      <!-- 进度条 -->
+                    </div>
+                    <div
+                      class="h-12 w-full bg-indigo-500 rounded-[1rem] shadow-lg flex items-center justify-center"
+                    >
+                      <!-- 阅读按钮 -->
+                      <div class="w-20 h-2 bg-slate-900/20 rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 3. Mobile -->
-          <div class="absolute -left-4 -bottom-2 w-[140px] md:w-[160px] animate-float-fast z-30">
+          <div class="absolute -left-12 -bottom-4 w-[170px] md:w-[200px] animate-float-fast z-30">
             <div
-              class="bg-slate-900/95 backdrop-blur-xl border border-indigo-400/40 rounded-[2.5rem] p-2 shadow-[0_15px_40px_rgba(0,0,0,0.8)] transform rotate-[8deg] hover:rotate-0 transition-transform duration-500 group"
+              class="bg-slate-950 border-[2px] border-slate-800 rounded-[3rem] p-3 shadow-2xl transform rotate-[6deg] hover:rotate-0 transition-all duration-700 group"
             >
               <div
-                class="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-full z-40 flex items-center justify-center gap-2 shadow-sm pointer-events-none"
-              >
-                <div class="w-1.5 h-1.5 rounded-full bg-indigo-900/30"></div>
-                <div class="w-1 h-1 rounded-full bg-indigo-800/20"></div>
-              </div>
+                class="absolute top-5 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-full z-40 border border-white/5"
+              ></div>
 
               <div
-                class="bg-slate-800 rounded-[2rem] h-[280px] overflow-hidden relative border border-white/5 flex flex-col"
+                class="bg-slate-900 rounded-[2.5rem] h-[380px] overflow-hidden flex flex-col border border-indigo-500/40"
               >
-                <div
-                  class="h-[110px] bg-gradient-to-b from-indigo-950 to-slate-800 flex items-end p-3 gap-3 relative"
-                >
+                <!-- 上部：左封面右信息 (手机端紧凑化) -->
+                <div class="p-4 pt-10 flex gap-4 bg-slate-900/80">
                   <div
-                    class="w-10 h-14 bg-slate-700 rounded shadow-lg border border-white/10 flex-shrink-0 group-hover:border-amber-500/50 transition-colors relative overflow-hidden"
-                  >
+                    class="w-16 h-24 rounded-md bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg border border-white/5 shrink-0"
+                  ></div>
+                  <!-- 封面 -->
+                  <div class="flex-1 space-y-3">
+                    <div class="h-4 w-full bg-slate-400/60 rounded-full"></div>
+                    <!-- 标题 -->
+                    <div class="h-2 w-1/2 bg-indigo-400/30 rounded-full"></div>
+                    <div class="h-1.5 w-full bg-slate-800 rounded"></div>
+                  </div>
+                </div>
+                <!-- 下部：章节、进度、按钮 -->
+                <div class="flex-1 p-4 flex flex-col gap-4">
+                  <div class="space-y-2 flex-1">
+                    <!-- 章节列表 -->
                     <div
-                      class="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent"
+                      class="h-8 w-full bg-slate-800/80 rounded-md border border-slate-700/50"
+                    ></div>
+                    <div
+                      class="h-8 w-full bg-slate-800/80 rounded-md border border-slate-700/50"
                     ></div>
                   </div>
-
-                  <div class="flex-1 pb-1 space-y-1.5">
-                    <div class="h-2 w-full bg-slate-500/50 rounded"></div>
-                    <div class="h-1.5 w-2/3 bg-slate-600/30 rounded"></div>
-                  </div>
-                </div>
-
-                <div class="flex-1 p-4 bg-slate-800 flex flex-col gap-3">
-                  <div class="flex items-center gap-2">
-                    <div class="h-1 flex-1 bg-slate-700 rounded-full overflow-hidden">
-                      <div
-                        class="h-full w-[65%] bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"
-                      ></div>
+                  <div class="space-y-3">
+                    <div
+                      class="flex justify-between items-center text-[8px] text-amber-500 font-bold"
+                    >
+                      <span>82%</span>
                     </div>
-                    <div class="text-[0.5rem] text-slate-500 font-serif">65%</div>
-                  </div>
-
-                  <div class="space-y-2 opacity-70">
-                    <div class="h-1.5 w-full bg-slate-500 rounded"></div>
-                    <div class="h-1.5 w-full bg-slate-500 rounded"></div>
-                    <div class="h-1.5 w-11/12 bg-slate-500 rounded"></div>
-                    <div class="h-1.5 w-full bg-slate-500 rounded"></div>
-                    <div class="h-1.5 w-4/5 bg-slate-500 rounded"></div>
+                    <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div class="h-full w-[82%] bg-amber-500"></div>
+                      <!-- 进度条 -->
+                    </div>
+                    <div
+                      class="h-10 w-full bg-indigo-500 rounded-full shadow-lg flex items-center justify-center"
+                    >
+                      <!-- 阅读按钮 -->
+                      <div class="w-12 h-1.5 bg-slate-900/20 rounded-full"></div>
+                    </div>
                   </div>
                 </div>
-
-                <div
-                  class="absolute bottom-2 left-1/2 -translate-x-1/2 w-1/3 h-1 bg-white/10 rounded-full"
-                ></div>
-
-                <div
-                  class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none"
-                ></div>
               </div>
             </div>
           </div>
