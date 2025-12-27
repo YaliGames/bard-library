@@ -8,6 +8,7 @@ use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\ApiHelpers;
 
 class ImportController extends Controller
 {
@@ -30,7 +31,7 @@ class ImportController extends Controller
         $uploaded = $data['file'];
         $tmpPath = $uploaded->getRealPath();
         if (!$tmpPath || !file_exists($tmpPath)) {
-            return response()->json(['message' => 'Temp file missing'], 422);
+            return ApiHelpers::error('Temp file missing', 422);
         }
 
         $sha = hash_file('sha256', $tmpPath);
@@ -38,12 +39,12 @@ class ImportController extends Controller
         $existing = BookFile::where('sha256', $sha)->first();
         if ($existing) {
             $book = Book::find($existing->book_id);
-            return response()->json([
+            return ApiHelpers::success([
                 'created' => false,
                 'book' => $book,
                 'file' => $existing,
                 'duplicate' => true,
-            ]);
+            ], '', 200);
         }
 
         $origName = $uploaded->getClientOriginalName() ?: ($sha . '.' . ($uploaded->extension() ?: 'bin'));
@@ -54,11 +55,7 @@ class ImportController extends Controller
         $size = (int) $uploaded->getSize();
 
         if ($limitBytes > 0 && $size > $limitBytes) {
-            return response()->json([
-                'message' => '上传文件超过系统限制大小',
-                'limit_bytes' => $limitBytes,
-                'actual_bytes' => $size,
-            ], 413);
+            return ApiHelpers::error('上传文件超过系统限制大小', 413, ['limit_bytes' => $limitBytes, 'actual_bytes' => $size]);
         }
 
         // 目录分层：books/a1/b2/sha/filename.ext
@@ -77,7 +74,7 @@ class ImportController extends Controller
         if (!empty($data['book_id'])) {
             $book = Book::find((int)$data['book_id']);
             if (!$book) {
-                return response()->json(['message' => 'book_id not found'], 422);
+                return ApiHelpers::error('book_id not found', 422);
             }
         } else {
             // 简单创建 Book（标题来源于文件名去掉扩展名）
@@ -118,7 +115,7 @@ class ImportController extends Controller
             }
         }
 
-        return response()->json($response, 201);
+        return ApiHelpers::success($response, '', 201);
     }
 
     private function sanitizeFilename(string $name): string

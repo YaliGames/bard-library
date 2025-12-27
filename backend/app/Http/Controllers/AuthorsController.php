@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Author;
 use Illuminate\Http\Request;
+use App\Support\ApiHelpers;
 
 class AuthorsController extends Controller
 {
@@ -13,7 +14,7 @@ class AuthorsController extends Controller
         if ($kw = trim((string)$request->query('q'))) {
             $q->where('name', 'like', "%{$kw}%");
         }
-        return $q->orderBy('name')->limit(50)->get();
+        return ApiHelpers::success($q->orderBy('name')->limit(50)->get(), '', 200);
     }
 
     public function store(Request $request)
@@ -23,7 +24,7 @@ class AuthorsController extends Controller
             'sort_name' => ['nullable','string','max:190'],
         ]);
         $a = Author::create($data);
-        return response()->json($a, 201);
+        return ApiHelpers::success($a, 'Author created', 201);
     }
 
     public function update(Request $request, int $id)
@@ -34,7 +35,7 @@ class AuthorsController extends Controller
             'sort_name' => ['sometimes','nullable','string','max:190'],
         ]);
         $a->fill($data)->save();
-        return $a->refresh();
+        return ApiHelpers::success($a->refresh(), 'Author updated', 200);
     }
 
     public function destroy(int $id)
@@ -43,6 +44,6 @@ class AuthorsController extends Controller
         // 解除关联
         $a->books()->detach();
         $a->delete();
-        return response()->noContent();
+        return ApiHelpers::success(null, 'Author deleted', 200);
     }
 }

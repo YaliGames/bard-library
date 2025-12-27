@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Database\QueryException;
 use App\Services\BookCreationService;
+use App\Support\ApiHelpers;
 
 class CoversController extends Controller
 {
@@ -24,7 +25,7 @@ class CoversController extends Controller
         $uploaded = $data['file'];
         $tmpPath = $uploaded->getRealPath();
         if (!$tmpPath || !file_exists($tmpPath)) {
-            return response()->json(['message' => 'Temp file missing'], 422);
+            return ApiHelpers::error('Temp file missing', 422);
         }
 
         $sha = hash_file('sha256', $tmpPath);
@@ -51,7 +52,7 @@ class CoversController extends Controller
 
         $book->cover_file_id = $file->id;
         $book->save();
-        return response()->json(['file_id' => $file->id], 201);
+        return ApiHelpers::success(['file_id' => $file->id], 'Cover uploaded', 201);
     }
 
     // 通过 URL 抓取图片作为封面
@@ -79,13 +80,13 @@ class CoversController extends Controller
         $success = $this->bookService->downloadAndAttachCover($book, $url);
         
         if (!$success) {
-            return response()->json(['message' => '下载或保存封面失败'], 422);
+            return ApiHelpers::error('下载或保存封面失败', 422);
         }
 
         // 刷新图书以获取最新的 cover_file_id
         $book->refresh();
         
-        return response()->json(['file_id' => $book->cover_file_id], 201);
+        return ApiHelpers::success(['file_id' => $book->cover_file_id], 'Cover set from URL', 201);
     }
 
     // 清除书籍封面关联（不删除底层文件记录，避免影响其他书籍复用）
@@ -94,6 +95,6 @@ class CoversController extends Controller
         $book = Book::findOrFail($bookId);
         $book->cover_file_id = null;
         $book->save();
-        return response()->noContent();
+        return ApiHelpers::success(null, 'Cover cleared', 200);
     }
 }

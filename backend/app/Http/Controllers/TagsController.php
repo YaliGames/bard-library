@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tag;
 use Illuminate\Http\Request;
+use App\Support\ApiHelpers;
 
 class TagsController extends Controller
 {
@@ -16,7 +17,7 @@ class TagsController extends Controller
         if ($type = $request->query('type')) {
             $q->where('type', $type);
         }
-        return $q->orderBy('name')->limit(50)->get();
+        return ApiHelpers::success($q->orderBy('name')->limit(50)->get(), '', 200);
     }
 
     public function store(Request $request)
@@ -26,7 +27,7 @@ class TagsController extends Controller
             'type' => ['nullable','string','max:32'],
         ]);
         $t = Tag::firstOrCreate(['name' => $data['name'], 'type' => $data['type'] ?? null]);
-        return response()->json($t, 201);
+        return ApiHelpers::success($t, '', 201);
     }
 
     public function update(Request $request, int $id)
@@ -37,7 +38,7 @@ class TagsController extends Controller
             'type' => ['sometimes','nullable','string','max:32'],
         ]);
         $t->fill($data)->save();
-        return $t->refresh();
+        return ApiHelpers::success($t->refresh(), '', 200);
     }
 
     public function destroy(int $id)
@@ -46,6 +47,6 @@ class TagsController extends Controller
         // 解除关联
         $t->books()->detach();
         $t->delete();
-        return response()->noContent();
+        return ApiHelpers::success(null, 'Deleted', 200);
     }
 }

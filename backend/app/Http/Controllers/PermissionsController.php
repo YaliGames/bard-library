@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Permission;
 use Illuminate\Http\JsonResponse;
+use App\Support\ApiHelpers;
 
 class PermissionsController extends Controller
 {
@@ -14,7 +15,7 @@ class PermissionsController extends Controller
     {
         $permissions = Permission::orderBy('group')->orderBy('name')->get();
         
-        return response()->json($permissions);
+        return ApiHelpers::success($permissions, '', 200);
     }
 
     /**
@@ -24,7 +25,7 @@ class PermissionsController extends Controller
     {
         $grouped = Permission::getGrouped();
         
-        return response()->json($grouped);
+        return ApiHelpers::success($grouped, '', 200);
     }
 
     /**
@@ -34,6 +35,6 @@ class PermissionsController extends Controller
     {
         $groups = Permission::getGroups();
         
-        return response()->json($groups);
+        return ApiHelpers::success($groups, '', 200);
     }
 }

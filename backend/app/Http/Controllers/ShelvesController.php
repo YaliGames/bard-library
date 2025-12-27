@@ -6,6 +6,7 @@ use App\Models\Shelf;
 use App\Models\Book;
 use Illuminate\Http\Request;
 use App\Services\OptionalUserResolver;
+use App\Support\ApiHelpers;
 
 class ShelvesController extends Controller
 {
@@ -22,9 +23,9 @@ class ShelvesController extends Controller
         $isOwner = $user && ((int)$s->user_id === (int)$user->id);
         
         if (!$s->is_public && !$isOwner && !$hasManageAll) {
-            return response()->json(['message' => 'Permission denied'], 403);
+            return ApiHelpers::error('Permission denied', 403);
         }
-        return $s;
+        return ApiHelpers::success($s, '', 200);
     }
     public function index(Request $request)
     {
@@ -72,7 +73,7 @@ class ShelvesController extends Controller
                 return $s;
             });
         }
-        return $page;
+        return ApiHelpers::success($page, '', 200);
     }
 
     // 返回全部书架（不分页），用于前端筛选列表等场景
@@ -96,14 +97,14 @@ class ShelvesController extends Controller
         if ($kw = trim((string)$request->query('q'))) {
             $q->where('name', 'like', "%{$kw}%");
         }
-        return $q->orderBy('name')->get();
+        return ApiHelpers::success($q->orderBy('name')->get(), '', 200);
     }
 
     public function store(Request $request)
     {
         $user = $this->userResolver->user($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return ApiHelpers::error('Unauthenticated', 401);
         }
 
         // 权限检查
@@ -151,7 +152,7 @@ class ShelvesController extends Controller
         unset($data['global']);
 
         $s = Shelf::create($data);
-        return response()->json($s, 201);
+        return ApiHelpers::success($s, '', 201);
     }
 
     public function update(Request $request, int $id)
@@ -159,7 +160,7 @@ class ShelvesController extends Controller
         $s = Shelf::findOrFail($id);
         $user = $this->userResolver->user($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return ApiHelpers::error('Unauthenticated', 401);
         }
         
         // 权限检查:所有者可以编辑(需要 shelves.edit),或有 manage_all 权限
@@ -167,7 +168,7 @@ class ShelvesController extends Controller
         $isOwner = (int)$s->user_id === (int)$user->id;
         
         if (!$hasManageAll && !$isOwner) {
-            return response()->json(['message' => 'Permission denied'], 403);
+            return ApiHelpers::error('Permission denied', 403);
         }
 
         $rules = [
@@ -215,7 +216,7 @@ class ShelvesController extends Controller
         }
 
         $s->fill($data)->save();
-        return $s->refresh();
+        return ApiHelpers::success($s->refresh(), '', 200);
     }
 
     public function destroy(int $id)
@@ -223,7 +224,7 @@ class ShelvesController extends Controller
         $s = Shelf::findOrFail($id);
         $user = request()->user();
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return ApiHelpers::error('Unauthenticated', 401);
         }
         
         // 权限检查:所有者可以删除(需要 shelves.delete),或有 manage_all 权限
@@ -231,12 +232,12 @@ class ShelvesController extends Controller
         $isOwner = (int)$s->user_id === (int)$user->id;
         
         if (!$hasManageAll && !$isOwner) {
-            return response()->json(['message' => 'Permission denied'], 403);
+            return ApiHelpers::error('Permission denied', 403);
         }
         
         $s->books()->detach();
         $s->delete();
-        return response()->noContent();
+        return ApiHelpers::success(null, 'Deleted', 200);
     }
 
     // 批量添加书籍
@@ -245,7 +246,7 @@ class ShelvesController extends Controller
         $s = Shelf::findOrFail($id);
         $user = $this->userResolver->user($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return ApiHelpers::error('Unauthenticated', 401);
         }
         
         // 权限检查:所有者可以编辑(需要 shelves.edit),或有 manage_all 权限
@@ -253,7 +254,7 @@ class ShelvesController extends Controller
         $isOwner = (int)$s->user_id === (int)$user->id;
         
         if (!$hasManageAll && !$isOwner) {
-            return response()->json(['message' => 'Permission denied'], 403);
+            return ApiHelpers::error('Permission denied', 403);
         }
         
         $payload = $request->validate([
@@ -265,7 +266,7 @@ class ShelvesController extends Controller
             $s->books()->syncWithoutDetaching($payload['book_ids']);
         }
         
-        return response()->json(['message' => 'Success']);
+        return ApiHelpers::success(null, 'Success', 200);
     }
 
     // 批量移除书籍
@@ -274,7 +275,7 @@ class ShelvesController extends Controller
         $s = Shelf::findOrFail($id);
         $user = $this->userResolver->user($request);
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return ApiHelpers::error('Unauthenticated', 401);
         }
         
         // 权限检查
@@ -282,7 +283,7 @@ class ShelvesController extends Controller
         $isOwner = (int)$s->user_id === (int)$user->id;
         
         if (!$hasManageAll && !$isOwner) {
-            return response()->json(['message' => 'Permission denied'], 403);
+            return ApiHelpers::error('Permission denied', 403);
         }
         
         $payload = $request->validate([
@@ -294,6 +295,6 @@ class ShelvesController extends Controller
             $s->books()->detach($payload['book_ids']);
         }
         
-        return response()->json(['message' => 'Success']);
+        return ApiHelpers::success(null, 'Success', 200);
     }
 }

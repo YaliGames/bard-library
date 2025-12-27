@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\SystemSetting;
+use App\Support\ApiHelpers;
 
 class SystemSettingsController extends Controller
 {
@@ -25,10 +26,7 @@ class SystemSettingsController extends Controller
             }
         }
         
-        return response()->json([
-            'values' => $values,
-            'categories' => $categories,
-        ]);
+        return ApiHelpers::success(['values' => $values, 'categories' => $categories], '', 200);
     }
 
     public function update(Request $request)
@@ -40,15 +38,12 @@ class SystemSettingsController extends Controller
             $payload = $request->json()->all();
         }
         if (!is_array($payload)) {
-            return response()->json(['message' => 'Invalid payload, expected object of settings'], 422);
+            return ApiHelpers::error('Invalid payload, expected object of settings', 422);
         }
         $values = SystemSetting::updateAll($payload);
         $categories = SystemSetting::categories();
-        
-        return response()->json([
-            'values' => $values,
-            'categories' => $categories,
-        ]);
+
+        return ApiHelpers::success(['values' => $values, 'categories' => $categories], '', 200);
     }
 
     // 重置所有设置为默认值
@@ -73,11 +68,7 @@ class SystemSettingsController extends Controller
         SystemSetting::truncate();
         $values = SystemSetting::updateAll($payload);
         
-        return response()->json([
-            'values' => $values,
-            'categories' => $categories,
-            'message' => '所有设置已重置为默认值',
-        ]);
+        return ApiHelpers::success(['values' => $values, 'categories' => $categories], '所有设置已重置为默认值', 200);
     }
 
     // 公开：仅返回前端路由守卫所需的权限类配置和系统基本信息
@@ -87,7 +78,7 @@ class SystemSettingsController extends Controller
         $pick = function(string $key, $default) use ($all) {
             return array_key_exists($key, $all) ? $all[$key] : $default;
         };
-        return response()->json([
+        return ApiHelpers::success([
             'system_name' => (string) $pick('system.system_name', 'Bard Library'),
             'permissions' => [
                 'allow_guest_access' => (bool) $pick('permissions.allow_guest_access', true),
@@ -97,6 +88,6 @@ class SystemSettingsController extends Controller
             'ui' => [
                 'placeholder_cover' => (bool) $pick('ui.book.placeholder_cover', true),
             ],
-        ]);
+        ], '', 200);
     }
 }

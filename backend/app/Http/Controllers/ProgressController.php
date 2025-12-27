@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ReadingProgress;
 use Illuminate\Http\Request;
 use App\Services\OptionalUserResolver;
+use App\Support\ApiHelpers;
 
 class ProgressController extends Controller
 {
@@ -15,47 +16,47 @@ class ProgressController extends Controller
     {
         $userId = $this->userResolver->id($request);
         if ($userId <= 0) {
-            return response()->json(['code' => 0, 'message' => '未登录无法加载数据', 'data' => null]);
+            return ApiHelpers::error('未登录无法加载数据', 401);
         }
         $p = ReadingProgress::where('user_id', $userId)->where('book_id', $bookId)->first();
-        if ($p) return $p;
-        return response()->json([
+        if ($p) return ApiHelpers::success($p, '', 200);
+        return ApiHelpers::success([
             'user_id' => $userId,
             'book_id' => $bookId,
             'file_id' => null,
             'progress' => 0,
             'location' => null,
-        ]);
+        ], '', 200);
     }
 
     public function showWithFile(Request $request, int $bookId, int $fileId)
     {
         $userId = $this->userResolver->id($request);
         if ($userId <= 0) {
-            return response()->json(['code' => 0, 'message' => '未登录无法加载数据', 'data' => null]);
+            return ApiHelpers::error('未登录无法加载数据', 401);
         }
         $p = ReadingProgress::where('user_id', $userId)->where('book_id', $bookId)->where('file_id', $fileId)->first();
-        if ($p) return $p;
-        return response()->json([
+        if ($p) return ApiHelpers::success($p, '', 200);
+        return ApiHelpers::success([
             'user_id' => $userId,
             'book_id' => $bookId,
             'file_id' => $fileId,
             'progress' => 0,
             'location' => null,
-        ]);
+        ], '', 200);
     }
 
     public function upsert(Request $request, int $bookId)
     {
         $userId = $this->userResolver->id($request);
-        if ($userId <= 0) {
-            return response()->json(['code' => 0, 'message' => '未登录无法加载数据', 'data' => null]);
-        }
         $data = $request->validate([
             'file_id' => ['nullable','integer'],
             'progress' => ['nullable','numeric','min:0','max:1'],
             'location' => ['nullable','string','max:1024'],
         ]);
+        if ($userId <= 0) {
+            return ApiHelpers::error('未登录无法加载数据', 401);
+        }
         $p = ReadingProgress::updateOrCreate(
             ['user_id' => $userId, 'book_id' => $bookId],
             [
@@ -64,14 +65,14 @@ class ProgressController extends Controller
                 'location' => $data['location'] ?? null,
             ]
         );
-        return $p;
+        return ApiHelpers::success($p, '', 200);
     }
 
     public function upsertWithFile(Request $request, int $bookId, int $fileId)
     {
         $userId = $this->userResolver->id($request);
         if ($userId <= 0) {
-            return response()->json(['code' => 0, 'message' => '未登录无法加载数据', 'data' => null]);
+            return ApiHelpers::error('未登录无法加载数据', 401);
         }
         $data = $request->validate([
             'file_id' => ['nullable','integer'],
@@ -87,6 +88,6 @@ class ProgressController extends Controller
                 'location' => $data['location'] ?? null,
             ]
         );
-        return $p;
+        return ApiHelpers::success($p, '', 200);
     }
 }

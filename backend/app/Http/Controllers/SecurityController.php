@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Support\PasswordValidator;
+use App\Support\ApiHelpers;
 
 class SecurityController extends Controller
 {
@@ -43,13 +44,7 @@ class SecurityController extends Controller
             ->take($perPage)
             ->get();
         
-        return response()->json([
-            'data' => $items,
-            'total' => $total,
-            'page' => (int)$page,
-            'per_page' => (int)$perPage,
-            'last_page' => ceil($total / $perPage),
-        ]);
+        return ApiHelpers::success(['data' => $items, 'total' => $total, 'page' => (int)$page, 'per_page' => (int)$perPage, 'last_page' => ceil($total / $perPage)], '', 200);
     }
     
     /**
@@ -107,17 +102,7 @@ class SecurityController extends Controller
             ->orderBy('count', 'desc')
             ->get();
         
-        return response()->json([
-            'summary' => [
-                'total_attempts' => $totalAttempts,
-                'successful_logins' => $successfulLogins,
-                'failed_logins' => $failedLogins,
-                'unique_users' => $uniqueUsers,
-                'success_rate' => $totalAttempts > 0 ? round(($successfulLogins / $totalAttempts) * 100, 2) : 0,
-            ],
-            'daily_stats' => $dailyStats,
-            'failure_reasons' => $failureReasons,
-        ]);
+        return ApiHelpers::success(['summary' => ['total_attempts' => $totalAttempts, 'successful_logins' => $successfulLogins, 'failed_logins' => $failedLogins, 'unique_users' => $uniqueUsers, 'success_rate' => $totalAttempts > 0 ? round(($successfulLogins / $totalAttempts) * 100, 2) : 0], 'daily_stats' => $dailyStats, 'failure_reasons' => $failureReasons], '', 200);
     }
     
     /**
@@ -131,10 +116,7 @@ class SecurityController extends Controller
             ->where('attempted_at', '<', now()->subDays($days))
             ->delete();
         
-        return response()->json([
-            'message' => "已清除 {$days} 天前的 {$deleted} 条记录",
-            'deleted' => $deleted,
-        ]);
+        return ApiHelpers::success(['deleted' => $deleted], "已清除 {$days} 天前的 {$deleted} 条记录", 200);
     }
     
     /**
@@ -148,9 +130,7 @@ class SecurityController extends Controller
         
         \App\Support\LoginThrottler::clearAttempts($data['identifier']);
         
-        return response()->json([
-            'message' => '账户已解锁',
-        ]);
+        return ApiHelpers::success(null, '账户已解锁', 200);
     }
     
     /**
@@ -158,13 +138,7 @@ class SecurityController extends Controller
      */
     public function getPasswordPolicy()
     {
-        return response()->json([
-            'description' => PasswordValidator::getRulesDescription(),
-            'rules' => [
-                'min_length' => \App\Models\SystemSetting::value('security.password_min_length', 6),
-                'require_strong' => \App\Models\SystemSetting::value('security.require_strong_password', false),
-            ],
-        ]);
+        return ApiHelpers::success(['description' => PasswordValidator::getRulesDescription(), 'rules' => ['min_length' => \App\Models\SystemSetting::value('security.password_min_length', 6), 'require_strong' => \App\Models\SystemSetting::value('security.require_strong_password', false)]], '', 200);
     }
     
     /**
@@ -178,10 +152,6 @@ class SecurityController extends Controller
         
         $result = PasswordValidator::validate($data['password']);
         
-        return response()->json([
-            'valid' => $result['valid'],
-            'errors' => $result['errors'],
-            'message' => $result['valid'] ? '密码符合要求' : '密码不符合要求',
-        ]);
+        return ApiHelpers::success(['valid' => $result['valid'], 'errors' => $result['errors']], $result['valid'] ? '密码符合要求' : '密码不符合要求', 200);
     }
 }

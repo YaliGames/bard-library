@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ResetPasswordMail;
 use App\Mail\VerifyEmailMail;
+use App\Support\ApiHelpers;
 
 class AuthController extends Controller
 {
@@ -32,9 +33,7 @@ class AuthController extends Controller
             // 记录失败尝试
             $this->logLoginAttempt($identifier, $ipAddress, $request->userAgent(), false, 'account_locked');
             
-            return response()->json([
-                'message' => \App\Support\LoginThrottler::getErrorMessage($identifier)
-            ], 429);
+            return ApiHelpers::error(\App\Support\LoginThrottler::getErrorMessage($identifier), 429);
         }
         
         $user = User::where('email', $data['email'])->first();
@@ -57,12 +56,12 @@ class AuthController extends Controller
                 $message = "登录失败次数过多，账户已被锁定 {$lockoutMinutes} 分钟";
             }
             
-            return response()->json(['message' => $message], 422);
+            return ApiHelpers::error($message, 422);
         }
         
         if (method_exists($user, 'hasVerifiedEmail') && !$user->hasVerifiedEmail()) {
             $this->logLoginAttempt($identifier, $ipAddress, $request->userAgent(), false, 'email_not_verified');
-            return response()->json(['message' => 'Email not verified'], 403);
+            return ApiHelpers::error('Email not verified', 403);
         }
         
         // 登录成功，清除失败记录
@@ -78,9 +77,7 @@ class AuthController extends Controller
         
         $user->load(['roles.permissions']);
         
-        return response()->json([
-            'user' => $user
-        ]);
+        return ApiHelpers::success($user, '', 200);
     }
     
     /**
@@ -108,7 +105,7 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         if (!\App\Models\SystemSetting::value('permissions.allow_user_registration', true)) {
-            return response()->json(['message' => 'Registration disabled'], 403);
+            return ApiHelpers::error('Registration disabled', 403);
         }
         
         // 使用动态密码验证规则
@@ -144,13 +141,13 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             // 邮件发送失败不暴露细节
         }
-        return response()->json(['success' => true]);
+        return ApiHelpers::success($user, 'Registration successful', 201);
     }
 
     public function forgotPassword(Request $request)
     {
         if (!\App\Models\SystemSetting::value('permissions.allow_recover_password', true)) {
-            return response()->json(['message' => 'Password recovery disabled'], 403);
+            return ApiHelpers::error('Password recovery disabled', 403);
         }
         $data = $request->validate([
             'email' => ['required', 'email']
@@ -176,13 +173,14 @@ class AuthController extends Controller
             }
             // 不返回 token
         }
-        return response()->json(['success' => true]);
+        // 对外保持静默成功以避免泄露邮箱信息
+        return ApiHelpers::success(null, 'If the email exists, a recovery email has been sent', 200);
     }
 
     public function resetPassword(Request $request)
     {
         if (!\App\Models\SystemSetting::value('permissions.allow_recover_password', true)) {
-            return response()->json(['message' => 'Password recovery disabled'], 403);
+            return ApiHelpers::error('Password recovery disabled', 403);
         }
         
         // 使用动态密码验证规则
@@ -197,27 +195,27 @@ class AuthController extends Controller
         ]);
         $user = User::where('email', $data['email'])->first();
         if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+            return ApiHelpers::error('User not found', 404);
         }
         // 校验 token（存在、未过期、哈希匹配）
         $rec = DB::table('password_reset_tokens')->where('email', $user->email)->first();
         if (!$rec) {
-            return response()->json(['message' => 'Invalid or expired token'], 422);
+            return ApiHelpers::error('Invalid or expired token', 422);
         }
         // 24h 有效期
         if ($rec->created_at && now()->diffInSeconds(Carbon::parse($rec->created_at)) > 24 * 3600) {
-            return response()->json(['message' => 'Token expired'], 422);
+            return ApiHelpers::error('Token expired', 422);
         }
         $hash = hash('sha256', (string)$data['token']);
         // 表 token 列储存hash
         if (!hash_equals(($rec->token ?? ''), $hash)) {
-            return response()->json(['message' => 'Invalid token'], 422);
+            return ApiHelpers::error('Invalid token', 422);
         }
         // 重置密码并删除 token
         $user->password = Hash::make($data['password']);
         $user->save();
         DB::table('password_reset_tokens')->where('email', $user->email)->delete();
-        return response()->json(['success' => true]);
+        return ApiHelpers::success(null, 'Password reset successful', 200);
     }
 
     public function logout(Request $request)
@@ -226,13 +224,13 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        return response()->json(['success' => true]);
+        return ApiHelpers::success(null, 'Logged out', 200);
     }
 
     public function me(Request $request)
     {
         $user = $request->user()->load('roles.permissions');
-        return $user;
+        return ApiHelpers::success($user, '', 200);
     }
 
     public function resendVerification(Request $request)
@@ -243,10 +241,10 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
         if (!$user) {
             // 静默成功，避免暴露邮箱是否存在
-            return response()->json(['success' => true]);
+            return ApiHelpers::success(null, 'Verification email sent', 200);
         }
         if (method_exists($user, 'hasVerifiedEmail') && $user->hasVerifiedEmail()) {
-            return response()->json(['success' => true]);
+            return ApiHelpers::success(null, 'Verification email sent', 200);
         }
         // 重新发送验证邮件 - 生成签名 URL
         $verificationUrl = URL::temporarySignedRoute(
@@ -259,7 +257,7 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             // 邮件发送失败不暴露细节
         }
-        return response()->json(['success' => true]);
+        return ApiHelpers::success(null, 'Verification email sent', 200);
     }
 
     // 公共验证链接（无需登录），用于处理邮件中的签名 URL
@@ -296,7 +294,7 @@ class AuthController extends Controller
         ]);
         $user->fill($data);
         $user->save();
-        return $user;
+        return ApiHelpers::success($user, 'Profile updated', 200);
     }
 
     public function changePassword(Request $request)
@@ -307,11 +305,11 @@ class AuthController extends Controller
             'new_password' => ['required', 'string', 'min:6'],
         ]);
         if (!Hash::check($data['current_password'], $user->password)) {
-            return response()->json(['message' => '当前密码不正确'], 422);
+            return ApiHelpers::error('当前密码不正确', 422);
         }
         $user->password = Hash::make($data['new_password']);
         $user->save();
-        return ['success' => true];
+        return ApiHelpers::success(null, 'Password changed', 200);
     }
 
     public function requestDelete(Request $request)
@@ -323,7 +321,7 @@ class AuthController extends Controller
         $user->deletion_requested_at = now();
         $user->deletion_reason = $data['reason'] ?? null;
         $user->save();
-        return ['success' => true];
+        return ApiHelpers::success(null, 'Delete requested', 200);
     }
 
     // ===== User settings =====
@@ -334,7 +332,7 @@ class AuthController extends Controller
             ['user_id' => $user->id],
             ['data' => []]
         );
-        return $settings->data ?? [];
+        return ApiHelpers::success($settings->data ?? [], '', 200);
     }
 
     public function updateSettings(Request $request)
@@ -349,6 +347,6 @@ class AuthController extends Controller
         );
         $settings->data = $data['data'];
         $settings->save();
-        return $settings->data;
+        return ApiHelpers::success($settings->data, 'Settings updated', 200);
     }
 }

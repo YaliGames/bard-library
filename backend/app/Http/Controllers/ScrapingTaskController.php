@@ -8,6 +8,7 @@ use App\Jobs\CreateBookFromMetadataJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
+use App\Support\ApiHelpers;
 
 class ScrapingTaskController extends Controller
 {
@@ -29,7 +30,7 @@ class ScrapingTaskController extends Controller
         // 分页
         $tasks = $query->paginate($request->input('per_page', 15));
 
-        return response()->json($tasks);
+        return ApiHelpers::success($tasks, '', 200);
     }
 
     /**
@@ -81,7 +82,7 @@ class ScrapingTaskController extends Controller
         // 分发批量任务
         $this->dispatchJobs($task);
 
-        return response()->json($task->load('results'), 201);
+        return ApiHelpers::success($task->load('results'), '', 201);
     }
 
     /**
@@ -95,7 +96,7 @@ class ScrapingTaskController extends Controller
             }])
             ->findOrFail($id);
 
-        return response()->json($task);
+        return ApiHelpers::success($task, '', 200);
     }
 
     /**
@@ -106,7 +107,7 @@ class ScrapingTaskController extends Controller
         $task = ScrapingTask::where('user_id', $request->user()->id)->findOrFail($id);
 
         if (!in_array($task->status, ['pending', 'processing'])) {
-            return response()->json(['error' => '任务已完成或已取消，无法取消'], 422);
+            return ApiHelpers::error('任务已完成或已取消，无法取消', 422);
         }
 
         $task->update([
@@ -120,7 +121,7 @@ class ScrapingTaskController extends Controller
             'error_message' => '任务已取消',
         ]);
 
-        return response()->json($task);
+        return ApiHelpers::success($task, '', 200);
     }
 
     /**
@@ -131,7 +132,7 @@ class ScrapingTaskController extends Controller
         $task = ScrapingTask::where('user_id', $request->user()->id)->findOrFail($id);
         $task->delete();
 
-        return response()->json(['message' => '任务已删除']);
+        return ApiHelpers::success(null, '任务已删除', 200);
     }
 
     /**
@@ -154,7 +155,7 @@ class ScrapingTaskController extends Controller
         // 分页
         $results = $query->paginate($request->input('per_page', 20));
 
-        return response()->json($results);
+        return ApiHelpers::success($results, '', 200);
     }
 
     /**

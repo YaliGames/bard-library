@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Services\OptionalUserResolver;
 use App\Services\BookCreationService;
+use App\Support\ApiHelpers;
 
 class BooksController extends Controller
 {
@@ -70,7 +71,7 @@ class BooksController extends Controller
                     sort($allowed);
                     $sortedIds = $ids; sort($sortedIds);
                     if (count($allowed) !== count($sortedIds) || array_values($allowed) !== array_values($sortedIds)) {
-                        return response()->json(['message' => '包含无权限的书架筛选'], 403);
+                        return ApiHelpers::error('包含无权限的书架筛选', 403);
                     }
                 }
                 $q->whereHas('shelves', fn($qs) => $qs->whereIn('shelves.id', $ids));
@@ -211,7 +212,7 @@ class BooksController extends Controller
         $q->orderBy($col, $order);
 
         $perPage = min(max((int)$request->query('per_page', 12), 1), 100);
-        return $q->paginate($perPage);
+        return ApiHelpers::success($q->paginate($perPage), '', 200);
     }
 
     public function show(Request $request, int $id)
@@ -244,7 +245,7 @@ class BooksController extends Controller
         }
 
         $book = $q->where('books.id', $id)->firstOrFail();
-        return $book;
+        return ApiHelpers::success($book, '', 200);
     }
 
     public function store(Request $request)
@@ -287,7 +288,7 @@ class BooksController extends Controller
         $this->syncAuthorsAndTags($book, $request);
         $this->syncSeriesFromRequest($book, $request);
         
-        return response()->json($book->load(['authors','tags','series']), 201);
+        return ApiHelpers::success($book->load(['authors','tags','series']), 'Created', 201);
     }
 
     public function update(Request $request, int $id)
@@ -330,7 +331,7 @@ class BooksController extends Controller
         $this->syncAuthorsAndTags($book, $request);
         $this->syncSeriesFromRequest($book, $request);
         
-        return $book->refresh()->load(['authors','tags','series']);
+        return ApiHelpers::success($book->refresh()->load(['authors','tags','series']), 'Updated', 200);
     }
 
     /**
@@ -391,7 +392,7 @@ class BooksController extends Controller
             'author_ids.*' => ['integer'],
         ]);
         $book->authors()->sync($payload['author_ids']);
-        return $book->load(['authors', 'tags']);
+        return ApiHelpers::success($book->load(['authors', 'tags']), '', 200);
     }
 
     public function setTags(Request $request, int $id)
@@ -402,7 +403,7 @@ class BooksController extends Controller
             'tag_ids.*' => ['integer'],
         ]);
         $book->tags()->sync($payload['tag_ids']);
-        return $book->load(['authors', 'tags']);
+        return ApiHelpers::success($book->load(['authors', 'tags']), '', 200);
     }
 
     public function destroy(Request $request, int $id)
@@ -449,7 +450,7 @@ class BooksController extends Controller
             // 最后删除图书本体记录
             $b->delete();
         });
-        return response()->noContent();
+        return ApiHelpers::success(null, 'Deleted', 200);
     }
 
     /**
@@ -463,25 +464,25 @@ class BooksController extends Controller
 
         $user = $this->userResolver->user($request);
         if (!$user) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return ApiHelpers::error('Unauthorized', 401);
         }
 
         // 查找图书
         $book = Book::find($bookId);
         if (!$book) {
-            return response()->json(['error' => 'Book not found'], 404);
+            return ApiHelpers::error('Book not found', 404);
         }
 
         // 查找文件
         $file = $book->files()->find($fileId);
         if (!$file) {
-            return response()->json(['error' => 'File not found'], 404);
+            return ApiHelpers::error('File not found', 404);
         }
 
         // 检查文件是否存在
         $disk = \Illuminate\Support\Facades\Storage::disk($file->storage ?: config('filesystems.default'));
         if (!$disk->exists($file->path)) {
-            return response()->json(['error' => 'File not found on storage'], 404);
+            return ApiHelpers::error('File not found on storage', 404);
         }
 
         // 获取文件完整路径
@@ -500,10 +501,7 @@ class BooksController extends Controller
                     $fileName
                 ));
 
-            return response()->json([
-                'message' => 'Email sent successfully',
-                'email' => $validated['email'],
-            ]);
+            return ApiHelpers::success(['email' => $validated['email']], 'Email sent successfully', 200);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to send book email', [
                 'error' => $e->getMessage(),
@@ -512,10 +510,7 @@ class BooksController extends Controller
                 'email' => $validated['email'],
             ]);
 
-            return response()->json([
-                'error' => 'Failed to send email',
-                'message' => $e->getMessage(),
-            ], 500);
+            return ApiHelpers::error('Failed to send email', 500, ['message' => $e->getMessage()]);
         }
     }
 }

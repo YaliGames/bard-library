@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Support\ApiHelpers;
 
 class UsersController extends Controller
 {
@@ -52,7 +53,7 @@ class UsersController extends Controller
         $perPage = $request->get('per_page', 20);
         $users = $query->paginate($perPage);
         
-        return response()->json($users);
+        return ApiHelpers::success($users, '', 200);
     }
 
     /**
@@ -62,7 +63,7 @@ class UsersController extends Controller
     {
         $user = User::with('roles.permissions')->findOrFail($id);
         
-        return response()->json($user);
+        return ApiHelpers::success($user, '', 200);
     }
 
     /**
@@ -92,11 +93,9 @@ class UsersController extends Controller
             $maxTargetPriority = $targetRoles->max('priority');
             $currentUserPriority = $request->user()->getHighestPriority();
             
-            if ($maxTargetPriority > $currentUserPriority) {
-                return response()->json([
-                    'message' => 'Cannot assign roles with higher priority than yours'
-                ], 403);
-            }
+                if ($maxTargetPriority > $currentUserPriority) {
+                    return ApiHelpers::error('Cannot assign roles with higher priority than yours', 403);
+                }
             
             $user->roles()->sync($validated['role_ids']);
         } else {
@@ -107,7 +106,7 @@ class UsersController extends Controller
             }
         }
         
-        return response()->json($user->load('roles'), 201);
+        return ApiHelpers::success($user->load('roles'), '', 201);
     }
 
     /**
@@ -132,7 +131,7 @@ class UsersController extends Controller
         
         $user->update($validated);
         
-        return response()->json($user);
+        return ApiHelpers::success($user, '', 200);
     }
 
     /**
@@ -144,7 +143,7 @@ class UsersController extends Controller
         
         // 不能删除自己
         if ($user->id === $request->user()->id) {
-            return response()->json(['message' => 'Cannot delete yourself'], 403);
+            return ApiHelpers::error('Cannot delete yourself', 403);
         }
         
         // 不能删除优先级更高的用户
@@ -152,14 +151,12 @@ class UsersController extends Controller
         $currentUserPriority = $request->user()->getHighestPriority();
         
         if ($targetUserPriority > $currentUserPriority) {
-            return response()->json([
-                'message' => 'Cannot delete user with higher privilege than yours'
-            ], 403);
+            return ApiHelpers::error('Cannot delete user with higher privilege than yours', 403);
         }
         
         $user->delete();
         
-        return response()->json(['message' => 'User deleted successfully']);
+        return ApiHelpers::success(null, 'User deleted successfully', 200);
     }
 
     /**
@@ -171,7 +168,7 @@ class UsersController extends Controller
         
         // 不能修改自己的角色
         if ($user->id === $request->user()->id) {
-            return response()->json(['message' => 'Cannot modify your own roles'], 403);
+            return ApiHelpers::error('Cannot modify your own roles', 403);
         }
         
         $validated = $request->validate([
@@ -185,17 +182,12 @@ class UsersController extends Controller
         $currentUserPriority = $request->user()->getHighestPriority();
         
         if ($maxTargetPriority > $currentUserPriority) {
-            return response()->json([
-                'message' => 'Cannot assign roles with higher priority than yours'
-            ], 403);
+            return ApiHelpers::error('Cannot assign roles with higher priority than yours', 403);
         }
         
         $user->roles()->sync($validated['role_ids']);
         
-        return response()->json([
-            'message' => 'Roles synced successfully',
-            'user' => $user->load('roles')
-        ]);
+        return ApiHelpers::success(['message' => 'Roles synced successfully', 'user' => $user->load('roles')], '', 200);
     }
 
     /**
@@ -205,7 +197,7 @@ class UsersController extends Controller
     {
         $user = User::with('roles')->findOrFail($id);
         
-        return response()->json($user->roles);
+        return ApiHelpers::success($user->roles, '', 200);
     }
 
     /**
@@ -220,6 +212,6 @@ class UsersController extends Controller
             return $role->permissions;
         })->unique('id')->values();
         
-        return response()->json($permissions);
+        return ApiHelpers::success($permissions, '', 200);
     }
 }

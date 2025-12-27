@@ -8,6 +8,7 @@ use App\Models\TxtChapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Support\ApiHelpers;
 
 class TxtController extends Controller
 {
@@ -16,7 +17,7 @@ class TxtController extends Controller
     {
         $file = File::findOrFail($fileId);
         if (strtolower($file->format) !== 'txt') {
-            return response()->json(['message' => 'Not a TXT file'], 422);
+            return ApiHelpers::error('Not a TXT file', 422);
         }
         $pattern = $request->query('pattern');
         $dry = $request->boolean('dry');
@@ -38,7 +39,7 @@ class TxtController extends Controller
                 });
                 
                 // 返回包含 book 信息的完整响应
-                return response()->json([
+                return ApiHelpers::success([
                     'book' => $file->book ? [
                         'id' => $file->book->id,
                         'title' => $file->book->title,
@@ -46,7 +47,7 @@ class TxtController extends Controller
                         'cover' => $file->book->cover,
                     ] : null,
                     'chapters' => $chapters,
-                ]);
+                ], '', 200);
             }
             return $this->parse($fileId, null, true);
         }
@@ -69,12 +70,12 @@ class TxtController extends Controller
         $replace = $request->boolean('replace', true);
         if (!empty($data['pattern'])) {
             $list = $this->parse($fileId, $data['pattern'], true, $replace);
-            return ['saved' => is_countable($list) ? count($list) : null];
+            return ApiHelpers::success(['saved' => is_countable($list) ? count($list) : null], '', 200);
         }
         if (!empty($data['chapters'])) {
             $file = File::findOrFail($fileId);
             if (strtolower($file->format) !== 'txt') {
-                return response()->json(['message' => 'Not a TXT file'], 422);
+                return ApiHelpers::error('Not a TXT file', 422);
             }
             DB::transaction(function() use ($fileId, $replace, $data) {
                 if ($replace) TxtChapter::where('file_id',$fileId)->delete();
@@ -88,9 +89,9 @@ class TxtController extends Controller
                     ]);
                 }
             });
-            return ['saved' => count($data['chapters'])];
+            return ApiHelpers::success(['saved' => count($data['chapters'])], '', 200);
         }
-        return response()->json(['message' => 'pattern or chapters required'], 422);
+        return ApiHelpers::error('pattern or chapters required', 422);
     }
 
     // 解析：可选自定义正则；$save=true 时覆盖写入数据库
@@ -98,10 +99,10 @@ class TxtController extends Controller
     {
         $file = File::findOrFail($fileId);
         if (strtolower($file->format) !== 'txt') {
-            return response()->json(['message' => 'Not a TXT file'], 422);
+            return ApiHelpers::error('Not a TXT file', 422);
         }
         $disk = Storage::disk($file->storage ?: config('filesystems.default'));
-        if (!$disk->exists($file->path)) return response()->json(['message'=>'File missing'], 404);
+        if (!$disk->exists($file->path)) return ApiHelpers::error('File missing', 404);
     // 读取原始字节并转换为 UTF-8，用该字符串进行正则与偏移计算
     $content = $this->ensureUtf8($disk->get($file->path));
     // 默认规则兼容 CRLF、中文与英文章节标题
@@ -111,7 +112,7 @@ class TxtController extends Controller
         $ok = @preg_match($pattern, "");
         restore_error_handler();
         if ($ok === false) {
-            return response()->json(['message' => 'Invalid regex pattern'], 422);
+            return ApiHelpers::error('Invalid regex pattern', 422);
         }
         preg_match_all($pattern, $content, $matches, PREG_OFFSET_CAPTURE);
         $positions = [];
@@ -145,7 +146,7 @@ class TxtController extends Controller
         }
         
         // 返回包含 book 信息的完整响应
-        return response()->json([
+        return ApiHelpers::success([
             'book' => $file->book ? [
                 'id' => $file->book->id,
                 'title' => $file->book->title,
@@ -153,7 +154,7 @@ class TxtController extends Controller
                 'cover' => $file->book->cover,
             ] : null,
             'chapters' => $chapters,
-        ]);
+        ], '', 200);
     }
 
     // 获取某章节内容
@@ -162,20 +163,20 @@ class TxtController extends Controller
         $chapter = TxtChapter::where('file_id',$fileId)->where('index',$index)->firstOrFail();
         $file = File::findOrFail($fileId);
         $disk = Storage::disk($file->storage ?: config('filesystems.default'));
-        if (!$disk->exists($file->path)) return response()->json(['message'=>'File missing'], 404);
+        if (!$disk->exists($file->path)) return ApiHelpers::error('File missing', 404);
         // 读取完整文件并与解析阶段一致地转换为 UTF-8，再基于偏移/长度截取
         $utf8 = $this->ensureUtf8($disk->get($file->path));
         $start = (int)$chapter->offset; $len = (int)$chapter->length;
         if ($start < 0) $start = 0; if ($len < 0) $len = 0;
         if ($start > strlen($utf8)) $start = strlen($utf8);
         $slice = substr($utf8, $start, $len);
-        return [
+        return ApiHelpers::success([
             'book_id' => $file->book_id,
             'file_id' => $fileId,
             'index' => $index,
             'title' => $chapter->title,
             'content' => $slice,
-        ];
+        ], '', 200);
     }
 
     // 获取整本书的所有章节内容
@@ -183,19 +184,19 @@ class TxtController extends Controller
     {
         $file = File::with('book')->findOrFail($fileId);
         if (strtolower($file->format) !== 'txt') {
-            return response()->json(['message' => 'Not a TXT file'], 422);
+            return ApiHelpers::error('Not a TXT file', 422);
         }
 
         // 获取所有章节
         $chapters = TxtChapter::where('file_id', $fileId)->orderBy('index')->get();
         if ($chapters->isEmpty()) {
-            return response()->json(['message' => 'No chapters found'], 404);
+            return ApiHelpers::error('No chapters found', 404);
         }
 
         // 读取完整文件内容
         $disk = Storage::disk($file->storage ?: config('filesystems.default'));
         if (!$disk->exists($file->path)) {
-            return response()->json(['message' => 'File missing'], 404);
+            return ApiHelpers::error('File missing', 404);
         }
         $utf8 = $this->ensureUtf8($disk->get($file->path));
 
@@ -226,14 +227,14 @@ class TxtController extends Controller
         $bookTitle = $file->book?->title;
         $fileName = basename($file->path);
 
-        return [
+        return ApiHelpers::success([
             'book_id' => $file->book_id,
             'file_id' => $fileId,
             'book_title' => $bookTitle,
             'file_name' => $fileName,
             'chapters' => $chaptersData,
             'contents' => $contents,
-        ];
+        ], '', 200);
     }
 
     // 重命名章节标题
@@ -245,13 +246,13 @@ class TxtController extends Controller
         $chapter = TxtChapter::where('file_id',$fileId)->where('index',$index)->firstOrFail();
         $chapter->title = $data['title'] ?? null;
         $chapter->save();
-        return [
+        return ApiHelpers::success([
             'index' => $chapter->index,
             'title' => $chapter->title,
             'offset' => (int)$chapter->offset,
             'length' => (int)$chapter->length,
             'file_id' => $chapter->file_id,
-        ];
+        ], '', 200);
     }
 
     // 删除并与相邻章节合并
@@ -259,14 +260,14 @@ class TxtController extends Controller
     {
         $merge = $request->query('merge') ?: $request->input('merge');
         if (!in_array($merge, ['prev','next'], true)) {
-            return response()->json(['message' => 'merge must be prev or next'], 422);
+            return ApiHelpers::error('merge must be prev or next', 422);
         }
         $file = File::findOrFail($fileId);
         $target = TxtChapter::where('file_id',$fileId)->where('index',$index)->firstOrFail();
         $adjIndex = $merge === 'prev' ? $index - 1 : $index + 1;
         $adjacent = TxtChapter::where('file_id',$fileId)->where('index',$adjIndex)->first();
         if (!$adjacent) {
-            return response()->json(['message' => 'Adjacent chapter not found'], 422);
+            return ApiHelpers::error('Adjacent chapter not found', 422);
         }
 
         DB::transaction(function() use ($merge, $target, $adjacent, $fileId, $index, $file) {
@@ -315,7 +316,7 @@ class TxtController extends Controller
             }
         });
 
-        return ['ok' => true];
+        return ApiHelpers::success(['ok' => true], '', 200);
     }
 
     private function normalizePattern(?string $p): ?string

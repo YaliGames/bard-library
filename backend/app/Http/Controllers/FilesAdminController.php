@@ -7,6 +7,7 @@ use App\Models\Book;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Support\ApiHelpers;
 
 class FilesAdminController extends Controller
 {
@@ -70,7 +71,7 @@ class FilesAdminController extends Controller
             $items = $items->filter(fn($it) => $it['physical_exists'] === false)->values();
         }
 
-        return response()->json([ 'count' => $items->count(), 'items' => $items ]);
+        return ApiHelpers::success(['count' => $items->count(), 'items' => $items], '', 200);
     }
 
     // 删除：支持 ?physical=true 同时删除物理文件
@@ -85,7 +86,7 @@ class FilesAdminController extends Controller
             if ($disk->exists($file->path)) { $disk->delete($file->path); }
         }
         $file->delete();
-        return response()->noContent();
+        return ApiHelpers::success(null, 'Admin file deleted', 200);
     }
 
     // 清理：unused covers / dangling records / 物理缺失
@@ -191,7 +192,7 @@ class FilesAdminController extends Controller
                     'storage' => 'library',
                 ])->values();
             }
-            return response()->json(['dry' => true, 'summary' => $summary, 'preview' => $preview]);
+            return ApiHelpers::success(['dry' => true, 'summary' => $summary, 'preview' => $preview], '', 200);
         }
 
         // 执行删除
@@ -255,6 +256,6 @@ class FilesAdminController extends Controller
             }
         }
 
-        return response()->json(['dry' => false, 'summary' => $summary, 'removed' => $removed]);
+        return ApiHelpers::success(['dry' => false, 'summary' => $summary, 'removed' => $removed], 'Cleanup executed', 200);
     }
 }

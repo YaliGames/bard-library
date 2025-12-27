@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Bookmark;
 use App\Models\Book;
 use Illuminate\Http\Request;
+use App\Support\ApiHelpers;
 
 class BookmarksController extends Controller
 {
@@ -15,7 +16,7 @@ class BookmarksController extends Controller
         $book = Book::find($bookId);
         $bm = Bookmark::where('user_id', $userId)->where('book_id', $bookId)->orderBy('id')->get();
         $response = ['book' => $book, 'bookmarks' => $bm];
-        return $response;
+        return ApiHelpers::success($response, '', 200);
     }
 
     public function listByFile(Request $request, int $bookId, int $fileId)
@@ -25,7 +26,7 @@ class BookmarksController extends Controller
         $book = Book::find($bookId);
         $bm = Bookmark::where('user_id', $userId)->where('book_id', $bookId)->where('file_id', $fileId)->orderBy('id')->get();
         $response = ['book' => $book, 'bookmarks' => $bm];
-        return $response;
+        return ApiHelpers::success($response, '', 200);
     }
 
     public function create(Request $request, int $bookId)
@@ -43,7 +44,7 @@ class BookmarksController extends Controller
             'location' => $data['location'],
             'note' => $data['note'] ?? null,
         ]);
-        return response()->json($bm, 201);
+        return ApiHelpers::success($bm, 'Bookmark created', 201);
     }
 
     public function createByFile(Request $request, int $bookId, int $fileId)
@@ -60,7 +61,7 @@ class BookmarksController extends Controller
             'location' => $data['location'],
             'note' => $data['note'] ?? null,
         ]);
-        return response()->json($bm, 201);
+        return ApiHelpers::success($bm, 'Bookmark created', 201);
     }
 
     public function update(Request $request, int $bookId, int $bookmarkId)
@@ -77,13 +78,13 @@ class BookmarksController extends Controller
         if (array_key_exists('note', $data)) $bm->note = $data['note'];
         if (array_key_exists('color', $data)) $bm->color = $data['color'];
         $bm->save();
-        return response()->json($bm);
+        return ApiHelpers::success($bm, 'Bookmark updated', 200);
     }
 
     public function delete(int $id, int $bookmarkId)
     {
         $bm = Bookmark::where('id', $bookmarkId)->where('book_id', $id)->firstOrFail();
         $bm->delete();
-        return response()->noContent();
+        return ApiHelpers::success(null, 'Bookmark deleted', 200);
     }
 }

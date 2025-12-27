@@ -43,25 +43,18 @@
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item
-                v-permission="'books.create'"
-                command="create"
-              >
+              <el-dropdown-item v-permission="'books.create'" command="create">
                 <span class="material-symbols-outlined mr-2 text-lg align-middle">add</span>
                 <span class="align-middle">新建</span>
               </el-dropdown-item>
-              <el-dropdown-item
-                v-permission="'files.upload'"
-                command="upload"
-              >
+              <el-dropdown-item v-permission="'files.upload'" command="upload">
                 <span class="material-symbols-outlined mr-2 text-lg align-middle">upload</span>
                 <span class="align-middle">快速上传</span>
               </el-dropdown-item>
-              <el-dropdown-item
-                v-permission="'metadata.batch_scrape'"
-                command="scrape"
-              >
-                <span class="material-symbols-outlined mr-2 text-lg align-middle">cloud_download</span>
+              <el-dropdown-item v-permission="'metadata.batch_scrape'" command="scrape">
+                <span class="material-symbols-outlined mr-2 text-lg align-middle">
+                  cloud_download
+                </span>
                 <span class="align-middle">快速刮削</span>
               </el-dropdown-item>
             </el-dropdown-menu>

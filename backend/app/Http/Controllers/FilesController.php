@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Support\ApiHelpers;
 
 class FilesController extends Controller
 {
@@ -17,7 +18,7 @@ class FilesController extends Controller
         if (!$includeCover) {
             $q->where('format', '!=', 'cover');
         }
-        return $q->get();
+        return ApiHelpers::success($q->get(), '', 200);
     }
 
     public function download(Request $request, int $id)
@@ -26,22 +27,14 @@ class FilesController extends Controller
         
         // Laravel 标准认证
         if (!\Illuminate\Support\Facades\Auth::check()) {
-            return response()->json([
-                'code' => 401,
-                'data' => null,
-                'message' => '需要登录才能下载文件'
-            ], 401);
+            return ApiHelpers::error('需要登录才能下载文件', 401);
         }
         
         $user = $request->user();
         
         // 检查是否有下载权限
         if (!$user->hasPermission('books.download')) {
-            return response()->json([
-                'code' => 403,
-                'data' => null,
-                'message' => '没有权限下载文件'
-            ], 403);
+            return ApiHelpers::error('没有权限下载文件', 403);
         }
         
         $diskName = $file->storage ?: config('filesystems.default');
@@ -68,7 +61,7 @@ class FilesController extends Controller
         $file = File::findOrFail($id);
         // 仅删除记录，不删除物理文件，后续提供清理任务
         $file->delete();
-        return response()->noContent();
+        return ApiHelpers::success(null, 'File deleted', 200);
     }
 
     // 预览（用于图片/封面等内联展示）
@@ -85,22 +78,14 @@ class FilesController extends Controller
         if (!$isCover) {
             // Laravel 标准认证
             if (!\Illuminate\Support\Facades\Auth::check()) {
-                return response()->json([
-                    'code' => 401,
-                    'data' => null,
-                    'message' => '需要登录才能访问此文件'
-                ], 401);
+                return ApiHelpers::error('需要登录才能访问此文件', 401);
             }
             
             $user = $request->user();
             
             // 检查是否有下载权限
             if (!$user->hasPermission('books.download')) {
-                return response()->json([
-                    'code' => 403,
-                    'data' => null,
-                    'message' => '没有权限访问此文件'
-                ], 403);
+                return ApiHelpers::error('没有权限访问此文件', 403);
             }
         }
         
@@ -132,7 +117,7 @@ class FilesController extends Controller
         $p64 = rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
         $sig = $this->hmac($p64);
         $token = $p64 . '.' . $sig;
-        return response()->json(['token' => $token, 'expires_in' => $minutes * 60]);
+        return ApiHelpers::success(['token' => $token, 'expires_in' => $minutes * 60], '', 200);
     }
 
     protected function hmac(string $data): string

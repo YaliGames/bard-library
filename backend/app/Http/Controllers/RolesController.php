@@ -6,6 +6,7 @@ use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use App\Support\ApiHelpers;
 
 class RolesController extends Controller
 {
@@ -37,7 +38,7 @@ class RolesController extends Controller
             $role->users_count = $role->users()->count();
         });
         
-        return response()->json($roles);
+        return ApiHelpers::success($roles, '', 200);
     }
 
     /**
@@ -48,7 +49,7 @@ class RolesController extends Controller
         $role = Role::with(['permissions', 'users'])->findOrFail($id);
         $role->users_count = $role->users->count();
         
-        return response()->json($role);
+        return ApiHelpers::success($role, '', 200);
     }
 
     /**
@@ -66,14 +67,12 @@ class RolesController extends Controller
         // 检查优先级不能超过当前用户的最高优先级
         $currentUserPriority = $request->user()->getHighestPriority();
         if (($validated['priority'] ?? 0) > $currentUserPriority) {
-            return response()->json([
-                'message' => 'Cannot create role with higher priority than yours'
-            ], 403);
+            return ApiHelpers::error('Cannot create role with higher priority than yours', 403);
         }
         
         $role = Role::create($validated);
         
-        return response()->json($role, 201);
+        return ApiHelpers::success($role, '', 201);
     }
 
     /**
@@ -84,12 +83,12 @@ class RolesController extends Controller
         $role = Role::findOrFail($id);
         
         if ($role->name === 'super_admin') {
-            return response()->json(['message' => 'Cannot modify super admin role'], 403);
+            return ApiHelpers::error('Cannot modify super admin role', 403);
         }
         
         // 系统角色只有超级管理员可以修改
         if ($role->is_system && !$request->user()->hasRole('super_admin')) {
-            return response()->json(['message' => 'Cannot modify system role'], 403);
+            return ApiHelpers::error('Cannot modify system role', 403);
         }
         
         $validated = $request->validate([
@@ -102,14 +101,12 @@ class RolesController extends Controller
         // 检查优先级
         $currentUserPriority = $request->user()->getHighestPriority();
         if (isset($validated['priority']) && $validated['priority'] > $currentUserPriority) {
-            return response()->json([
-                'message' => 'Cannot set priority higher than yours'
-            ], 403);
+            return ApiHelpers::error('Cannot set priority higher than yours', 403);
         }
         
         $role->update($validated);
         
-        return response()->json($role);
+        return ApiHelpers::success($role, '', 200);
     }
 
     /**
@@ -121,27 +118,23 @@ class RolesController extends Controller
         
         // 系统角色不能删除
         if ($role->is_system) {
-            return response()->json(['message' => 'Cannot delete system role'], 403);
+            return ApiHelpers::error('Cannot delete system role', 403);
         }
         
         // 不能删除优先级更高的角色
         $currentUserPriority = $request->user()->getHighestPriority();
         if ($role->priority > $currentUserPriority) {
-            return response()->json([
-                'message' => 'Cannot delete role with higher priority than yours'
-            ], 403);
+            return ApiHelpers::error('Cannot delete role with higher priority than yours', 403);
         }
         
         // 检查是否有用户使用此角色
         if ($role->users()->count() > 0) {
-            return response()->json([
-                'message' => 'Cannot delete role that is assigned to users'
-            ], 400);
+            return ApiHelpers::error('Cannot delete role that is assigned to users', 400);
         }
         
         $role->delete();
         
-        return response()->json(['message' => 'Role deleted successfully']);
+        return ApiHelpers::success(null, 'Role deleted successfully', 200);
     }
 
     /**
@@ -153,7 +146,7 @@ class RolesController extends Controller
         
         // 系统角色只有超级管理员可以修改
         if ($role->is_system && !$request->user()->hasRole('super_admin')) {
-            return response()->json(['message' => 'Cannot modify system role permissions'], 403);
+            return ApiHelpers::error('Cannot modify system role permissions', 403);
         }
         
         $validated = $request->validate([
@@ -163,10 +156,7 @@ class RolesController extends Controller
         
         $role->permissions()->sync($validated['permission_ids']);
         
-        return response()->json([
-            'message' => 'Permissions synced successfully',
-            'role' => $role->load('permissions')
-        ]);
+        return ApiHelpers::success(['message' => 'Permissions synced successfully', 'role' => $role->load('permissions')], '', 200);
     }
 
     /**
@@ -176,6 +166,6 @@ class RolesController extends Controller
     {
         $role = Role::with('permissions')->findOrFail($id);
         
-        return response()->json($role->permissions);
+        return ApiHelpers::success($role->permissions, '', 200);
     }
 }
