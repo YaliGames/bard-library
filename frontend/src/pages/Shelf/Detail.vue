@@ -252,8 +252,10 @@ function onShelfDeleted() {
 }
 
 function filterByAuthor(id: number) {
-  filters.value.authorId = id
-  loadPage(1)
+  if (userSettings.shelfDetail?.showFilters) {
+    filters.value.authorId = id
+    loadPage(1)
+  }
 }
 
 async function fetchShelfInfo() {
