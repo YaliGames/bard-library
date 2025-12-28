@@ -81,26 +81,31 @@
         <div class="flex flex-col md:flex-row gap-6 md:gap-8 bg-white shadow-sm rounded-lg p-6">
           <!-- 左侧封面（移动端居中） -->
           <div class="w-full md:w-48 mb-4 md:mb-0 relative">
-            <CoverImage
-              :file-id="book.cover_file_id || null"
-              :title="book.title"
-              :authors="(book.authors || []).map(a => a.name)"
-              class="rounded"
-            />
-            <div
-              class="absolute top-2 right-2 flex gap-1"
-              v-if="userSettings.bookDetail?.showReadTag"
-            >
-              <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
-              <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>
+            <div class="w-full max-w-[260px] mx-auto">
+              <CoverImage
+                :file-id="book.cover_file_id || null"
+                :title="book.title"
+                :authors="(book.authors || []).map(a => a.name)"
+                class="rounded w-full h-auto object-contain"
+              />
+              <div
+                class="absolute top-2 right-2 flex gap-1"
+                v-if="userSettings.bookDetail?.showReadTag"
+              >
+                <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
+                <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>
+              </div>
             </div>
           </div>
 
           <!-- 右侧详情 -->
           <div class="w-full md:w-3/4 md:pl-8 flex flex-col justify-between">
             <div>
-              <h1 class="text-3xl font-bold mb-1">{{ book.title || '#' + book.id }}</h1>
-              <div class="text-sky-600 hover:underline text-base" v-if="book.authors?.length">
+              <h1 class="text-2xl md:text-3xl font-bold mb-1">{{ book.title || '#' + book.id }}</h1>
+              <div
+                class="text-sky-600 hover:underline text-sm md:text-base break-words"
+                v-if="book.authors?.length"
+              >
                 <span v-for="(a, idx) in book.authors" :key="a.id">
                   <a href="#" @click.prevent="goBooksByAuthor(a.id)">{{ a.name }}</a>
                   <span v-if="idx < book.authors.length - 1">/</span>
@@ -129,42 +134,15 @@
                 {{ t.name }}
               </el-button>
             </div>
-            <div class="grid grid-cols-2 gap-y-1 gap-x-6 mt-5 text-gray-700 text-sm">
-              <div class="grid grid-cols-2">
-                <div>出版社：</div>
-                <div>{{ book.publisher || '' }}</div>
-
-                <div>出版日期：</div>
-                <div>{{ book.published_at || '' }}</div>
-
-                <div>语言：</div>
-                <div>{{ book.language || '' }}</div>
-
-                <div>页数：</div>
-                <div>{{ book.pages || '' }}</div>
-              </div>
-              <div class="grid grid-cols-2">
-                <div>ISBN 10：</div>
-                <div>{{ book.isbn10 || '' }}</div>
-
-                <div>ISBN 13：</div>
-                <div>{{ book.isbn13 || '' }}</div>
-
-                <div>丛书：</div>
-                <div>
-                  {{ book.series?.name ? book.series.name : '' }}
-                  {{ book.series_index ? '第' + book.series_index + '卷' : '' }}
-                </div>
-
-                <div>文件：</div>
-                <div>
-                  {{
-                    files.length > 0
-                      ? (files[0].format || '').toUpperCase() +
-                        ', ' +
-                        (files[0].size ? humanSize(files[0].size) : '')
-                      : ''
-                  }}
+            <div class="mt-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div
+                  v-for="(item, idx) in metadataEntries"
+                  :key="idx"
+                  class="flex flex-col sm:flex-row sm:items-start bg-white"
+                >
+                  <div class="text-xs text-gray-500 sm:mb-0 sm:w-24">{{ item.label }}</div>
+                  <div class="text-sm text-gray-800 break-words">{{ item.value }}</div>
                 </div>
               </div>
             </div>
@@ -294,7 +272,34 @@ function humanSize(n: number) {
   return `${v.toFixed(1)} ${units[i]}`
 }
 
-// 封面预览由 CoverImage 组件处理
+const metadataEntries = computed(() => {
+  if (!book.value) return []
+  const out: Array<{ label: string; value: string }> = []
+  const push = (label: string, val: any) => {
+    if (val === null || val === undefined) return
+    const s = String(val).trim()
+    if (s === '') return
+    out.push({ label, value: s })
+  }
+
+  push('出版社', book.value.publisher)
+  push('出版日期', book.value.published_at)
+  push('语言', book.value.language)
+  push('页数', book.value.pages)
+  push('ISBN 10', book.value.isbn10)
+  push('ISBN 13', book.value.isbn13)
+  if (book.value.series?.name) {
+    let s = book.value.series.name
+    if (book.value.series_index) s += ` — 第${book.value.series_index}卷`
+    push('丛书', s)
+  }
+  if (files.value && files.value.length > 0) {
+    const f = files.value[0]
+    const s = `${(f.format || '').toUpperCase()}${f.size ? ', ' + humanSize(f.size) : ''}`
+    push('文件', s)
+  }
+  return out
+})
 
 onMounted(async () => {
   startLoading('book')

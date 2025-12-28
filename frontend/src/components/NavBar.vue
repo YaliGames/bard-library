@@ -61,7 +61,7 @@
     <template v-else>
       <el-dropdown trigger="hover" class="hidden md:block">
         <div
-          class="el-dropdown-link flex items-center gap-2 cursor-pointer text-white hover:bg-white/5 px-2 py-1 rounded transition-colors"
+          class="el-dropdown-link flex items-center gap-2 cursor-pointer text-white hover:bg-white/5 px-2 py-1 rounded transition-colors focus:outline-none"
         >
           <el-avatar :size="28">{{ avatarLetter }}</el-avatar>
           <span class="text-sm">{{ user?.name || user?.email }}</span>

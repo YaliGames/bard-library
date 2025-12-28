@@ -29,43 +29,32 @@
       v-if="data.length > 0"
       class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
     >
-      <!-- 添加按钮卡片 (编辑模式) -->
-      <slot name="add-card" v-if="editable && showAddButton">
-        <div
-          class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 border-2 border-dashed border-gray-200"
-          @click="emit('add-click')"
-        >
-          <div class="flex flex-col items-center text-gray-500">
-            <span class="material-symbols-outlined text-3xl mb-1">add</span>
-            <div>添加书籍</div>
-          </div>
-        </div>
-      </slot>
-
       <!-- 图书卡片 -->
       <div
         v-for="book in data"
         :key="book.id"
         :class="['relative group', editable ? 'book-card-editable' : '']"
       >
-        <div class="bg-white rounded-lg shadow-sm p-4">
+        <div class="bg-white rounded-lg shadow-sm p-4 h-full">
           <div class="flex flex-col gap-1.5">
-            <router-link :to="`/books/${book.id}`">
-              <CoverImage
-                :file-id="book.cover_file_id || null"
-                :title="book.title"
-                :authors="(book.authors || []).map(a => a.name)"
-                class="rounded"
-              >
-                <template #overlay v-if="showReadTag">
-                  <el-tag v-if="book.is_read_mark" type="success" effect="dark" size="small">
-                    已读
-                  </el-tag>
-                  <el-tag v-else-if="book.is_reading" type="warning" effect="dark" size="small">
-                    正在阅读
-                  </el-tag>
-                </template>
-              </CoverImage>
+            <router-link :to="`/books/${book.id}`" class="block">
+              <div class="-mt-4 -mx-4 overflow-hidden rounded-t-lg">
+                <CoverImage
+                  :file-id="book.cover_file_id || null"
+                  :title="book.title"
+                  :authors="(book.authors || []).map(a => a.name)"
+                  class="w-full"
+                >
+                  <template #overlay v-if="showReadTag">
+                    <el-tag v-if="book.is_read_mark" type="success" effect="dark" size="small">
+                      已读
+                    </el-tag>
+                    <el-tag v-else-if="book.is_reading" type="warning" effect="dark" size="small">
+                      正在阅读
+                    </el-tag>
+                  </template>
+                </CoverImage>
+              </div>
               <div class="font-semibold mt-2">{{ book.title || '#' + book.id }}</div>
             </router-link>
 
@@ -122,26 +111,7 @@
       </div>
     </div>
 
-    <!-- 空状态 (编辑模式特殊处理) -->
-    <template v-else>
-      <div
-        v-if="editable && showAddButton"
-        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-      >
-        <slot name="add-card">
-          <div
-            class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 border-2 border-dashed border-gray-200"
-            @click="emit('add-click')"
-          >
-            <div class="flex flex-col items-center text-gray-500">
-              <span class="material-symbols-outlined text-3xl mb-1">add</span>
-              <div>添加书籍</div>
-            </div>
-          </div>
-        </slot>
-      </div>
-      <el-empty description="暂无书籍" v-else />
-    </template>
+    <el-empty v-else description="暂无书籍" />
 
     <!-- 分页 -->
     <div v-if="meta && meta.total > 0" class="mt-3 flex justify-center">
@@ -176,14 +146,12 @@ interface Props {
   loading?: boolean
   meta?: PaginationMeta | null
   editable?: boolean // 是否处于编辑模式
-  showAddButton?: boolean // 是否显示添加按钮 (编辑模式下)
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   meta: null,
   editable: false,
-  showAddButton: true,
 })
 
 interface Emits {
