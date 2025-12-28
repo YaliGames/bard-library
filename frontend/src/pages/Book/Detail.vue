@@ -232,6 +232,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useLoading } from '@/composables/useLoading'
 import { useBookActions } from '@/composables/useBookActions'
+import { humanSize } from '@/utils/file'
 
 const { handleError } = useErrorHandler()
 import { usePermission } from '@/composables/usePermission'
@@ -260,17 +261,6 @@ const isReading = computed(() => book.value?.is_reading || book.value?.is_readin
 
 const settingsStore = useSettingsStore()
 const userSettings = settingsStore.settings
-
-function humanSize(n: number) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let i = 0
-  let v = n
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024
-    i++
-  }
-  return `${v.toFixed(1)} ${units[i]}`
-}
 
 const metadataEntries = computed(() => {
   if (!book.value) return []
