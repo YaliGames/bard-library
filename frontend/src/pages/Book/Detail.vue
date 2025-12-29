@@ -80,8 +80,8 @@
       <div v-else>
         <div class="flex flex-col md:flex-row gap-6 md:gap-8 bg-white shadow-sm rounded-lg p-6">
           <!-- 左侧封面（移动端居中） -->
-          <div class="w-full md:w-48 mb-4 md:mb-0 relative">
-            <div class="w-full max-w-[260px] mx-auto">
+          <div class="w-full md:w-48 mb-4 md:mb-0">
+            <div class="w-full max-w-[260px] mx-auto relative">
               <CoverImage
                 :file-id="book.cover_file_id || null"
                 :title="book.title"
@@ -176,14 +176,11 @@
         <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2">
             <h2 class="text-lg font-medium mb-2">简介</h2>
-            <div
-              class="bg-white rounded-lg shadow-sm p-4 min-h-[80px] whitespace-pre-wrap"
-              v-if="book.description"
-            >
-              {{ book.description }}
-            </div>
-            <div v-else class="bg-white rounded-lg shadow-sm p-4 min-h-[80px] text-gray-500">
-              暂无简介
+            <div class="bg-white rounded-lg shadow-sm p-4 whitespace-pre-wrap">
+              <div v-if="book.description">
+                {{ book.description }}
+              </div>
+              <el-empty v-else description="暂无简介"></el-empty>
             </div>
           </div>
 
