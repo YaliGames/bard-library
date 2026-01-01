@@ -1,14 +1,12 @@
 <template>
-  <!-- 骨架屏 -->
-  <div
-    v-if="loading"
-    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
-  >
-    <div v-for="i in skeletonCount" :key="i" class="bg-white rounded-lg shadow-sm p-4">
-      <el-skeleton animated :loading="true">
-        <template #template>
+  <el-skeleton :loading="loading" animated>
+    <template #template>
+      <div
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      >
+        <div v-for="i in skeletonCount" :key="i" class="bg-white rounded-lg shadow-sm p-4">
           <div class="flex flex-col gap-2">
-            <div class="w-full aspect-[3/4] flex">
+            <div class="-mt-4 -mx-4 aspect-[3/4] flex">
               <el-skeleton-item variant="image" class="w-full h-full rounded" />
             </div>
             <el-skeleton-item variant="text" class="w-[70%] h-[18px] mt-1.5" />
@@ -17,14 +15,10 @@
               <el-skeleton-item variant="text" class="w-[120px] h-[18px]" />
             </div>
           </div>
-        </template>
-      </el-skeleton>
-    </div>
-  </div>
+        </div>
+      </div>
+    </template>
 
-  <!-- 内容区 -->
-  <template v-else>
-    <!-- 网格视图 -->
     <div
       v-if="data.length > 0"
       class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
@@ -112,19 +106,19 @@
     </div>
 
     <el-empty v-else description="暂无书籍" />
+  </el-skeleton>
 
-    <!-- 分页 -->
-    <div v-if="meta && meta.total > 0" class="mt-3 flex justify-center">
-      <el-pagination
-        background
-        layout="prev, pager, next, jumper"
-        :total="meta.total"
-        :page-size="meta.per_page"
-        :current-page="meta.current_page"
-        @current-change="handlePageChange"
-      />
-    </div>
-  </template>
+  <div v-if="meta && meta.total > 0" class="mt-3 flex justify-center">
+    <el-pagination
+      background
+      layout="prev, pager, next, jumper"
+      :total="meta.total"
+      :page-size="meta.per_page"
+      :current-page="meta.current_page"
+      :disabled="loading"
+      @current-change="handlePageChange"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
