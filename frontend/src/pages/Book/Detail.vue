@@ -25,7 +25,7 @@
                 <el-skeleton-item variant="text" class="w-64 h-6" />
                 <el-skeleton-item variant="rect" class="w-16 h-6 rounded" />
               </div>
-              <div class="grid grid-cols-2 gap-y-1 gap-x-6 mt-5">
+              <div class="grid grid-cols-2 gap-y-1 gap-x-6 mt-3">
                 <el-skeleton-item variant="text" class="w-full h-4 mb-2" />
                 <el-skeleton-item variant="text" class="w-full h-4 mb-2" />
                 <el-skeleton-item variant="text" class="w-full h-4 mb-2" />
@@ -76,135 +76,154 @@
       </div>
     </div>
     <div v-else>
-      <div v-if="!book">未找到该书籍</div>
-      <div v-else>
-        <div class="flex flex-col md:flex-row gap-6 md:gap-8 bg-white shadow-sm rounded-lg p-6">
-          <!-- 左侧封面（移动端居中） -->
-          <div class="w-full md:w-48 mb-4 md:mb-0">
-            <div class="w-full max-w-[260px] mx-auto relative">
-              <CoverImage
-                :file-id="book.cover_file_id || null"
-                :title="book.title"
-                :authors="(book.authors || []).map(a => a.name)"
-                class="rounded w-full h-auto object-contain"
-              />
-              <div
-                class="absolute top-2 right-2 flex gap-1"
-                v-if="userSettings.bookDetail?.showReadTag"
-              >
-                <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
-                <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>
-              </div>
-            </div>
-          </div>
-
-          <!-- 右侧详情 -->
-          <div class="w-full md:w-3/4 md:pl-8 flex flex-col justify-between">
-            <div>
-              <h1 class="text-2xl md:text-3xl font-bold mb-1">{{ book.title || '#' + book.id }}</h1>
-              <div
-                class="text-sky-600 hover:underline text-sm md:text-base break-words"
-                v-if="book.authors?.length"
-              >
-                <span v-for="(a, idx) in book.authors" :key="a.id">
-                  <a href="#" @click.prevent="goBooksByAuthor(a.id)">{{ a.name }}</a>
-                  <span v-if="idx < book.authors.length - 1">/</span>
-                </span>
-              </div>
-            </div>
-
-            <div class="flex items-center text-gray-600 mt-3 flex-wrap">
-              <el-rate :model-value="book.rating || 0" disabled text-color="#facc15" class="mr-2" />
-              <span class="text-sm mr-4 text-green-600">
-                {{ (book.rating || 0).toFixed(1) }} / 5.0
-              </span>
-              <!-- <span class="text-sm mr-4">{{ (book as any).comment_count || 0 }} comments</span> -->
-              <span class="material-symbols-outlined mr-1">book</span>
-              <span class="text-sm mr-4">平装</span>
-            </div>
-            <div v-if="book.tags?.length" class="mt-3 flex flex-wrap gap-2">
-              <el-button
-                v-for="t in book.tags"
-                :key="t.id"
-                type="primary"
-                plain
-                class="px-2 py-1 rounded-full text-xs"
-                @click="goBooksByTag(t.id)"
-              >
-                {{ t.name }}
-              </el-button>
-            </div>
-            <div class="mt-4">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div
-                  v-for="(item, idx) in metadataEntries"
-                  :key="idx"
-                  class="flex flex-col sm:flex-row sm:items-start bg-white"
-                >
-                  <div class="text-xs text-gray-500 sm:mb-0 sm:w-24">{{ item.label }}</div>
-                  <div class="text-sm text-gray-800 break-words">{{ item.value }}</div>
-                </div>
-              </div>
-            </div>
-            <BookActions
-              :book-id="book.id"
-              :files="files"
-              :continue-target="continueTarget"
-              :is-logged-in="isLoggedIn"
-              :is-read-mark="isReadMark"
-              :user="authStore.user"
-              @read="onRead"
-              @download="onDownload"
-              @toggle-read="toggleRead"
+      <div
+        v-if="book"
+        class="flex flex-col md:flex-row gap-6 md:gap-8 bg-white shadow-sm rounded-lg p-6"
+      >
+        <!-- 左侧封面（移动端居中） -->
+        <div class="w-full md:w-48 mb-4 md:mb-0">
+          <div class="w-full max-w-[260px] mx-auto relative">
+            <CoverImage
+              :file-id="book?.cover_file_id || null"
+              :title="book?.title"
+              :authors="(book?.authors || []).map(a => a.name)"
+              class="rounded w-full h-auto object-contain"
+            />
+            <div
+              class="absolute top-2 right-2 flex gap-1"
+              v-if="userSettings.bookDetail?.showReadTag && (isReadMark || isReading)"
             >
-              <template #buttons>
-                <router-link
-                  v-if="isLoggedIn && hasPermission('books.edit')"
-                  :to="`/admin/books/${book.id}`"
-                >
-                  <el-button type="default" size="large">
-                    <span class="material-symbols-outlined mr-2">edit</span>
-                    编辑本书
-                  </el-button>
-                </router-link>
-              </template>
-            </BookActions>
+              <el-tag v-if="isReadMark" type="success" size="small">已读</el-tag>
+              <el-tag v-else-if="isReading" type="warning" size="small">正在阅读</el-tag>
+            </div>
           </div>
         </div>
 
-        <!-- body：简介、章节 -->
-        <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2">
-            <h2 class="text-lg font-medium mb-2">简介</h2>
-            <div class="bg-white rounded-lg shadow-sm p-4 whitespace-pre-wrap">
-              <div v-if="book.description">
-                {{ book.description }}
-              </div>
-              <el-empty v-else description="暂无简介"></el-empty>
+        <!-- 右侧详情 -->
+        <div class="w-full md:w-3/4 md:pl-8 flex flex-col justify-between">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-bold mb-1">{{ book?.title || '未找到该书籍' }}</h1>
+            <div
+              class="text-sky-600 hover:underline text-sm md:text-base break-words"
+              v-if="book?.authors?.length"
+            >
+              <span v-for="(a, idx) in book.authors" :key="a.id">
+                <a href="#" @click.prevent="goBooksByAuthor(a.id)">{{ a.name }}</a>
+                <span v-if="idx < book.authors.length - 1">/</span>
+              </span>
             </div>
           </div>
 
-          <div>
-            <h2 class="text-lg font-medium mb-2">章节</h2>
-            <div class="bg-white rounded-lg shadow-sm p-4">
-              <div v-if="chaptersLoading" class="space-y-2">
-                <el-skeleton-item variant="text" class="w-[90%] h-[14px]" />
-                <el-skeleton-item variant="text" class="w-[80%] h-[14px]" />
-                <el-skeleton-item variant="text" class="w-[85%] h-[14px]" />
-                <el-skeleton-item variant="text" class="w-[70%] h-[14px]" />
-                <el-skeleton-item variant="text" class="w-[88%] h-[14px]" />
+          <div class="flex items-center text-gray-600 mt-3 flex-wrap">
+            <el-rate :model-value="book?.rating || 0" disabled text-color="#facc15" class="mr-2" />
+            <span class="text-sm mr-4 text-green-600">
+              {{ (book?.rating || 0).toFixed(1) }} / 5.0
+            </span>
+            <span class="material-symbols-outlined mr-1">book</span>
+            <span class="text-sm mr-4">平装</span>
+          </div>
+          <div v-if="book?.tags?.length" class="mt-3 flex flex-wrap gap-2">
+            <button
+              v-for="t in book.tags"
+              :key="t.id"
+              type="button"
+              @click="goBooksByTag(t.id)"
+              class="px-2 py-1 rounded-full text-xs bg-sky-50 text-sky-600 hover:bg-sky-100 transition"
+            >
+              {{ t.name }}
+            </button>
+          </div>
+          <div class="mt-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div
+                v-for="(item, idx) in metadataEntries"
+                :key="idx"
+                class="flex flex-col sm:flex-row sm:items-start bg-white"
+              >
+                <div class="text-xs text-gray-500 sm:mb-0 sm:w-24">{{ item.label }}</div>
+                <div class="text-sm text-gray-800 break-words">{{ item.value }}</div>
               </div>
-              <div v-else-if="chapters.length === 0" class="text-gray-500">暂无章节</div>
-              <div v-else class="max-h-[360px] overflow-auto space-y-1">
-                <div
-                  v-for="c in chapters"
-                  :key="c.index"
-                  class="px-2 py-1 rounded-md cursor-pointer transition flex items-center gap-2 hover:bg-gray-200"
-                  @click="openChapterFromDetail(c.index)"
-                >
-                  <span class="text-xs text-gray-500">#{{ c.index }}</span>
-                  <span class="truncate">{{ c.title || '(无标题)' }}</span>
-                </div>
+            </div>
+          </div>
+          <BookActions
+            v-if="book"
+            :book-id="book.id"
+            :files="files"
+            :continue-target="continueTarget"
+            :is-logged-in="isLoggedIn"
+            :is-read-mark="isReadMark"
+            :user="authStore.user"
+            @read="onRead"
+            @download="onDownload"
+            @toggle-read="toggleRead"
+          >
+            <template #buttons>
+              <router-link
+                v-if="isLoggedIn && hasPermission('books.edit') && book"
+                :to="`/admin/books/${book.id}`"
+              >
+                <el-button type="default" size="large">
+                  <span class="material-symbols-outlined mr-2">edit</span>
+                  编辑本书
+                </el-button>
+              </router-link>
+            </template>
+          </BookActions>
+        </div>
+      </div>
+
+      <div v-else class="flex flex-col bg-white shadow-sm rounded-lg text-center p-8">
+        <div class="text-gray-300 mb-2">
+          <span class="material-symbols-outlined text-6xl">search_off</span>
+        </div>
+        <h3 class="text-xl font-semibold mb-2">未找到该书籍</h3>
+        <p class="text-sm text-gray-600 mb-4">书籍已被删除或不存在，请返回书籍列表浏览更多内容。</p>
+        <div class="flex items-center justify-center gap-3">
+          <router-link :to="{ name: 'books' }" class="inline-block">
+            <el-button type="primary">返回书籍列表</el-button>
+          </router-link>
+          <router-link
+            v-if="isLoggedIn && hasPermission('books.create')"
+            :to="{ path: '/admin/books/create' }"
+            class="inline-block"
+          >
+            <el-button type="default">创建新书</el-button>
+          </router-link>
+        </div>
+      </div>
+
+      <!-- body：简介、章节 -->
+      <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+          <h2 class="text-lg font-medium mb-2">简介</h2>
+          <div class="bg-white rounded-lg shadow-sm p-4 whitespace-pre-wrap">
+            <div v-if="book?.description">
+              {{ book.description }}
+            </div>
+            <el-empty v-else description="暂无简介"></el-empty>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-lg font-medium mb-2">章节</h2>
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <div v-if="chaptersLoading" class="space-y-2">
+              <el-skeleton-item variant="text" class="w-[90%] h-[14px]" />
+              <el-skeleton-item variant="text" class="w-[80%] h-[14px]" />
+              <el-skeleton-item variant="text" class="w-[85%] h-[14px]" />
+              <el-skeleton-item variant="text" class="w-[70%] h-[14px]" />
+              <el-skeleton-item variant="text" class="w-[88%] h-[14px]" />
+            </div>
+            <el-empty v-else-if="chapters.length === 0" description="暂无章节"></el-empty>
+            <div v-else class="max-h-[360px] overflow-auto space-y-1">
+              <div
+                v-for="c in chapters"
+                :key="c.index"
+                class="px-2 py-1 rounded-md cursor-pointer transition flex items-center gap-2 hover:bg-gray-200"
+                @click="openChapterFromDetail(c.index)"
+              >
+                <span class="text-xs text-gray-500">#{{ c.index }}</span>
+                <span class="truncate">{{ c.title || '(无标题)' }}</span>
               </div>
             </div>
           </div>
